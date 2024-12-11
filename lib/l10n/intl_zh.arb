@@ -1,0 +1,17 @@
+{
+  "debugTitle": "开发调试",
+  "searchHint": "搜索漫画...",
+  "libraryTitle": "书架",
+  "downloadTitle": "下载",
+  "settingsTitle": "设置",
+  "appearanceTitle": "外观",
+  "appearanceThemeTitle": "主题",
+  "appearanceThemeDarkMode": "夜间模式",
+  "themePreviewTitle": "主题预览",
+  "navigationPrev": "上页",
+  "navigationMenu": "菜单",
+  "navigationNext": "下页",
+  "imagesLoadError": "图片加载失败",
+  "loadFailed": "加载失败",
+  "retry": "重试"
+}

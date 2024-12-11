@@ -1,0 +1,10 @@
+# 配置路径
+arb-dir: lib/l10n
+# 延迟加载
+use-deferred-loading: true
+# 配置模板
+template-arb-file: intl_en.arb
+# 输出类名
+output-class: TsukuyomiLocalizations
+# 输出文件
+output-localization-file: tsukuyomi_localizations.dart

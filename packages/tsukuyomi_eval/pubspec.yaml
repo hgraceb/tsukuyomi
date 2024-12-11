@@ -1,0 +1,25 @@
+name: tsukuyomi_eval
+description: Dart interpreter for Tsukuyomi.
+publish_to: 'none'
+version: 0.0.1
+
+environment:
+  sdk: '>=3.1.5 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 代码注解
+  meta: any
+  # 集合操作
+  collection: ^1.17.0
+  # 网络请求
+  dio: ^5.3.2
+  # Dart 代码静态解析
+  analyzer: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0

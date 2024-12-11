@@ -1,11 +1,11 @@
 {
-    "name": "reader",
-    "short_name": "reader",
+    "name": "Tsukuyomi",
+    "short_name": "Tsukuyomi",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Flop's Reader",
+    "description": "Tsukuyomi is an open-source manga reader built with Flutter.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

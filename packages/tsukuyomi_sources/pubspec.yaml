@@ -1,0 +1,30 @@
+name: tsukuyomi_sources
+description: Sources for Tsukuyomi.
+publish_to: 'none'
+version: 0.0.1
+
+environment:
+  sdk: '>=3.1.5 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 网页解析
+  tsukuyomi_html:
+    path: ../tsukuyomi_html
+
+  # 网络请求
+  dio: ^5.3.2
+  # 图像处理
+  image: ^3.3.0
+  # 静态 Dart 代码解析器
+  analyzer: ^6.0.0
+  # 本地缓存文件管理
+  flutter_cache_manager: ^3.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0

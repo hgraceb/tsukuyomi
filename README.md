@@ -1,6 +1,6 @@
-# reader
+# Tsukuyomi
 
-Flop's Reader
+Tsukuyomi is an open-source manga reader built with Flutter.
 
 ## Getting Started
 

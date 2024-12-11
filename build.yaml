@@ -1,0 +1,22 @@
+targets:
+  $default:
+    builders:
+      # Drift 编译选项：https://drift.simonbinder.eu/docs/advanced-features/builder_options/
+      drift_dev:
+        options:
+          # 是否以 mixin 方式生成 toColumns 方法
+          write_to_columns_mixins: true
+      # Drift 网页代码：https://drift.simonbinder.eu/web/#flutter
+      # dart run build_runner build --release --delete-conflicting-outputs -o web:build/web/
+      # cp -f build/web/worker.dart.js web/drift_worker.js
+      build_web_compilers:entrypoint:
+        generate_for:
+          - web/**.dart
+        options:
+          compiler: dart2js
+        dev_options:
+          dart2js_args:
+            - --no-minify
+        release_options:
+          dart2js_args:
+            - -O4

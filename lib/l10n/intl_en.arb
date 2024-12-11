@@ -1,0 +1,17 @@
+{
+  "debugTitle": "Debug",
+  "searchHint": "Search mangas...",
+  "libraryTitle": "Library",
+  "downloadTitle": "Download",
+  "settingsTitle": "Settings",
+  "appearanceTitle": "Appearance",
+  "appearanceThemeTitle": "Theme",
+  "appearanceThemeDarkMode": "Dark mode",
+  "themePreviewTitle": "Theme Preview",
+  "navigationPrev": "Prev",
+  "navigationMenu": "Menu",
+  "navigationNext": "Next",
+  "imagesLoadError": "Images load error",
+  "loadFailed": "Load failed",
+  "retry": "Retry"
+}
