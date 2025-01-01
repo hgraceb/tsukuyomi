@@ -71,6 +71,12 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
+  Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields) async {
+    final bytes = await fetchBytes(url);
+    return SourceProtoMessage.fromBuffer(fields, bytes.data);
+  }
+
+  @override
   Future<Image> resolveImageBytes(List<int> bytes) {
     final completer = Completer<Image>();
     final imageProvider = MemoryImage(bytes is Uint8List ? bytes : Uint8List.fromList(bytes));

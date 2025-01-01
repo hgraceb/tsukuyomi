@@ -23,6 +23,9 @@ abstract class HttpSource extends Source {
   /// 请求 List<int> 格式数据 TODO 判断是否需要限制访问权限
   external Future<HttpSourceBytes> fetchBytes(String url);
 
+  /// 请求 Protobuf 格式数据 TODO 判断是否需要限制访问权限
+  external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields);
+
   /// 解析 List<int> 格式图片数据
   external Future<Image> resolveImageBytes(List<int> bytes);
 
