@@ -17,9 +17,9 @@ class SourceProtoField {
 
   SourceProtoField.optionalDouble(this.tagNumber) : type = PbFieldType.OD;
 
-  // SourceProtoField.optionalEnum(this.tagNumber) : type = PbFieldType.OE;
+  SourceProtoField.optionalEnum(this.tagNumber) : type = PbFieldType.OE;
 
-  // SourceProtoField.optionalGroup(this.tagNumber) : type = PbFieldType.OG;
+  SourceProtoField.optionalGroup(this.tagNumber) : type = PbFieldType.OG;
 
   SourceProtoField.optionalInt32(this.tagNumber) : type = PbFieldType.O3;
 
@@ -53,9 +53,9 @@ class SourceProtoField {
 
   SourceProtoField.repeatedDouble(this.tagNumber) : type = PbFieldType.PD;
 
-  // SourceProtoField.repeatedEnum(this.tagNumber) : type = PbFieldType.PE;
+  SourceProtoField.repeatedEnum(this.tagNumber) : type = PbFieldType.PE;
 
-  // SourceProtoField.repeatedGroup(this.tagNumber) : type = PbFieldType.PG;
+  SourceProtoField.repeatedGroup(this.tagNumber) : type = PbFieldType.PG;
 
   SourceProtoField.repeatedInt32(this.tagNumber) : type = PbFieldType.P3;
 

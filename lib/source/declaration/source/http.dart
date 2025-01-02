@@ -25,6 +25,9 @@ abstract class HttpSource extends Source {
   // ${$.debug('fetchBytes', ($, $$) => $.fetchBytes)}
   external Future<List<int>> fetchBytes(String url);
 
+  // ${$.debug('fetchProto', ($, $$) => $.fetchProto)}
+  external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields);
+
   // ${$.debug('resolveImageBytes', ($, $$) => $.resolveImageBytes)}
   external Future<Image> resolveImageBytes(List<int> bytes);
 
