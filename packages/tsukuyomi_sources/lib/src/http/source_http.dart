@@ -14,17 +14,20 @@ abstract class HttpSource extends Source {
   /// 解析 HTML 格式文本
   external Document parseHtml(String html);
 
+  /// 解析 Protobuf 格式数据
+  external SourceProtoMessage parseProto(List<int> buffer, SourceProtoFields fields);
+
   /// 请求 JSON 格式数据 TODO 判断是否需要限制访问权限
-  external Future<dynamic> fetchJson(String url);
+  external Future<dynamic> fetchJson(String url, {String? method});
 
   /// 请求 HTML 格式数据 TODO 判断是否需要限制访问权限
-  external Future<Document> fetchHtml(String url);
+  external Future<Document> fetchHtml(String url, {String? method});
 
   /// 请求 List<int> 格式数据 TODO 判断是否需要限制访问权限
-  external Future<HttpSourceBytes> fetchBytes(String url);
+  external Future<HttpSourceBytes> fetchBytes(String url, {String? method});
 
   /// 请求 Protobuf 格式数据 TODO 判断是否需要限制访问权限
-  external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields);
+  external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {String? method});
 
   /// 解析 List<int> 格式图片数据
   external Future<Image> resolveImageBytes(List<int> bytes);

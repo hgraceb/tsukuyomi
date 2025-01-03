@@ -74,6 +74,7 @@ List<DartClass> get $dynamic {
       'parentNode': (($) => $.parentNode, ($, $$) => $.parentNode = $$),
       'parseHtml': (($) => $.parseHtml, ($, $$) => $.parseHtml = $$),
       'parseJson': (($) => $.parseJson, ($, $$) => $.parseJson = $$),
+      'parseProto': (($) => $.parseProto, ($, $$) => $.parseProto = $$),
       'prefix': (($) => $.prefix, ($, $$) => $.prefix = $$),
       'previousElementSibling': (($) => $.previousElementSibling, ($, $$) => $.previousElementSibling = $$),
       'public': (($) => $.public, ($, $$) => $.public = $$),
