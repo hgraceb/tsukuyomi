@@ -75,7 +75,7 @@ class _ChapterPageState extends ConsumerState<ChapterPage> {
             ),
             builder: (state) => const SizedBox.shrink(),
             data: (state) => TsukuyomiInteractiveList.builder(
-              itemKeys: List.generate(images.length, (index) => index).toSet(),
+              itemKeys: List.generate(images.length, (index) => index),
               controller: state.listController,
               initialScrollIndex: state.initialIndex,
               onScaleUpdate: notifier.onListScaleUpdate,

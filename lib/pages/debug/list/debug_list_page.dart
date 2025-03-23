@@ -13,17 +13,18 @@ class DebugListPage extends StatefulWidget {
 
 class _DebugListPageState extends State<DebugListPage> {
   bool _compare = false;
-  final _itemCount = 100;
+  int _itemKey = 0;
+  int _itemCount = 100;
+  final _random = math.Random(2147483647);
   final _listController = TsukuyomiListController();
+  late final List<Object> _itemKeys;
   late final List<double> _itemExtents;
 
   @override
   void initState() {
     super.initState();
-    final heightGenerator = math.Random(2147483647);
-    _itemExtents = List.generate(_itemCount, (index) {
-      return 80.0 + heightGenerator.nextInt(120);
-    });
+    _itemKeys = List.generate(_itemCount, (index) => _itemKey++);
+    _itemExtents = List.generate(_itemCount, (index) => 80.0 + _random.nextInt(120));
   }
 
   @override
@@ -44,7 +45,7 @@ class _DebugListPageState extends State<DebugListPage> {
         Flexible(
           child: Stack(children: [
             TsukuyomiInteractiveList.builder(
-              itemCount: _itemCount,
+              itemKeys: _itemKeys,
               itemBuilder: (context, index) => _buildItem(index),
               controller: _listController,
               debugMask: true,
@@ -56,6 +57,8 @@ class _DebugListPageState extends State<DebugListPage> {
               onDown: () => _listController.slideViewport(0.75),
               onDoubleUp: () => _listController.jumpToIndex(0),
               onDoubleDown: () => _listController.jumpToIndex(_itemCount - 1),
+              onAdd: _onAddItems,
+              onRemove: _onRemoveItems,
               onToggleCompare: () => setState(() => _compare = !_compare),
             ),
           ]),
@@ -71,12 +74,13 @@ class _DebugListPageState extends State<DebugListPage> {
         () => _itemExtents[index].toDouble(),
       ),
       builder: (context, snapshot) {
+        final itemKey = _itemKeys[index];
         if (snapshot.hasData) {
           return Card(
             child: SizedBox(
               width: snapshot.data!,
               height: snapshot.data!,
-              child: Center(child: Text('Item $index')),
+              child: Center(child: Text('Item $itemKey')),
             ),
           );
         }
@@ -99,7 +103,7 @@ class _DebugListPageState extends State<DebugListPage> {
                 ),
                 Flexible(
                   flex: 10,
-                  child: Text('Item $index'),
+                  child: Text('Item $itemKey'),
                 ),
               ],
             ),
@@ -107,6 +111,19 @@ class _DebugListPageState extends State<DebugListPage> {
         );
       },
     );
+  }
+
+  void _onAddItems() {
+    for (var i = 0; i <= _random.nextInt(10); i++) {
+      final position = _random.nextInt(_itemCount++);
+      _itemKeys.insert(position, _itemKey++);
+      _itemExtents.insert(position, 80.0 + _random.nextInt(120));
+    }
+    setState(() {});
+  }
+
+  void _onRemoveItems() {
+    // TODO
   }
 }
 
@@ -116,6 +133,8 @@ class _FloatingActions extends StatelessWidget {
     required this.onDown,
     required this.onDoubleUp,
     required this.onDoubleDown,
+    required this.onAdd,
+    required this.onRemove,
     required this.onToggleCompare,
   });
 
@@ -126,6 +145,10 @@ class _FloatingActions extends StatelessWidget {
   final VoidCallback onDoubleUp;
 
   final VoidCallback onDoubleDown;
+
+  final VoidCallback onAdd;
+
+  final VoidCallback onRemove;
 
   final VoidCallback onToggleCompare;
 
@@ -170,6 +193,24 @@ class _FloatingActions extends StatelessWidget {
               heroTag: null,
               onPressed: () => onDoubleDown(),
               child: const Icon(Icons.keyboard_double_arrow_down),
+            ),
+          ),
+          const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),
+          Flexible(
+            child: FloatingActionButton(
+              mini: true,
+              heroTag: null,
+              onPressed: () => onAdd(),
+              child: const Icon(Icons.add),
+            ),
+          ),
+          const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),
+          Flexible(
+            child: FloatingActionButton(
+              mini: true,
+              heroTag: null,
+              onPressed: () => onRemove(),
+              child: const Icon(Icons.remove),
             ),
           ),
           const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),

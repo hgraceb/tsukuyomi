@@ -29,7 +29,7 @@ class TsukuyomiInteractiveList extends StatefulWidget {
   });
 
   /// 列表项标识
-  final Set<Object> itemKeys;
+  final List<Object> itemKeys;
 
   /// 列表初始位置索引
   final int initialScrollIndex;

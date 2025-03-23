@@ -39,7 +39,7 @@ class TsukuyomiList extends StatefulWidget {
         assert(anchor == null || (anchor >= 0.0 && anchor <= 1.0));
 
   /// 列表项标识
-  final Set<Object> itemKeys;
+  final List<Object> itemKeys;
 
   /// 列表项构建器
   final IndexedWidgetBuilder itemBuilder;
@@ -118,8 +118,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     // 对比列表数据差异
     if (widget.itemKeys.length != oldWidget.itemKeys.length) {
       int? newCenterIndex, newAnchorIndex;
-      final oldCenterKey = oldWidget.itemKeys.elementAt(_centerIndex);
-      final oldAnchorKey = oldWidget.itemKeys.elementAt(_anchorIndex);
+      final oldCenterKey = oldWidget.itemKeys[_centerIndex];
+      final oldAnchorKey = oldWidget.itemKeys[_anchorIndex];
       for (final (index, key) in widget.itemKeys.indexed) {
         newCenterIndex ??= key == oldCenterKey ? index : null;
         newAnchorIndex ??= key == oldAnchorKey ? index : null;
@@ -127,7 +127,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       }
       _centerIndex = (newCenterIndex ?? _centerIndex).clamp(0, widget.itemKeys.length);
       _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, widget.itemKeys.length);
-      _addedItemKeys = widget.itemKeys.difference(oldWidget.itemKeys);
+      _addedItemKeys = widget.itemKeys.toSet().difference(oldWidget.itemKeys.toSet());
       // 布局调整完成后重置数据
       SchedulerBinding.instance.addPostFrameCallback((_) => _addedItemKeys.clear());
     }
@@ -292,7 +292,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   Widget _buildItem(BuildContext context, int index) {
-    final itemKey = widget.itemKeys.elementAt(index);
+    final itemKey = widget.itemKeys[index];
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
       key: ValueKey(itemKey),
