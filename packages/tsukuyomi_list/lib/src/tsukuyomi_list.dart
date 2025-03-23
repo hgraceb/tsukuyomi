@@ -83,10 +83,10 @@ class TsukuyomiList extends StatefulWidget {
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
   Set<Object> _addedItemKeys = {};
+  late Map<Object, _TsukuyomiListItemExtent?> _extents;
   late int _centerIndex, _anchorIndex;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
-  final _extents = <Object, _TsukuyomiListItemExtent>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -99,6 +99,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   void initState() {
     super.initState();
     _centerIndex = _anchorIndex = widget.initialScrollIndex;
+    _extents = {for (final value in widget.itemKeys) value: null};
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -113,21 +114,24 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     }
     // 重置列表项尺寸
     if (widget.scrollDirection != oldWidget.scrollDirection) {
-      _extents.clear();
+      _extents.updateAll((_, __) => null);
     }
     // 对比列表数据差异
-    if (widget.itemKeys.length != oldWidget.itemKeys.length) {
+    if (widget.itemKeys.length != _extents.length) {
       int? newCenterIndex, newAnchorIndex;
-      final oldCenterKey = oldWidget.itemKeys[_centerIndex];
-      final oldAnchorKey = oldWidget.itemKeys[_anchorIndex];
-      for (final (index, key) in widget.itemKeys.indexed) {
+      final newItemKeys = widget.itemKeys;
+      final oldItemKeys = _extents.keys.toList(growable: false);
+      final oldCenterKey = oldItemKeys[_centerIndex];
+      final oldAnchorKey = oldItemKeys[_anchorIndex];
+      for (final (index, key) in newItemKeys.indexed) {
         newCenterIndex ??= key == oldCenterKey ? index : null;
         newAnchorIndex ??= key == oldAnchorKey ? index : null;
         if (newCenterIndex != null && newAnchorIndex != null) break;
       }
-      _centerIndex = (newCenterIndex ?? _centerIndex).clamp(0, widget.itemKeys.length);
-      _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, widget.itemKeys.length);
-      _addedItemKeys = widget.itemKeys.toSet().difference(oldWidget.itemKeys.toSet());
+      _centerIndex = (newCenterIndex ?? _centerIndex).clamp(0, newItemKeys.length);
+      _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, newItemKeys.length);
+      _addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
+      _extents = {for (final value in newItemKeys) value: _extents[value]};
       // 布局调整完成后重置数据
       SchedulerBinding.instance.addPostFrameCallback((_) => _addedItemKeys.clear());
     }
@@ -385,6 +389,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   bool _updateScheduled = false;
+
   void _scheduleUpdateItems() {
     if (_updateScheduled) return;
     _updateScheduled = true;
@@ -446,7 +451,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _scrollController.jumpTo(0.0);
       _centerIndex = _anchorIndex = index;
       // 将所有当前未渲染的列表项的尺寸信息设置为不可复用，避免在列表位置跳转时列表项尺寸快速变化
-      _extents.updateAll((_, value) => value.copyWith(reusable: value.mounted));
+      _extents.updateAll((_, value) => value?.copyWith(reusable: value.mounted));
     });
   }
 
