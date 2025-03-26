@@ -17,7 +17,6 @@ void main() {
     }
 
     await tester.pumpWidget(builder(0));
-    await tester.pumpAndSettle();
     expect(find.text('0'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
     expect(find.text('2'), findsNothing);
