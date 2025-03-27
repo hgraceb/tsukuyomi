@@ -51,7 +51,7 @@ void main() {
       );
     }
 
-    // 默认显示前面两个元素
+    // 默认只显示前面两个元素
     await tester.pumpWidget(builder(0));
     expect(find.text('0'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
@@ -93,7 +93,7 @@ void main() {
       );
     }
 
-    // 默认显示前面两个元素
+    // 默认只显示前面两个元素
     await tester.pumpWidget(builder(0));
     expect(find.text('0'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
