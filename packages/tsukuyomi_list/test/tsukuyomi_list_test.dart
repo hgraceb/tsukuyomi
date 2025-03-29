@@ -177,7 +177,7 @@ void main() {
     expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5]);
 
     // 正向滚动一定距离让第二个元素作为新的锚点元素
-    unawaited(controller.slideViewport(0.125));
+    unawaited(controller.slideViewport(75 / 600));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, -325.0);
     expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5, 6]);
@@ -193,6 +193,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.position.pixels, -325.0);
     expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5, 6]);
+
+    // 正向滚动一定距离让倒数第二个元素作为新的锚点元素
+    unawaited(controller.slideViewport(250 / 600));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -75.0);
+    expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8, 9]);
+
+    // 列表项尺寸动态增大时能够锚定倒数第二个元素的位置
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 150.0)));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, 125.0);
+    expectList(length: itemCount, visible: [4, 5, 6, 7, 8]);
+
+    // 列表项尺寸动态减小时能够锚定倒数第二个元素的位置
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -75.0);
+    expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8, 9]);
   });
 
   testWidgets('TsukuyomiList respects anchor at 0.5', (WidgetTester tester) async {
