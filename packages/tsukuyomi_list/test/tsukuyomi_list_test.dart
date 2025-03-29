@@ -21,15 +21,15 @@ void main() {
     const itemCount = 10;
     final controller = TsukuyomiListController();
 
-    Widget builder(int initialScrollIndex) {
+    Widget builder(index) {
       return Directionality(
-        key: ValueKey(initialScrollIndex),
+        key: ValueKey(index),
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemCount: itemCount,
           itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
           controller: controller,
-          initialScrollIndex: initialScrollIndex,
+          initialScrollIndex: index,
         ),
       );
     }
