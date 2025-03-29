@@ -37,6 +37,7 @@ void main() {
     // 可以指定初始元素并越界显示
     for (int i = 0; i < itemCount; i++) {
       await tester.pumpWidget(builder(i));
+      expect(controller.centerIndex, i);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemCount, visible: List.generate(math.min(6, itemCount - i), (index) => index + i));
     }
@@ -62,6 +63,7 @@ void main() {
     for (int i = 0; i < itemCount; i++) {
       controller.jumpToIndex(i);
       await tester.pump();
+      expect(controller.centerIndex, i);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemCount, visible: List.generate(math.min(6, itemCount - i), (index) => index + i));
     }
@@ -85,6 +87,7 @@ void main() {
     // 默认显示首屏的元素
     int current = 0;
     await tester.pumpWidget(builder());
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
@@ -92,6 +95,7 @@ void main() {
     current += 0;
     unawaited(controller.slideViewport(0.0));
     await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
@@ -99,18 +103,21 @@ void main() {
     current += 3;
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
     // 正向滚动一个屏幕的距离
     current += 6;
     unawaited(controller.slideViewport(1.0));
     await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
     // 正向滚动越界时停止滚动
     current += 5;
     unawaited(controller.slideViewport(1.0));
     await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
@@ -118,18 +125,21 @@ void main() {
     current -= 6;
     unawaited(controller.slideViewport(-1.0));
     await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
     // 逆向滚动半个屏幕的距离
     current -= 3;
     unawaited(controller.slideViewport(-0.5));
     await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
     // 逆向滚动越界时停止滚动
     current -= 5;
     unawaited(controller.slideViewport(-1.0));
     await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
     expect(current, 0);

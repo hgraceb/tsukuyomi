@@ -507,6 +507,12 @@ class TsukuyomiListController {
   }
 
   @visibleForTesting
+  int get centerIndex {
+    assert(_tsukuyomiListState != null);
+    return _tsukuyomiListState!._centerIndex;
+  }
+
+  @visibleForTesting
   int get anchorIndex {
     assert(_tsukuyomiListState != null);
     return _tsukuyomiListState!._anchorIndex;
