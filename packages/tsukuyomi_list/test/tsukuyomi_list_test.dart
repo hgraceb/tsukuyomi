@@ -107,4 +107,26 @@ void main() {
     await tester.pumpAndSettle();
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
   });
+
+  testWidgets('TsukuyomiList respects anchor', (WidgetTester tester) async {
+    const itemCount = 20;
+    final controller = TsukuyomiListController();
+
+    Widget builder(double anchor) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: TsukuyomiList.builder(
+          itemCount: itemCount,
+          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
+          controller: controller,
+          anchor: anchor,
+        ),
+      );
+    }
+
+    await tester.pumpWidget(builder(0.0));
+    unawaited(controller.slideViewport(1.0));
+    await tester.pumpAndSettle();
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + 6));
+  });
 }
