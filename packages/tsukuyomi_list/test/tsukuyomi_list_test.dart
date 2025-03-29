@@ -4,6 +4,15 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
 
+void expectList({List<int> visible = const [], List<int> hidden = const []}) {
+  for (final i in visible) {
+    expect(find.text('$i'), findsOneWidget);
+  }
+  for (final i in hidden) {
+    expect(find.text('$i'), findsNothing);
+  }
+}
+
 void main() {
   testWidgets('TsukuyomiList respects initialScrollIndex', (WidgetTester tester) async {
     Widget builder(int initialScrollIndex) {
@@ -20,21 +29,15 @@ void main() {
 
     // 从第一个元素开始显示
     await tester.pumpWidget(builder(0));
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsNothing);
+    expectList(visible: [0, 1], hidden: [2]);
 
     // 从第二个元素开始显示
     await tester.pumpWidget(builder(1));
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expectList(visible: [1, 2], hidden: [0]);
 
     // 从第三个元素开始显示
     await tester.pumpWidget(builder(2));
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsNothing);
-    expect(find.text('2'), findsOneWidget);
+    expectList(visible: [2], hidden: [0, 1]);
   });
 
   testWidgets('TsukuyomiList respects TsukuyomiListController.jumpToIndex', (WidgetTester tester) async {
@@ -53,30 +56,22 @@ void main() {
 
     // 默认只显示前面两个元素
     await tester.pumpWidget(builder(0));
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsNothing);
+    expectList(visible: [0, 1], hidden: [2]);
 
     // 可以跳转到当前位置的元素
     controller.jumpToIndex(0);
     await tester.pump();
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsNothing);
+    expectList(visible: [0, 1], hidden: [2]);
 
     // 可以跳转到指定位置的元素
     controller.jumpToIndex(1);
     await tester.pump();
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expectList(visible: [1, 2], hidden: [0]);
 
     // 可以跳转到指定位置的元素并越界显示
     controller.jumpToIndex(2);
     await tester.pump();
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsNothing);
-    expect(find.text('2'), findsOneWidget);
+    expectList(visible: [2], hidden: [0, 1]);
   });
 
   testWidgets('TsukuyomiList respects TsukuyomiListController.slideViewport', (WidgetTester tester) async {
@@ -95,30 +90,20 @@ void main() {
 
     // 默认只显示前面两个元素
     await tester.pumpWidget(builder(0));
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsNothing);
+    expectList(visible: [0, 1], hidden: [2]);
 
     // 滚动半个屏幕的距离
     unawaited(controller.slideViewport(0.5));
     await tester.pump();
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsNothing);
+    expectList(visible: [0, 1], hidden: [2]);
     await tester.pumpAndSettle();
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expectList(visible: [1, 2], hidden: [0]);
 
     // 不进行越界滚动
     unawaited(controller.slideViewport(0.5));
     await tester.pump();
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expectList(visible: [1, 2], hidden: [0]);
     await tester.pumpAndSettle();
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expectList(visible: [1, 2], hidden: [0]);
   });
 }
