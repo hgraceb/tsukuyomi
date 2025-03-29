@@ -140,7 +140,7 @@ void main() {
   });
 
   testWidgets('TsukuyomiList respects anchor', (WidgetTester tester) async {
-    const itemCount = 20;
+    const itemCount = 10;
     final controller = TsukuyomiListController();
 
     Widget builder({required double anchor, required List<double> itemHeights}) {
