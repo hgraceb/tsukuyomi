@@ -82,7 +82,7 @@ void main() {
       );
     }
 
-    // 默认只显示初始元素
+    // 默认显示首屏的元素
     int current = 0;
     await tester.pumpWidget(builder());
     expect(controller.position.pixels, current * 100.0);
@@ -95,26 +95,48 @@ void main() {
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
-    // 滚动半个屏幕的距离
+    // 正向滚动半个屏幕的距离
     current += 3;
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
-    // 滚动一个屏幕的距离
+    // 正向滚动一个屏幕的距离
     current += 6;
     unawaited(controller.slideViewport(1.0));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
-    // 越界之后不继续滚动
+    // 正向滚动越界时停止滚动
     current += 5;
     unawaited(controller.slideViewport(1.0));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
+
+    // 逆向滚动一个屏幕的距离
+    current -= 6;
+    unawaited(controller.slideViewport(-1.0));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, current * 100.0);
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
+
+    // 逆向滚动半个屏幕的距离
+    current -= 3;
+    unawaited(controller.slideViewport(-0.5));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, current * 100.0);
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
+
+    // 逆向滚动越界时停止滚动
+    current -= 5;
+    unawaited(controller.slideViewport(-1.0));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, current * 100.0);
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
+    expect(current, 0);
   });
 
   testWidgets('TsukuyomiList respects anchor', (WidgetTester tester) async {
