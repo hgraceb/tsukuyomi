@@ -5,18 +5,18 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
 
-void expectList({required int length, required List<int> visible}) {
-  assert(length > 0, length);
-  final hidden = List.generate(length, (i) => i).toSet().difference(visible.toSet());
-  for (final i in visible) {
-    expect(find.text('$i'), findsOneWidget);
-  }
-  for (final i in hidden) {
-    expect(find.text('$i'), findsNothing);
-  }
-}
-
 void main() {
+  void expectList({required int length, required List<int> visible}) {
+    assert(length > 0, length);
+    final hidden = List.generate(length, (i) => i).toSet().difference(visible.toSet());
+    for (final i in visible) {
+      expect(find.text('$i'), findsOneWidget);
+    }
+    for (final i in hidden) {
+      expect(find.text('$i'), findsNothing);
+    }
+  }
+
   testWidgets('TsukuyomiList respects initialScrollIndex', (WidgetTester tester) async {
     const itemCount = 10;
 
@@ -64,36 +64,47 @@ void main() {
   });
 
   testWidgets('TsukuyomiList respects TsukuyomiListController.slideViewport', (WidgetTester tester) async {
-    const itemCount = 3;
+    const itemCount = 20;
     final controller = TsukuyomiListController();
 
-    Widget builder(int initialScrollIndex) {
+    Widget builder() {
       return Directionality(
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemCount: itemCount,
-          itemBuilder: (context, index) => SizedBox(height: 300.0, child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
           controller: controller,
         ),
       );
     }
 
-    // 默认只显示前面两个元素
-    await tester.pumpWidget(builder(0));
-    expectList(length: itemCount, visible: [0, 1]);
+    // 默认只显示初始元素
+    int current = 0;
+    await tester.pumpWidget(builder());
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
+
+    // 滚动零个屏幕的距离
+    current += 0;
+    unawaited(controller.slideViewport(0.0));
+    await tester.pumpAndSettle();
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
     // 滚动半个屏幕的距离
+    current += 3;
     unawaited(controller.slideViewport(0.5));
-    await tester.pump();
-    expectList(length: itemCount, visible: [0, 1]);
     await tester.pumpAndSettle();
-    expectList(length: itemCount, visible: [1, 2]);
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
-    // 不进行越界滚动
-    unawaited(controller.slideViewport(0.5));
-    await tester.pump();
-    expectList(length: itemCount, visible: [1, 2]);
+    // 滚动一个屏幕的距离
+    current += 6;
+    unawaited(controller.slideViewport(1.0));
     await tester.pumpAndSettle();
-    expectList(length: itemCount, visible: [1, 2]);
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
+
+    // 越界之后不继续滚动
+    current += 5;
+    unawaited(controller.slideViewport(1.0));
+    await tester.pumpAndSettle();
+    expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
   });
 }
