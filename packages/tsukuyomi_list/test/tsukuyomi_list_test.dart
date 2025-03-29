@@ -48,7 +48,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemCount: itemCount,
-          itemBuilder: (context, index) => SizedBox(height: 300.0, child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
           controller: controller,
         ),
       );
@@ -57,7 +57,7 @@ void main() {
     // 可以跳转到指定位置的元素并越界显示
     await tester.pumpWidget(builder());
     for (int i = 0; i < itemCount; i++) {
-      controller.jumpToIndex(0);
+      controller.jumpToIndex(i);
       await tester.pump();
       expectList(length: itemCount, visible: List.generate(math.min(6, itemCount - i), (index) => index + i));
     }
