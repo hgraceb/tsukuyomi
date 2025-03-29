@@ -139,37 +139,37 @@ void main() {
     expect(current, 0);
   });
 
-  testWidgets('TsukuyomiList respects anchor', (WidgetTester tester) async {
+  testWidgets('TsukuyomiList respects anchor at 0.5', (WidgetTester tester) async {
     const itemCount = 10;
     final controller = TsukuyomiListController();
 
-    Widget builder({required double anchor, required List<double> itemHeights}) {
+    Widget builder({required List<double> itemHeights}) {
       return Directionality(
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemCount: itemCount,
           itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('$index')),
           controller: controller,
-          anchor: anchor,
+          anchor: 0.5,
         ),
       );
     }
 
     // 初始化列表并正向滚动半个屏幕的距离
-    await tester.pumpWidget(builder(anchor: 0.5, itemHeights: List.generate(itemCount, (index) => 100.0)));
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, 300.0);
     expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8]);
 
     // 列表项尺寸动态增大时能够锚定滚动位置
-    await tester.pumpWidget(builder(anchor: 0.5, itemHeights: List.generate(itemCount, (index) => 150.0)));
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 150.0)));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, 600.0);
     expectList(length: itemCount, visible: [4, 5, 6, 7]);
 
     // 列表项尺寸动态减小时能够锚定滚动位置
-    await tester.pumpWidget(builder(anchor: 0.5, itemHeights: List.generate(itemCount, (index) => 100.0)));
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, 300.0);
     expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8]);
