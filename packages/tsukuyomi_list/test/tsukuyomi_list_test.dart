@@ -139,6 +139,44 @@ void main() {
     expect(current, 0);
   });
 
+  testWidgets('TsukuyomiList respects anchor at default', (WidgetTester tester) async {
+    const itemCount = 10;
+    final controller = TsukuyomiListController();
+
+    Widget builder({required List<double> itemHeights}) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: TsukuyomiList.builder(
+          itemCount: itemCount,
+          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('$index')),
+          controller: controller,
+          initialScrollIndex: 4,
+        ),
+      );
+    }
+
+    // 初始化列表并逆向滚动一个屏幕的距离
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
+    expect(controller.position.pixels, 0.0);
+    expectList(length: itemCount, visible: [4, 5, 6, 7, 8, 9]);
+    unawaited(controller.slideViewport(-1.0));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -400.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5]);
+
+    // 列表项尺寸动态增大时能够锚定起始位置
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 150.0)));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -600.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3]);
+
+    // 列表项尺寸动态减小时能够锚定起始位置
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -400.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5]);
+  });
+
   testWidgets('TsukuyomiList respects anchor at 0.5', (WidgetTester tester) async {
     const itemCount = 10;
     final controller = TsukuyomiListController();
@@ -157,6 +195,8 @@ void main() {
 
     // 初始化列表并正向滚动半个屏幕的距离
     await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
+    expect(controller.position.pixels, 0.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5]);
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, 300.0);
