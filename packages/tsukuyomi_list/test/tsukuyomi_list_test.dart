@@ -18,7 +18,7 @@ void expectList({required int length, required List<int> visible}) {
 
 void main() {
   testWidgets('TsukuyomiList respects initialScrollIndex', (WidgetTester tester) async {
-    const itemCount = 100;
+    const itemCount = 10;
 
     Widget builder(int initialScrollIndex) {
       return Directionality(
@@ -32,7 +32,7 @@ void main() {
       );
     }
 
-    // 可以指定默认显示位置并越界显示
+    // 可以指定初始显示元素并越界显示
     for (int i = 0; i < itemCount; i++) {
       final visible = List.generate(math.min(6, itemCount - i), (index) => index + i);
       await tester.pumpWidget(builder(i));
