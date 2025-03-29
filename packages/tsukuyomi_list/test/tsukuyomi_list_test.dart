@@ -155,7 +155,7 @@ void main() {
       );
     }
 
-    // 初始化列表并滚动到指定位置
+    // 初始化列表并正向滚动半个屏幕的距离
     await tester.pumpWidget(builder(anchor: 0.5, itemHeights: List.generate(itemCount, (index) => 100.0)));
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
@@ -173,5 +173,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.position.pixels, 300.0);
     expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8]);
+
+    // 逆向滚动半个屏幕的距离可以回到原点
+    unawaited(controller.slideViewport(-0.5));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, 0.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5]);
   });
 }
