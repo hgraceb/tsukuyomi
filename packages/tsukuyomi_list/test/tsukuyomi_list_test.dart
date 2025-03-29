@@ -129,18 +129,18 @@ void main() {
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, 300.0);
-    expectList(length: itemCount, visible: List.generate(6, (i) => i + 3));
+    expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8]);
 
     // 列表项尺寸动态增大时能够锚定滚动位置
-    await tester.pumpWidget(builder(anchor: 0.5, itemHeights: List.generate(itemCount, (index) => 100.0 + index)));
+    await tester.pumpWidget(builder(anchor: 0.5, itemHeights: List.generate(itemCount, (index) => 150.0)));
     await tester.pumpAndSettle();
-    expect(controller.position.pixels, 300.0 + 5.0 + 4.0 + 3.0 + 2.0 + 1.0 + 0.0);
-    expectList(length: itemCount, visible: List.generate(6, (i) => i + 3));
+    expect(controller.position.pixels, 600.0);
+    expectList(length: itemCount, visible: [4, 5, 6, 7]);
 
     // 列表项尺寸动态减小时能够锚定滚动位置
     await tester.pumpWidget(builder(anchor: 0.5, itemHeights: List.generate(itemCount, (index) => 100.0)));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, 300.0);
-    expectList(length: itemCount, visible: List.generate(6, (i) => i + 3));
+    expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8]);
   });
 }
