@@ -19,6 +19,7 @@ void main() {
 
   testWidgets('TsukuyomiList respects initialScrollIndex', (WidgetTester tester) async {
     const itemCount = 10;
+    final controller = TsukuyomiListController();
 
     Widget builder(int initialScrollIndex) {
       return Directionality(
@@ -27,6 +28,7 @@ void main() {
         child: TsukuyomiList.builder(
           itemCount: itemCount,
           itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
+          controller: controller,
           initialScrollIndex: initialScrollIndex,
         ),
       );
@@ -35,6 +37,7 @@ void main() {
     // 可以指定初始元素并越界显示
     for (int i = 0; i < itemCount; i++) {
       await tester.pumpWidget(builder(i));
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemCount, visible: List.generate(math.min(6, itemCount - i), (index) => index + i));
     }
   });
@@ -59,6 +62,7 @@ void main() {
     for (int i = 0; i < itemCount; i++) {
       controller.jumpToIndex(i);
       await tester.pump();
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemCount, visible: List.generate(math.min(6, itemCount - i), (index) => index + i));
     }
   });
@@ -81,30 +85,35 @@ void main() {
     // 默认只显示初始元素
     int current = 0;
     await tester.pumpWidget(builder());
+    expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
     // 滚动零个屏幕的距离
     current += 0;
     unawaited(controller.slideViewport(0.0));
     await tester.pumpAndSettle();
+    expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
     // 滚动半个屏幕的距离
     current += 3;
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
+    expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
     // 滚动一个屏幕的距离
     current += 6;
     unawaited(controller.slideViewport(1.0));
     await tester.pumpAndSettle();
+    expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
 
     // 越界之后不继续滚动
     current += 5;
     unawaited(controller.slideViewport(1.0));
     await tester.pumpAndSettle();
+    expect(controller.position.pixels, current * 100.0);
     expectList(length: itemCount, visible: List.generate(6, (i) => i + current));
   });
 
