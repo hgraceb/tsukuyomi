@@ -32,19 +32,18 @@ void main() {
       );
     }
 
-    // 可以指定初始显示元素并越界显示
+    // 可以指定初始元素并越界显示
     for (int i = 0; i < itemCount; i++) {
-      final visible = List.generate(math.min(6, itemCount - i), (index) => index + i);
       await tester.pumpWidget(builder(i));
-      expectList(length: itemCount, visible: visible);
+      expectList(length: itemCount, visible: List.generate(math.min(6, itemCount - i), (index) => index + i));
     }
   });
 
   testWidgets('TsukuyomiList respects TsukuyomiListController.jumpToIndex', (WidgetTester tester) async {
-    const itemCount = 3;
+    const itemCount = 10;
     final controller = TsukuyomiListController();
 
-    Widget builder(int initialScrollIndex) {
+    Widget builder() {
       return Directionality(
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
@@ -55,24 +54,13 @@ void main() {
       );
     }
 
-    // 默认只显示前面两个元素
-    await tester.pumpWidget(builder(0));
-    expectList(length: itemCount, visible: [0, 1]);
-
-    // 可以跳转到当前位置的元素
-    controller.jumpToIndex(0);
-    await tester.pump();
-    expectList(length: itemCount, visible: [0, 1]);
-
-    // 可以跳转到指定位置的元素
-    controller.jumpToIndex(1);
-    await tester.pump();
-    expectList(length: itemCount, visible: [1, 2]);
-
     // 可以跳转到指定位置的元素并越界显示
-    controller.jumpToIndex(2);
-    await tester.pump();
-    expectList(length: itemCount, visible: [2]);
+    await tester.pumpWidget(builder());
+    for (int i = 0; i < itemCount; i++) {
+      controller.jumpToIndex(0);
+      await tester.pump();
+      expectList(length: itemCount, visible: List.generate(math.min(6, itemCount - i), (index) => index + i));
+    }
   });
 
   testWidgets('TsukuyomiList respects TsukuyomiListController.slideViewport', (WidgetTester tester) async {
