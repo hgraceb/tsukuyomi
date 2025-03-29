@@ -155,7 +155,7 @@ void main() {
       );
     }
 
-    // 初始化列表并逆向滚动一个屏幕的距离
+    // 初始化列表并逆向滚动到第一个元素的位置
     await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
     expect(controller.position.pixels, 0.0);
     expectList(length: itemCount, visible: [4, 5, 6, 7, 8, 9]);
@@ -164,17 +164,35 @@ void main() {
     expect(controller.position.pixels, -400.0);
     expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5]);
 
-    // 列表项尺寸动态增大时能够锚定起始位置
+    // 列表项尺寸动态增大时能够锚定第一个元素的位置
     await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 150.0)));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, -600.0);
     expectList(length: itemCount, visible: [0, 1, 2, 3]);
 
-    // 列表项尺寸动态减小时能够锚定起始位置
+    // 列表项尺寸动态减小时能够锚定第一个元素的位置
     await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
     await tester.pumpAndSettle();
     expect(controller.position.pixels, -400.0);
     expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5]);
+
+    // 正向滚动一定距离让第二个元素作为新的锚点元素
+    unawaited(controller.slideViewport(0.125));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -325.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5, 6]);
+
+    // 列表项尺寸动态增大时能够锚定第二个元素的位置
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 150.0)));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -475.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3, 4]);
+
+    // 列表项尺寸动态减小时能够锚定第二个元素的位置
+    await tester.pumpWidget(builder(itemHeights: List.generate(itemCount, (index) => 100.0)));
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, -325.0);
+    expectList(length: itemCount, visible: [0, 1, 2, 3, 4, 5, 6]);
   });
 
   testWidgets('TsukuyomiList respects anchor at 0.5', (WidgetTester tester) async {
