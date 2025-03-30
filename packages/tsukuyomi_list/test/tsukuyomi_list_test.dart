@@ -7,7 +7,6 @@ import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
 
 void main() {
   void expectList({required int length, required List<int> visible}) {
-    assert(length > 0, length);
     final hidden = List.generate(length, (i) => i).toSet().difference(visible.toSet());
     for (final i in visible) {
       expect(find.text('$i'), findsOneWidget);
