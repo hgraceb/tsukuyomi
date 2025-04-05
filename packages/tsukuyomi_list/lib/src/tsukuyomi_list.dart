@@ -12,11 +12,7 @@ import 'package:tsukuyomi_list/src/tsukuyomi/rendering/viewport.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/widgets/scroll_activity.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/widgets/scroll_view.dart';
 
-typedef _OnPerformLayout = void Function(
-  RenderBox box,
-  Size? oldSize,
-  Size newSize,
-);
+typedef _OnPerformLayout = void Function(RenderBox box, Size? oldSize, Size newSize);
 
 class TsukuyomiList extends StatefulWidget {
   const TsukuyomiList.builder({
@@ -165,21 +161,15 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           ),
         ),
         _SliverLayout(
-          onPerformLayout: (geometry) {
-            _scrollExtentBeforeCenter = geometry.scrollExtent;
-          },
+          onPerformLayout: (geometry) => _scrollExtentBeforeCenter = geometry.scrollExtent,
           sliver: SliverList.builder(
             itemCount: _centerIndex > 0 ? _centerIndex : 0,
-            itemBuilder: (context, index) {
-              return _buildItem(context, _centerIndex - index - 1);
-            },
+            itemBuilder: (context, index) => _buildItem(context, _centerIndex - index - 1),
           ),
         ),
         _SliverLayout(
           key: _centerKey,
-          onPerformLayout: (geometry) {
-            _scrollExtentAfterCenter = geometry.scrollExtent;
-          },
+          onPerformLayout: (geometry) => _scrollExtentAfterCenter = geometry.scrollExtent,
           sliver: SliverStack(
             children: [
               // 从列表中心位置开始计算和显示列表末尾空白部分，避免受到视窗或列表项尺寸变化的影响
@@ -194,9 +184,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
                 ),
               SliverList.builder(
                 itemCount: widget.itemCount - _centerIndex,
-                itemBuilder: (context, index) {
-                  return _buildItem(context, _centerIndex + index);
-                },
+                itemBuilder: (context, index) => _buildItem(context, _centerIndex + index),
               ),
             ],
           ),
@@ -254,14 +242,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   /// 粉色调试遮罩
-  Color? get _pinkDebugMask {
-    return widget.debugMask ? Colors.pink.withOpacity(0.33) : null;
-  }
+  Color? get _pinkDebugMask => widget.debugMask ? Colors.pink.withOpacity(0.33) : null;
 
   /// 紫色调试遮罩
-  Color? get _purpleDebugMask {
-    return widget.debugMask ? Colors.purple.withOpacity(0.33) : null;
-  }
+  Color? get _purpleDebugMask => widget.debugMask ? Colors.purple.withOpacity(0.33) : null;
 
   /// 列表末尾空白部分占比
   double get trailingFraction => _trailingFraction;
@@ -325,7 +309,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 还是 100，并且在列表项 A 重新渲染后有某处代码调用 setState 方法触发了与列表布局相关
       // 的 performRebuild 方法，就会导致列表项 A 之后的列表项整体向前错位 200。
       child: FutureBuilder(
-        future: Future.value(const Object()),
+        future: Future.value(Object),
         builder: (context, snapshot) {
           double? extent;
           final item = _extents[index];
@@ -335,9 +319,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           return Container(
             width: widget.scrollDirection == Axis.horizontal ? extent : null,
             height: widget.scrollDirection == Axis.vertical ? extent : null,
-            foregroundDecoration: BoxDecoration(
-              color: index == _anchorIndex ? _pinkDebugMask : null,
-            ),
+            foregroundDecoration: BoxDecoration(color: index == _anchorIndex ? _pinkDebugMask : null),
             child: widget.itemBuilder(context, index),
           );
         },
@@ -420,13 +402,9 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     });
   }
 
-  Future<void> _slideViewport(
-    double viewportFraction, {
-    required Duration duration,
-    required Curve curve,
-  }) async {
-    if (viewportFraction == 0.0) return;
+  Future<void> _slideViewport(double viewportFraction, {required Duration duration, required Curve curve}) async {
     assert(viewportFraction >= -1.0 && viewportFraction <= 1.0);
+    if (viewportFraction == 0.0) return;
     final position = _scrollController.position;
     final currentPixels = position.pixels;
     final delta = position.viewportDimension * viewportFraction;
@@ -528,16 +506,10 @@ class TsukuyomiListController {
 
 class _TsukuyomiListScrollController extends ScrollController {
   @override
-  _TsukuyomiListScrollPosition get position {
-    return super.position as _TsukuyomiListScrollPosition;
-  }
+  _TsukuyomiListScrollPosition get position => super.position as _TsukuyomiListScrollPosition;
 
   @override
-  _TsukuyomiListScrollPosition createScrollPosition(
-    ScrollPhysics physics,
-    ScrollContext context,
-    ScrollPosition? oldPosition,
-  ) {
+  _TsukuyomiListScrollPosition createScrollPosition(ScrollPhysics physics, ScrollContext context, ScrollPosition? oldPosition) {
     return _TsukuyomiListScrollPosition(
       physics: physics,
       context: context,
@@ -578,11 +550,7 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   }
 
   @override
-  Future<void> animateTo(
-    double to, {
-    required Duration duration,
-    required Curve curve,
-  }) {
+  Future<void> animateTo(double to, {required Duration duration, required Curve curve}) {
     if (nearEqual(to, pixels, physics.toleranceFor(this).distance)) {
       jumpTo(to);
       return Future<void>.value();
@@ -612,17 +580,9 @@ class _TsukuyomiListItemExtent {
   /// 主轴方向尺寸
   final double extent;
 
-  const _TsukuyomiListItemExtent({
-    this.reusable = true,
-    this.mounted = true,
-    required this.extent,
-  });
+  const _TsukuyomiListItemExtent({this.reusable = true, this.mounted = true, required this.extent});
 
-  _TsukuyomiListItemExtent copyWith({
-    bool? reusable,
-    bool? mounted,
-    double? extent,
-  }) {
+  _TsukuyomiListItemExtent copyWith({bool? reusable, bool? mounted, double? extent}) {
     return _TsukuyomiListItemExtent(
       reusable: reusable ?? this.reusable,
       mounted: mounted ?? this.mounted,
@@ -632,13 +592,7 @@ class _TsukuyomiListItemExtent {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({
-    super.key,
-    this.onMount,
-    this.onUnmount,
-    this.onPerformLayout,
-    required super.child,
-  });
+  const _TsukuyomiListItem({super.key, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
 
   final ValueChanged<Element>? onMount;
 
@@ -647,19 +601,13 @@ class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
   final _OnPerformLayout? onPerformLayout;
 
   @override
-  SingleChildRenderObjectElement createElement() {
-    return _TsukuyomiListItemElement(this);
-  }
+  SingleChildRenderObjectElement createElement() => _TsukuyomiListItemElement(this);
 
   @override
-  _RenderTsukuyomiListItem createRenderObject(BuildContext context) {
-    return _RenderTsukuyomiListItem(onPerformLayout: onPerformLayout);
-  }
+  _RenderTsukuyomiListItem createRenderObject(BuildContext context) => _RenderTsukuyomiListItem(onPerformLayout: onPerformLayout);
 
   @override
-  void updateRenderObject(BuildContext context, _RenderTsukuyomiListItem renderObject) {
-    renderObject.onPerformLayout = onPerformLayout;
-  }
+  void updateRenderObject(BuildContext context, _RenderTsukuyomiListItem renderObject) => renderObject.onPerformLayout = onPerformLayout;
 }
 
 class _TsukuyomiListItemElement extends SingleChildRenderObjectElement {
@@ -697,23 +645,15 @@ class _RenderTsukuyomiListItem extends RenderProxyBox {
 }
 
 class _SliverLayout extends SingleChildRenderObjectWidget {
-  const _SliverLayout({
-    super.key,
-    this.onPerformLayout,
-    required Widget sliver,
-  }) : super(child: sliver);
+  const _SliverLayout({super.key, this.onPerformLayout, required Widget sliver}) : super(child: sliver);
 
   final void Function(SliverGeometry geometry)? onPerformLayout;
 
   @override
-  _RenderSliverLayout createRenderObject(BuildContext context) {
-    return _RenderSliverLayout(onPerformLayout: onPerformLayout);
-  }
+  _RenderSliverLayout createRenderObject(BuildContext context) => _RenderSliverLayout(onPerformLayout: onPerformLayout);
 
   @override
-  void updateRenderObject(BuildContext context, _RenderSliverLayout renderObject) {
-    renderObject.onPerformLayout = onPerformLayout;
-  }
+  void updateRenderObject(BuildContext context, _RenderSliverLayout renderObject) => renderObject.onPerformLayout = onPerformLayout;
 }
 
 class _RenderSliverLayout extends RenderProxySliver {
