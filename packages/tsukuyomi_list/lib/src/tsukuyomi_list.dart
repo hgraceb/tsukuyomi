@@ -506,6 +506,18 @@ class TsukuyomiListController {
     return _tsukuyomiListState!._scrollController.position;
   }
 
+  @visibleForTesting
+  int get centerIndex {
+    assert(_tsukuyomiListState != null);
+    return _tsukuyomiListState!._centerIndex;
+  }
+
+  @visibleForTesting
+  int get anchorIndex {
+    assert(_tsukuyomiListState != null);
+    return _tsukuyomiListState!._anchorIndex;
+  }
+
   void jumpToIndex(int index) {
     assert(_tsukuyomiListState != null);
     _tsukuyomiListState!._jumpToIndex(index);
