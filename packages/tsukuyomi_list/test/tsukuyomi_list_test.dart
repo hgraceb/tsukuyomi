@@ -104,7 +104,7 @@ void main() {
     unawaited(controller.slideViewport(0.5));
     await tester.pumpAndSettle();
     expect(controller.centerIndex, 0);
-    expect(controller.anchorIndex, 3);
+    expect(controller.anchorIndex, 4);
     expect(controller.position.pixels, 300.0);
     expectList(length: itemCount, visible: [3, 4, 5, 6, 7, 8]);
     // 正向滚动一个屏幕的距离

@@ -346,9 +346,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   double _calculateAnchor() {
-    if (widget.anchor != null) {
-      return widget.anchor!;
-    }
+    if (widget.anchor != null) return widget.anchor!;
     final position = _scrollController.position;
     final extentBefore = position.extentBefore;
     final extentInside = position.extentInside;
@@ -370,18 +368,16 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     _updateScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _updateScheduled = false;
-      if (!mounted) return;
+      final position = _scrollController.position;
+      if (!mounted || !position.hasViewportDimension || !position.hasPixels) return;
       RenderViewportBase? viewport;
-      TsukuyomiListItem? oldAnchorItem;
       final anchor = _calculateAnchor();
       final items = <TsukuyomiListItem>[];
       int anchorIndex = _anchorIndex;
       for (final element in _elements) {
         final box = element.findRenderObject() as RenderBox?;
         viewport ??= RenderAbstractViewport.maybeOf(box) as RenderViewportBase?;
-        if (box == null || !box.hasSize || viewport == null) {
-          continue;
-        }
+        if (box == null || !box.hasSize || viewport == null) continue;
 
         final key = element.widget.key as ValueKey<int>;
         final offset = viewport.getOffsetToReveal(box, 0.0).offset;
@@ -390,14 +386,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           size: box.size,
           axis: widget.scrollDirection,
           offset: offset - viewport.offset.pixels,
-          viewport: _scrollController.position.viewportDimension,
+          viewport: position.viewportDimension,
         );
         // 添加列表项信息
         items.add(item);
-        // 获取旧的锚点列表项信息
-        if (item.index == _anchorIndex) {
-          oldAnchorItem ??= item;
-        }
         // 根据中心列表项起始位置计算列表末尾空白部分占比
         if (widget.trailing && item.index == _centerIndex) {
           trailingFraction = 1.0 - item.leading;
@@ -408,14 +400,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         }
       }
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
-      if (oldAnchorItem?.leading != 0.0 && _anchorIndex != anchorIndex) {
+      if (_anchorIndex != anchorIndex && (_anchorIndex != _centerIndex || position.pixels != 0.0)) {
         setState(() => _anchorIndex = anchorIndex);
       }
-      // 回调列表项更新
-      widget.onItemsChanged?.call(
-        // 根据索引大小对列表项信息进行排序
-        items..sort((a, b) => a.index.compareTo(b.index)),
-      );
+      // 根据索引顺序对列表项进行排序并回调
+      widget.onItemsChanged?.call(items..sort((a, b) => a.index.compareTo(b.index)));
     });
   }
 
