@@ -26,7 +26,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
           controller: controller,
           initialScrollIndex: index,
         ),
@@ -52,7 +52,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
           controller: controller,
         ),
       );
@@ -79,7 +79,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
           controller: controller,
         ),
       );
@@ -154,7 +154,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
           controller: controller,
           initialScrollIndex: 4,
         ),
@@ -266,7 +266,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
           controller: controller,
           anchor: 0.5,
         ),
@@ -321,7 +321,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
           itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('$index')),
+          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
           controller: controller,
           anchor: 0.5,
         ),
