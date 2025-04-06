@@ -80,7 +80,7 @@ class TsukuyomiList extends StatefulWidget {
 class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _centerIndex, _anchorIndex;
   final _centerKey = UniqueKey();
-  final _elements = <Element>{};
+  final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, _TsukuyomiListItemExtent>{};
   final _scrollController = _TsukuyomiListScrollController();
 
@@ -261,7 +261,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
-      key: ValueKey(index),
+      key: ValueKey(widget.itemKeys[index]),
+      index: index,
       onMount: (element) {
         _elements.add(element);
         _scheduleUpdateItems();
@@ -361,10 +362,9 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         viewport ??= RenderAbstractViewport.maybeOf(box) as RenderViewportBase?;
         if (box == null || !box.hasSize || viewport == null) continue;
 
-        final key = element.widget.key as ValueKey<int>;
         final offset = viewport.getOffsetToReveal(box, 0.0).offset;
         final item = TsukuyomiListItem(
-          index: key.value,
+          index: element.widget.index!,
           size: box.size,
           axis: widget.scrollDirection,
           offset: offset - viewport.offset.pixels,
@@ -592,11 +592,13 @@ class _TsukuyomiListItemExtent {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({super.key, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
+  const _TsukuyomiListItem({super.key, this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
 
-  final ValueChanged<Element>? onMount;
+  final int? index;
 
-  final ValueChanged<Element>? onUnmount;
+  final ValueChanged<_TsukuyomiListItemElement>? onMount;
+
+  final ValueChanged<_TsukuyomiListItemElement>? onUnmount;
 
   final _OnPerformLayout? onPerformLayout;
 
