@@ -310,4 +310,37 @@ void main() {
     expect(controller.position.pixels, 0.0);
     expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
   });
+
+  testWidgets('TsukuyomiList respects anchor at dynamic items addition', (WidgetTester tester) async {
+    final itemKeys = List.generate(10, (index) => index);
+    final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+    final controller = TsukuyomiListController();
+
+    Widget builder({required List<int> itemKeys, required List<double> itemHeights}) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: TsukuyomiList.builder(
+          itemKeys: itemKeys,
+          itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('$index')),
+          controller: controller,
+          anchor: 0.5,
+        ),
+      );
+    }
+
+    // 初始化列表并让第一个元素作为锚点元素
+    await tester.pumpWidget(builder(itemKeys: itemKeys, itemHeights: itemHeights));
+    expect(controller.centerIndex, 0);
+    expect(controller.anchorIndex, 0);
+    expect(controller.position.pixels, 0.0);
+    expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+    // 正向滚动半个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+    unawaited(controller.slideViewport(0.5));
+    await tester.pumpAndSettle();
+    expect(controller.centerIndex, 0);
+    expect(controller.anchorIndex, 6);
+    expect(controller.position.pixels, 300.0);
+    expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+  });
 }
