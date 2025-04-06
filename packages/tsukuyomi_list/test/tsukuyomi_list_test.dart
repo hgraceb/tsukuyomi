@@ -344,7 +344,7 @@ void main() {
     expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
     // 动态添加列表项时能够锚定滚动位置
-    for (int i = 1; i <= 2; i++) {
+    for (int i = 1; i <= 10; i++) {
       itemKeys.insert(1, itemKeys.length);
       itemKeys.insert(itemKeys.length - 1, itemKeys.length);
       itemHeights.insert(1, 300.0);
