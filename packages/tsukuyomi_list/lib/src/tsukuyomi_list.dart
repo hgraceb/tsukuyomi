@@ -82,12 +82,13 @@ class TsukuyomiList extends StatefulWidget {
 }
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
-  Set<Object> _addedItemKeys = {};
   late Map<Object, _TsukuyomiListItemExtent?> _extents;
   late int _centerIndex, _anchorIndex;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
+  final _addedItems = <Object, double?>{};
   final _scrollController = _TsukuyomiListScrollController();
+  final _cachedSizes = <int, double>{};
 
   /// 在列表中心之前的滚动区域范围
   double _scrollExtentBeforeCenter = 0.0;
@@ -114,10 +115,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     }
     // 重置列表项尺寸
     if (widget.scrollDirection != oldWidget.scrollDirection) {
+      _cachedSizes.clear();
       _extents.updateAll((_, __) => null);
     }
     // 对比列表数据差异
     if (widget.itemKeys.length != _extents.length) {
+      print('=' * 40);
       int? newCenterIndex, newAnchorIndex;
       final newItemKeys = widget.itemKeys;
       final oldItemKeys = _extents.keys.toList(growable: false);
@@ -128,12 +131,54 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         newAnchorIndex ??= key == oldAnchorKey ? index : null;
         if (newCenterIndex != null && newAnchorIndex != null) break;
       }
+      print('oldItemKeys: ${{for (final (index, value) in oldItemKeys.indexed) '$index'.padLeft(2, '0'): '$value'.padLeft(2, '0')}}');
+      print('newItemKeys: ${{for (final (index, value) in newItemKeys.indexed) '$index'.padLeft(2, '0'): '$value'.padLeft(2, '0')}}');
+      print('_centerIndex = $_centerIndex to $newCenterIndex');
+      print('_anchorIndex = $_anchorIndex to $newAnchorIndex');
       _centerIndex = (newCenterIndex ?? _centerIndex).clamp(0, newItemKeys.length);
       _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, newItemKeys.length);
-      _addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
+
+      // _addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
+      // for (final itemKey in _addedItemKeys) {
+      //   if (itemKey != 23) continue;
+      //   final index = newItemKeys.indexOf(itemKey);
+      //   if (_centerIndex <= index && index < _anchorIndex) {
+      //     final delta = _extents.values.elementAt(index)?.extent;
+      //     _scrollController.position.correctImmediate(delta!);
+      //     print(_extents.entries.map((e) => '${e.key}: ${e.value?.extent}').toList());
+      //     print('111111111111111 onPerformLayout: correctImmediate($delta), index = $index, delta = $delta');
+      //   } else if (_anchorIndex <= index && index < _centerIndex) {
+      //     final delta = _extents[index]?.extent;
+      //     print('222222222222222 onPerformLayout: correctImmediate(-$delta)');
+      //   }
+      // }
+      // print('_addedItemKeys = $_addedItemKeys');
+
+      final addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
+      for (final itemKey in addedItemKeys) {
+        final index = newItemKeys.indexOf(itemKey);
+        final delta = _cachedSizes.length > index ? _cachedSizes[index] : null;
+        if (delta == null) {
+          _addedItems[itemKey] = 0.0;
+          print('000000000000000 onPerformLayout: correctImmediate($delta), delta = ${_addedItems[itemKey]}');
+          continue;
+        } else if (_centerIndex <= index && index < _anchorIndex) {
+          _scrollController.position.correctImmediate(_addedItems[itemKey] = delta);
+          print('111111111111111 onPerformLayout: correctImmediate($delta), delta = ${_addedItems[itemKey]}');
+        } else if (_anchorIndex <= index && index < _centerIndex) {
+          _scrollController.position.correctImmediate(_addedItems[itemKey] = -delta);
+          print('22222222222222 onPerformLayout: correctImmediate($delta), delta = ${_addedItems[itemKey]}');
+        }
+      }
+      print('addedItemKeys = $addedItemKeys');
+      print('_addedItems = $_addedItems');
+
       _extents = {for (final value in newItemKeys) value: _extents[value]};
       // 布局调整完成后重置数据
-      SchedulerBinding.instance.addPostFrameCallback((_) => _addedItemKeys.clear());
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _addedItems.clear();
+        print('_addedItems = $_addedItems (clear)');
+      });
     }
   }
 
@@ -314,11 +359,15 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         _scheduleUpdateItems();
       },
       onPerformLayout: (box, oldSize, newSize) {
+        print(
+            'onPerformLayout: index = $index, itemKey = $itemKey, oldSize = $oldSize, newSize = $newSize, ${_elements.length}, ${_extents.keys.where((key) => _extents[key]?.reusable ?? false)}');
+        // print('onPerformLayout: ${_scrollController.position.pixels}, ${_scrollController.position.maxScrollExtent}');
         // 获取主轴方向尺寸
         final (oldExtent, newExtent) = switch (widget.scrollDirection) {
           Axis.vertical => (oldSize?.height, newSize.height),
           Axis.horizontal => (oldSize?.width, newSize.width),
         };
+        _cachedSizes[index] = newExtent;
         // 保存最新的列表项尺寸
         _extents[itemKey] = _TsukuyomiListItemExtent(extent: newExtent);
         // 更新列表项的信息
@@ -330,16 +379,18 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 计算主轴方向上发生的尺寸变化
         final delta = switch (oldExtent) {
           double() => newExtent - oldExtent,
-          null => _addedItemKeys.contains(itemKey) ? newExtent : null,
+          null => _addedItems.containsKey(itemKey) ? newExtent - (_addedItems.remove(itemKey) ?? 0.0) : null,
         };
         // 如果不需要修正主轴方向上的滚动偏移
         if (delta == null || delta == 0) return;
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
+          print('onPerformLayout: correctImmediate($delta)');
           return _scrollController.position.correctImmediate(delta);
         }
         // 当前列表项在锚点列表项和中心列表项之间
         if (_anchorIndex <= index && index < _centerIndex) {
+          print('onPerformLayout: correctImmediate(-$delta)');
           return _scrollController.position.correctImmediate(-delta);
         }
       },

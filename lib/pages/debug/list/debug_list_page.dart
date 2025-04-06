@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
@@ -14,7 +15,7 @@ class DebugListPage extends StatefulWidget {
 class _DebugListPageState extends State<DebugListPage> {
   bool _compare = false;
   int _itemKey = 0;
-  int _itemCount = 100;
+  int _itemCount = 20;
   final _random = math.Random(2147483647);
   final _listController = TsukuyomiListController();
   late final List<Object> _itemKeys;
@@ -25,23 +26,26 @@ class _DebugListPageState extends State<DebugListPage> {
     super.initState();
     _itemKeys = List.generate(_itemCount, (index) => _itemKey++);
     _itemExtents = List.generate(_itemCount, (index) => 80.0 + _random.nextInt(120));
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+      _listController.slideViewport(0.01);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return TsukuyomiScaffold(
       body: Row(children: [
-        Offstage(
-          offstage: !_compare,
-          child: SizedBox(
-            width: MediaQuery.sizeOf(context).width / 2,
-            child: ListView.builder(
-              itemCount: _itemCount,
-              itemBuilder: (context, index) => _buildItem(index),
-              scrollDirection: Axis.vertical,
-            ),
-          ),
-        ),
+        // Offstage(
+        //   offstage: !_compare,
+        //   child: SizedBox(
+        //     width: MediaQuery.sizeOf(context).width / 2,
+        //     child: ListView.builder(
+        //       itemCount: _itemCount,
+        //       itemBuilder: (context, index) => _buildItem(index),
+        //       scrollDirection: Axis.vertical,
+        //     ),
+        //   ),
+        // ),
         Flexible(
           child: Stack(children: [
             TsukuyomiInteractiveList.builder(
@@ -49,7 +53,7 @@ class _DebugListPageState extends State<DebugListPage> {
               itemBuilder: (context, index) => _buildItem(index),
               controller: _listController,
               debugMask: true,
-              initialScrollIndex: _itemCount - 1,
+              initialScrollIndex: _itemCount ~/ 2,
               scrollDirection: Axis.vertical,
             ),
             _FloatingActions(
@@ -68,6 +72,14 @@ class _DebugListPageState extends State<DebugListPage> {
   }
 
   Widget _buildItem(int index) {
+    print('_buildItem: $index: ${_itemKeys[index]}');
+    return Card(
+      child: SizedBox(
+        width: _itemExtents[index].toDouble(),
+        height: _itemExtents[index].toDouble(),
+        child: Center(child: Text('Item ${_itemKeys[index]}')),
+      ),
+    );
     return FutureBuilder(
       future: Future.delayed(
         Duration(milliseconds: 1000 + _itemExtents[index].toInt() * 5),
@@ -114,11 +126,29 @@ class _DebugListPageState extends State<DebugListPage> {
   }
 
   void _onAddItems() {
-    for (var i = 0; i <= _random.nextInt(10); i++) {
-      final position = _random.nextInt(_itemCount++);
-      _itemKeys.insert(position, _itemKey++);
-      _itemExtents.insert(position, 80.0 + _random.nextInt(120));
-    }
+    final position = 11;
+    _itemCount++;
+    _itemKeys.insert(position, _itemKey++);
+    _itemExtents.insert(position, 80.0 + _random.nextInt(120));
+
+    // final test = _itemCount == 20 ? 1 : 1;
+    // for (var j = 0; j < test; j++) {
+    //   for (var i = 0; i <= _random.nextInt(10); i++) {
+    //     final position = _random.nextInt(10) + _itemKeys.indexOf(12) - 5;
+    //     final key = _itemKey++;
+    //     final height = 80.0 + _random.nextInt(120);
+    //     // if(position == 21 && height == 103.0) continue;
+    //     _itemKeys.insert(position, key);
+    //     _itemExtents.insert(position, position == 21 && height == 103.0 ? 10.0 : height);
+    //     print('position: $position, height = $height');
+    //   }
+    // }
+
+    // for (var i = 0; i <= _random.nextInt(10); i++) {
+    //   final position = _random.nextInt(_itemCount++);
+    //   _itemKeys.insert(position, _itemKey++);
+    //   _itemExtents.insert(position, 80.0 + _random.nextInt(120));
+    // }
     setState(() {});
   }
 
