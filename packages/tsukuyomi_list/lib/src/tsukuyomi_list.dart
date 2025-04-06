@@ -351,8 +351,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     _updateScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _updateScheduled = false;
-      final position = _scrollController.position;
-      if (!mounted || !position.hasViewportDimension || !position.hasPixels) return;
+      final position = _scrollController.hasClients ? _scrollController.position : null;
+      if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       RenderViewportBase? viewport;
       final anchor = _calculateAnchor();
       final items = <TsukuyomiListItem>[];
