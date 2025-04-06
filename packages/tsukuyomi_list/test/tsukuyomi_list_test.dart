@@ -316,7 +316,7 @@ void main() {
     final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
     final controller = TsukuyomiListController();
 
-    Widget builder({required List<int> itemKeys, required List<double> itemHeights}) {
+    Widget builder() {
       return Directionality(
         textDirection: TextDirection.ltr,
         child: TsukuyomiList.builder(
@@ -329,7 +329,7 @@ void main() {
     }
 
     // 初始化列表并让第一个元素作为锚点元素
-    await tester.pumpWidget(builder(itemKeys: itemKeys, itemHeights: itemHeights));
+    await tester.pumpWidget(builder());
     expect(controller.centerIndex, 0);
     expect(controller.anchorIndex, 0);
     expect(controller.position.pixels, 0.0);
@@ -342,5 +342,19 @@ void main() {
     expect(controller.anchorIndex, 6);
     expect(controller.position.pixels, 300.0);
     expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+
+    // 动态添加列表项时能够锚定滚动位置
+    for (int i = 1; i <= 2; i++) {
+      itemKeys.insert(1, itemKeys.length);
+      itemKeys.insert(itemKeys.length - 1, itemKeys.length);
+      itemHeights.insert(1, 300.0);
+      itemHeights.insert(itemHeights.length - 1, 300.0);
+      await tester.pumpWidget(builder());
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 6 + i);
+      expect(controller.position.pixels, 300.0 + i * 300.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+    }
   });
 }
