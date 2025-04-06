@@ -75,11 +75,11 @@ class _ChapterPageState extends ConsumerState<ChapterPage> {
             ),
             builder: (state) => const SizedBox.shrink(),
             data: (state) => TsukuyomiInteractiveList.builder(
-              itemCount: images.length,
               controller: state.listController,
               initialScrollIndex: state.initialIndex,
               onScaleUpdate: notifier.onListScaleUpdate,
               onItemsChanged: notifier.onListItemsChanged,
+              itemKeys: List.generate(images.length, (index) => index),
               itemBuilder: (context, index) => SelectAsyncWatch(
                 provider: provider,
                 select: (state) => (

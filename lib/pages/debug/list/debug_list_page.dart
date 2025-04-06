@@ -14,17 +14,10 @@ class DebugListPage extends StatefulWidget {
 class _DebugListPageState extends State<DebugListPage> {
   bool _compare = false;
   final _itemCount = 100;
+  final _random = math.Random(2147483647);
   final _listController = TsukuyomiListController();
-  late final List<double> _itemExtents;
-
-  @override
-  void initState() {
-    super.initState();
-    final heightGenerator = math.Random(2147483647);
-    _itemExtents = List.generate(_itemCount, (index) {
-      return 80.0 + heightGenerator.nextInt(120);
-    });
-  }
+  late final List<Object> _itemKeys = List.generate(_itemCount, (index) => index);
+  late final List<double> _itemExtents = List.generate(_itemCount, (index) => 80.0 + _random.nextInt(120));
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +37,7 @@ class _DebugListPageState extends State<DebugListPage> {
         Flexible(
           child: Stack(children: [
             TsukuyomiInteractiveList.builder(
-              itemCount: _itemCount,
+              itemKeys: _itemKeys,
               itemBuilder: (context, index) => _buildItem(index),
               controller: _listController,
               debugMask: true,

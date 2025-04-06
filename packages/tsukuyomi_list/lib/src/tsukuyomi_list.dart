@@ -17,7 +17,7 @@ typedef _OnPerformLayout = void Function(RenderBox box, Size? oldSize, Size newS
 class TsukuyomiList extends StatefulWidget {
   const TsukuyomiList.builder({
     super.key,
-    required this.itemCount,
+    required this.itemKeys,
     required this.itemBuilder,
     this.controller,
     this.physics,
@@ -31,11 +31,11 @@ class TsukuyomiList extends StatefulWidget {
     this.initialScrollIndex = 0,
     this.onItemsChanged,
   })  : assert(initialScrollIndex >= 0),
-        assert(initialScrollIndex < itemCount || itemCount == 0),
+        assert(initialScrollIndex < itemKeys.length || itemKeys.length == 0),
         assert(anchor == null || (anchor >= 0.0 && anchor <= 1.0));
 
-  /// 列表项数量
-  final int itemCount;
+  /// 列表项标识
+  final List<Object> itemKeys;
 
   /// 列表项构建器
   final IndexedWidgetBuilder itemBuilder;
@@ -183,7 +183,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
                   ),
                 ),
               SliverList.builder(
-                itemCount: widget.itemCount - _centerIndex,
+                itemCount: widget.itemKeys.length - _centerIndex,
                 itemBuilder: (context, index) => _buildItem(context, _centerIndex + index),
               ),
             ],
@@ -392,7 +392,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   void _jumpToIndex(int index) {
     assert(index >= 0);
-    assert(index < widget.itemCount || widget.itemCount == 0);
+    assert(index < widget.itemKeys.length || widget.itemKeys.isEmpty);
     setState(() {
       _trailingFraction = 1.0;
       _scrollController.jumpTo(0.0);
