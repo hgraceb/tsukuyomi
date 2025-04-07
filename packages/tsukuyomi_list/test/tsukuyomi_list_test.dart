@@ -16,209 +16,6 @@ void main() {
     }
   }
 
-  group('TsukuyomiList respects initialScrollIndex', () {
-    testWidgets('when default', (WidgetTester tester) async {
-      final itemKeys = List.generate(10, (index) => index);
-      final controller = TsukuyomiListController();
-
-      Widget builder(index) {
-        return Directionality(
-          key: ValueKey(index),
-          textDirection: TextDirection.ltr,
-          child: TsukuyomiList.builder(
-            itemKeys: itemKeys,
-            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
-            controller: controller,
-            initialScrollIndex: index,
-          ),
-        );
-      }
-
-      // 可以指定初始元素并越界显示
-      for (int i = 0; i < itemKeys.length; i++) {
-        await tester.pumpWidget(builder(i));
-        expect(controller.centerIndex, i);
-        expect(controller.anchorIndex, i);
-        expect(controller.position.pixels, 0.0);
-        expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
-      }
-    });
-  });
-
-  group('TsukuyomiList respects TsukuyomiListController.jumpToIndex', () {
-    testWidgets('when default', (WidgetTester tester) async {
-      final itemKeys = List.generate(10, (index) => index);
-      final controller = TsukuyomiListController();
-
-      Widget builder() {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: TsukuyomiList.builder(
-            itemKeys: itemKeys,
-            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
-            controller: controller,
-          ),
-        );
-      }
-
-      // 可以跳转到指定位置的元素并越界显示
-      await tester.pumpWidget(builder());
-      for (int i = 0; i < itemKeys.length; i++) {
-        controller.jumpToIndex(i);
-        await tester.pump();
-        expect(controller.centerIndex, i);
-        expect(controller.anchorIndex, i);
-        expect(controller.position.pixels, 0.0);
-        expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
-      }
-    });
-
-    testWidgets('when size changes', (WidgetTester tester) async {
-      final itemKeys = List.generate(20, (index) => index);
-      final controller = TsukuyomiListController();
-
-      Widget builder({required List<double> itemHeights}) {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: TsukuyomiList.builder(
-            itemKeys: itemKeys,
-            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
-            controller: controller,
-          ),
-        );
-      }
-
-      // 默认显示首屏的元素
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-
-      // 动态修改列表项尺寸
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
-
-      // 跳转到指定元素
-      controller.jumpToIndex(10);
-      await tester.pump();
-      expect(controller.centerIndex, 10);
-      expect(controller.anchorIndex, 10);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [10, 11, 12, 13]);
-
-      // 修改列表项尺寸
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 10);
-      expect(controller.anchorIndex, 10);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [10, 11, 12, 13, 14, 15]);
-
-      // 跳转回第一个元素，此时应该根据最新的列表项尺寸进行布局显示
-      controller.jumpToIndex(0);
-      await tester.pump();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-
-      // 再次修改列表项尺寸
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
-
-      // 再次跳转到指定元素，此时应该根据最新的列表项尺寸进行布局显示
-      controller.jumpToIndex(10);
-      await tester.pump();
-      expect(controller.centerIndex, 10);
-      expect(controller.anchorIndex, 10);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [10, 11, 12, 13]);
-    });
-  });
-
-  group('TsukuyomiList respects TsukuyomiListController.slideViewport', () {
-    testWidgets('when default', (WidgetTester tester) async {
-      final itemKeys = List.generate(20, (index) => index);
-      final controller = TsukuyomiListController();
-
-      Widget builder() {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: TsukuyomiList.builder(
-            itemKeys: itemKeys,
-            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
-            controller: controller,
-          ),
-        );
-      }
-
-      // 默认显示首屏的元素
-      await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-
-      // 滚动零个屏幕的距离
-      unawaited(controller.slideViewport(0.0));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-
-      // 正向滚动半个屏幕的距离
-      unawaited(controller.slideViewport(0.5));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 4);
-      expect(controller.position.pixels, 300.0);
-      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
-      // 正向滚动一个屏幕的距离
-      unawaited(controller.slideViewport(1.0));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 12);
-      expect(controller.position.pixels, 900.0);
-      expectList(length: itemKeys.length, visible: [9, 10, 11, 12, 13, 14]);
-      // 正向滚动越界时停止滚动
-      unawaited(controller.slideViewport(1.0));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 19);
-      expect(controller.position.pixels, 1400.0);
-      expectList(length: itemKeys.length, visible: [14, 15, 16, 17, 18, 19]);
-
-      // 逆向滚动一个屏幕的距离
-      unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 10);
-      expect(controller.position.pixels, 800.0);
-      expectList(length: itemKeys.length, visible: [8, 9, 10, 11, 12, 13]);
-      // 逆向滚动半个屏幕的距离
-      unawaited(controller.slideViewport(-0.5));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 7);
-      expect(controller.position.pixels, 500.0);
-      expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
-      // 逆向滚动越界时停止滚动
-      unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-    });
-  });
-
   group('TsukuyomiList respects anchor', () {
     testWidgets('when default', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
@@ -432,5 +229,208 @@ void main() {
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }
     }, skip: true);
+  });
+
+  group('TsukuyomiList respects initialScrollIndex', () {
+    testWidgets('when default', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder(index) {
+        return Directionality(
+          key: ValueKey(index),
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
+            controller: controller,
+            initialScrollIndex: index,
+          ),
+        );
+      }
+
+      // 可以指定初始元素并越界显示
+      for (int i = 0; i < itemKeys.length; i++) {
+        await tester.pumpWidget(builder(i));
+        expect(controller.centerIndex, i);
+        expect(controller.anchorIndex, i);
+        expect(controller.position.pixels, 0.0);
+        expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
+      }
+    });
+  });
+
+  group('TsukuyomiList respects TsukuyomiListController.jumpToIndex', () {
+    testWidgets('when default', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
+            controller: controller,
+          ),
+        );
+      }
+
+      // 可以跳转到指定位置的元素并越界显示
+      await tester.pumpWidget(builder());
+      for (int i = 0; i < itemKeys.length; i++) {
+        controller.jumpToIndex(i);
+        await tester.pump();
+        expect(controller.centerIndex, i);
+        expect(controller.anchorIndex, i);
+        expect(controller.position.pixels, 0.0);
+        expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
+      }
+    });
+
+    testWidgets('when size changes', (WidgetTester tester) async {
+      final itemKeys = List.generate(20, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder({required List<double> itemHeights}) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+          ),
+        );
+      }
+
+      // 默认显示首屏的元素
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 动态修改列表项尺寸
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
+
+      // 跳转到指定元素
+      controller.jumpToIndex(10);
+      await tester.pump();
+      expect(controller.centerIndex, 10);
+      expect(controller.anchorIndex, 10);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [10, 11, 12, 13]);
+
+      // 修改列表项尺寸
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
+      expect(controller.centerIndex, 10);
+      expect(controller.anchorIndex, 10);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [10, 11, 12, 13, 14, 15]);
+
+      // 跳转回第一个元素，此时应该根据最新的列表项尺寸进行布局显示
+      controller.jumpToIndex(0);
+      await tester.pump();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 再次修改列表项尺寸
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
+
+      // 再次跳转到指定元素，此时应该根据最新的列表项尺寸进行布局显示
+      controller.jumpToIndex(10);
+      await tester.pump();
+      expect(controller.centerIndex, 10);
+      expect(controller.anchorIndex, 10);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [10, 11, 12, 13]);
+    });
+  });
+
+  group('TsukuyomiList respects TsukuyomiListController.slideViewport', () {
+    testWidgets('when default', (WidgetTester tester) async {
+      final itemKeys = List.generate(20, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
+            controller: controller,
+          ),
+        );
+      }
+
+      // 默认显示首屏的元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 滚动零个屏幕的距离
+      unawaited(controller.slideViewport(0.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 正向滚动半个屏幕的距离
+      unawaited(controller.slideViewport(0.5));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 4);
+      expect(controller.position.pixels, 300.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+      // 正向滚动一个屏幕的距离
+      unawaited(controller.slideViewport(1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 12);
+      expect(controller.position.pixels, 900.0);
+      expectList(length: itemKeys.length, visible: [9, 10, 11, 12, 13, 14]);
+      // 正向滚动越界时停止滚动
+      unawaited(controller.slideViewport(1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 19);
+      expect(controller.position.pixels, 1400.0);
+      expectList(length: itemKeys.length, visible: [14, 15, 16, 17, 18, 19]);
+
+      // 逆向滚动一个屏幕的距离
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 10);
+      expect(controller.position.pixels, 800.0);
+      expectList(length: itemKeys.length, visible: [8, 9, 10, 11, 12, 13]);
+      // 逆向滚动半个屏幕的距离
+      unawaited(controller.slideViewport(-0.5));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 7);
+      expect(controller.position.pixels, 500.0);
+      expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
+      // 逆向滚动越界时停止滚动
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+    });
   });
 }
