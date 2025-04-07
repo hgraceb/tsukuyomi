@@ -397,8 +397,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _trailingFraction = 1.0;
       _scrollController.jumpTo(0.0);
       _centerIndex = _anchorIndex = index;
-      // 将所有当前未渲染的列表项的尺寸信息设置为不可复用，避免在列表位置跳转时列表项尺寸快速变化
-      _extents.updateAll((_, value) => value.copyWith(reusable: value.mounted));
+      _extents.clear();
     });
   }
 
