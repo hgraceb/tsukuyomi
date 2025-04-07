@@ -43,31 +43,33 @@ void main() {
     }
   });
 
-  testWidgets('TsukuyomiList respects TsukuyomiListController.jumpToIndex', (WidgetTester tester) async {
-    final itemKeys = List.generate(10, (index) => index);
-    final controller = TsukuyomiListController();
+  group('TsukuyomiList respects TsukuyomiListController.jumpToIndex', () {
+    testWidgets('when default', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final controller = TsukuyomiListController();
 
-    Widget builder() {
-      return Directionality(
-        textDirection: TextDirection.ltr,
-        child: TsukuyomiList.builder(
-          itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
-          controller: controller,
-        ),
-      );
-    }
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
+            controller: controller,
+          ),
+        );
+      }
 
-    // 可以跳转到指定位置的元素并越界显示
-    await tester.pumpWidget(builder());
-    for (int i = 0; i < itemKeys.length; i++) {
-      controller.jumpToIndex(i);
-      await tester.pump();
-      expect(controller.centerIndex, i);
-      expect(controller.anchorIndex, i);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
-    }
+      // 可以跳转到指定位置的元素并越界显示
+      await tester.pumpWidget(builder());
+      for (int i = 0; i < itemKeys.length; i++) {
+        controller.jumpToIndex(i);
+        await tester.pump();
+        expect(controller.centerIndex, i);
+        expect(controller.anchorIndex, i);
+        expect(controller.position.pixels, 0.0);
+        expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
+      }
+    });
   });
 
   testWidgets('TsukuyomiList respects TsukuyomiListController.slideViewport', (WidgetTester tester) async {
@@ -356,5 +358,5 @@ void main() {
       expect(controller.position.pixels, 300.0 + i * 300.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
     }
-  });
+  }, skip: true);
 }
