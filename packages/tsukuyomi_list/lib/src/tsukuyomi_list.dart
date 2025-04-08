@@ -81,7 +81,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _centerIndex, _anchorIndex;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
-  final _extents = <int, _TsukuyomiListItemExtent>{};
+  final _extents = <int, double>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -269,10 +269,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       },
       onUnmount: (element) {
         _elements.remove(element);
-        final extent = _extents[index];
-        if (extent != null) {
-          _extents[index] = extent.copyWith(mounted: false);
-        }
         _scheduleUpdateItems();
       },
       onPerformLayout: (box, oldSize, newSize) {
@@ -282,11 +278,9 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           Axis.horizontal => (oldSize?.width, newSize.width),
         };
         // 保存最新的列表项尺寸
-        _extents[index] = _TsukuyomiListItemExtent(extent: newExtent);
+        _extents[index] = newExtent;
         // 更新列表项的信息
-        if (oldExtent != newExtent) {
-          _scheduleUpdateItems();
-        }
+        if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
         if (_anchorIndex == _centerIndex) return;
         // 首次布局时不需要处理尺寸变化
@@ -310,27 +304,19 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 还是 100，并且在列表项 A 重新渲染后有某处代码调用 setState 方法触发了与列表布局相关
       // 的 performRebuild 方法，就会导致列表项 A 之后的列表项整体向前错位 200。
       child: FutureBuilder(
-        future: Future.value(Object),
-        builder: (context, snapshot) {
-          double? extent;
-          final item = _extents[index];
-          if (!snapshot.hasData && item != null && item.reusable) {
-            extent = item.extent;
-          }
-          return Container(
-            width: widget.scrollDirection == Axis.horizontal ? extent : null,
-            height: widget.scrollDirection == Axis.vertical ? extent : null,
-            foregroundDecoration: BoxDecoration(color: index == _anchorIndex ? _pinkDebugMask : null),
-            child: widget.itemBuilder(context, index),
-          );
-        },
+        initialData: _extents[index],
+        future: Future.value(null),
+        builder: (context, snapshot) => Container(
+          width: widget.scrollDirection == Axis.horizontal ? snapshot.data : null,
+          height: widget.scrollDirection == Axis.vertical ? snapshot.data : null,
+          foregroundDecoration: BoxDecoration(color: index == _anchorIndex ? _pinkDebugMask : null),
+          child: widget.itemBuilder(context, index),
+        ),
       ),
     );
   }
 
-  double _calculateAnchor() {
-    if (widget.anchor != null) return widget.anchor!;
-    final position = _scrollController.position;
+  double _calculateAnchor(ScrollPosition position) {
     final extentBefore = position.extentBefore;
     final extentInside = position.extentInside;
     final extentAfter = position.extentAfter;
@@ -353,10 +339,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _updateScheduled = false;
       final position = _scrollController.hasClients ? _scrollController.position : null;
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
-      RenderViewportBase? viewport;
-      final anchor = _calculateAnchor();
       final items = <TsukuyomiListItem>[];
+      final anchor = widget.anchor ?? _calculateAnchor(position);
       int anchorIndex = _anchorIndex;
+      RenderViewportBase? viewport;
       for (final element in _elements) {
         final box = element.findRenderObject() as RenderBox?;
         viewport ??= RenderAbstractViewport.maybeOf(box) as RenderViewportBase?;
@@ -566,27 +552,6 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
     );
     beginActivity(activity);
     return activity.done;
-  }
-}
-
-class _TsukuyomiListItemExtent {
-  /// 是否可以复用
-  final bool reusable;
-
-  /// 是否正在渲染
-  final bool mounted;
-
-  /// 主轴方向尺寸
-  final double extent;
-
-  const _TsukuyomiListItemExtent({this.reusable = true, this.mounted = true, required this.extent});
-
-  _TsukuyomiListItemExtent copyWith({bool? reusable, bool? mounted, double? extent}) {
-    return _TsukuyomiListItemExtent(
-      reusable: reusable ?? this.reusable,
-      mounted: mounted ?? this.mounted,
-      extent: extent ?? this.extent,
-    );
   }
 }
 
