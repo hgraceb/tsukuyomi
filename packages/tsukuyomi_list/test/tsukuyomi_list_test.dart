@@ -432,5 +432,44 @@ void main() {
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
     });
+
+    testWidgets('when size changes with bouncing scroll physics', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder({required List<double> itemHeights}) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            initialScrollIndex: 3,
+            physics: const BouncingScrollPhysics(),
+          ),
+        );
+      }
+
+      // 默认以指定索引作为列表中心索引并显示首屏的元素
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
+      expect(controller.centerIndex, 3);
+      expect(controller.anchorIndex, 3);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6]);
+
+      // 逆向滚动到视窗边缘并动态减小列表项尺寸，列表不应该发生越界滚动
+      double minPixels = controller.position.pixels;
+      listener() => minPixels = math.min(minPixels, controller.position.pixels);
+      controller.position.addListener(listener);
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
+      await tester.pumpAndSettle();
+      controller.position.removeListener(listener);
+      expect(controller.centerIndex, 3);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, -300.0);
+      expect(controller.position.pixels == minPixels, true);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+    });
   });
 }
