@@ -24,12 +24,12 @@ class TsukuyomiInteractiveList extends StatefulWidget {
     this.debugMask = false,
     this.scaleCurve = Curves.fastLinearToSlowEaseIn,
     this.scaleDuration = const Duration(milliseconds: 500),
-    required this.itemCount,
+    required this.itemKeys,
     required this.itemBuilder,
   });
 
-  /// 列表长度
-  final int itemCount;
+  /// 列表项标识
+  final List<Object> itemKeys;
 
   /// 列表初始位置索引
   final int initialScrollIndex;
@@ -307,8 +307,8 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
               constraints: constraints,
               child: TsukuyomiList.builder(
                 physics: widget.physics,
-                itemCount: widget.itemCount,
                 controller: _listController,
+                itemKeys: widget.itemKeys,
                 itemBuilder: widget.itemBuilder,
                 scrollDirection: widget.scrollDirection,
                 initialScrollIndex: widget.initialScrollIndex,
