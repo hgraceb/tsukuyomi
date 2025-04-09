@@ -129,8 +129,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, newItemKeys.length);
 
       final addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
-      for (final itemKey in addedItemKeys) {
-        final index = newItemKeys.indexOf(itemKey);
+      for (final (index, itemKey) in addedItemKeys.indexed) {
         final delta = _extents.length > index ? _extents[index] : null;
         if (delta == null) {
           _addedItems[itemKey] = 0.0;
