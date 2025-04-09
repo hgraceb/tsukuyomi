@@ -140,6 +140,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         }
       }
     }
+    _oldItemKeys = [...widget.itemKeys];
   }
 
   @override
