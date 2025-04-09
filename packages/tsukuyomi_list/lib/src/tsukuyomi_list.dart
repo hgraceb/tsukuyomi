@@ -83,6 +83,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
+  final _addedItems = <Object, double>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -126,6 +127,19 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       }
       _centerIndex = (newCenterIndex ?? _centerIndex).clamp(0, newItemKeys.length);
       _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, newItemKeys.length);
+
+      final addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
+      for (final itemKey in addedItemKeys) {
+        final index = newItemKeys.indexOf(itemKey);
+        final delta = _extents.length > index ? _extents[index] : null;
+        if (delta == null) {
+          _addedItems[itemKey] = 0.0;
+        } else if (_centerIndex <= index && index < _anchorIndex) {
+          _scrollController.position.correctImmediate(_addedItems[itemKey] = delta);
+        } else if (_anchorIndex <= index && index < _centerIndex) {
+          _scrollController.position.correctImmediate(_addedItems[itemKey] = -delta);
+        }
+      }
     }
   }
 
