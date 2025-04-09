@@ -79,9 +79,9 @@ class TsukuyomiList extends StatefulWidget {
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _centerIndex, _anchorIndex;
+  late Map<Object, double?> _extents;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
-  final _extents = <int, double>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -94,6 +94,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   void initState() {
     super.initState();
     _centerIndex = _anchorIndex = widget.initialScrollIndex;
+    _extents = {for (final value in widget.itemKeys) value: null};
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -108,7 +109,21 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     }
     // 重置列表项尺寸
     if (widget.scrollDirection != oldWidget.scrollDirection) {
-      _extents.clear();
+      _extents = {for (final value in widget.itemKeys) value: null};
+    }
+    // 对比列表数据差异
+    if (widget.itemKeys.length != _extents.length) {
+      int? newCenterIndex, newAnchorIndex;
+      final newItemKeys = widget.itemKeys;
+      final oldItemKeys = _extents.keys.toList(growable: false);
+      final oldCenterKey = oldItemKeys[_centerIndex];
+      final oldAnchorKey = oldItemKeys[_anchorIndex];
+      for (final (index, key) in newItemKeys.indexed) {
+        newCenterIndex ??= key == oldCenterKey ? index : null;
+        newAnchorIndex ??= key == oldAnchorKey ? index : null;
+        if (newCenterIndex != null && newAnchorIndex != null) break;
+      }
+      _extents = {for (final value in newItemKeys) value: _extents[value]};
     }
   }
 
@@ -259,9 +274,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   Widget _buildItem(BuildContext context, int index) {
+    final itemKey = widget.itemKeys[index];
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
-      key: ValueKey(widget.itemKeys[index]),
+      key: ValueKey(itemKey),
       index: index,
       onMount: (element) {
         _elements.add(element);
@@ -278,7 +294,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           Axis.horizontal => (oldSize?.width, newSize.width),
         };
         // 保存最新的列表项尺寸
-        _extents[index] = newExtent;
+        _extents[itemKey] = newExtent;
         // 更新列表项的信息
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
@@ -304,7 +320,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 还是 100，并且在列表项 A 重新渲染后有某处代码调用 setState 方法触发了与列表布局相关
       // 的 performRebuild 方法，就会导致列表项 A 之后的列表项整体向前错位 200。
       child: FutureBuilder(
-        initialData: _extents[index],
+        initialData: _extents[itemKey],
         future: Future.value(null),
         builder: (context, snapshot) => Container(
           width: widget.scrollDirection == Axis.horizontal ? snapshot.data : null,
@@ -383,7 +399,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _trailingFraction = 1.0;
       _scrollController.jumpTo(0.0);
       _centerIndex = _anchorIndex = index;
-      _extents.clear();
+      _extents = {for (final value in widget.itemKeys) value: null};
     });
   }
 
