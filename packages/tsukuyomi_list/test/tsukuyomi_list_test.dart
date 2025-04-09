@@ -228,7 +228,7 @@ void main() {
         expect(controller.position.pixels, 300.0 + i * 300.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }
-    }, skip: true);
+    });
   });
 
   group('TsukuyomiList respects initialScrollIndex', () {
