@@ -79,6 +79,7 @@ class TsukuyomiList extends StatefulWidget {
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _centerIndex, _anchorIndex;
+  late List<Object> _oldItemKeys;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
@@ -94,6 +95,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   void initState() {
     super.initState();
     _centerIndex = _anchorIndex = widget.initialScrollIndex;
+    _oldItemKeys = [...widget.itemKeys];
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -109,6 +111,19 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     // 重置列表项尺寸
     if (widget.scrollDirection != oldWidget.scrollDirection) {
       _extents.clear();
+    }
+    // 对比列表数据差异
+    if (widget.itemKeys.length != _oldItemKeys.length) {
+      int? newCenterIndex, newAnchorIndex;
+      final newItemKeys = widget.itemKeys;
+      final oldItemKeys = _oldItemKeys;
+      final oldCenterKey = oldItemKeys[_centerIndex];
+      final oldAnchorKey = oldItemKeys[_anchorIndex];
+      for (final (index, key) in newItemKeys.indexed) {
+        newCenterIndex ??= key == oldCenterKey ? index : null;
+        newAnchorIndex ??= key == oldAnchorKey ? index : null;
+        if (newCenterIndex != null && newAnchorIndex != null) break;
+      }
     }
   }
 
