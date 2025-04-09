@@ -82,7 +82,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   late Map<Object, double?> _extents;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
-  final _addedItems = <Object, double?>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -124,25 +123,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         newAnchorIndex ??= key == oldAnchorKey ? index : null;
         if (newCenterIndex != null && newAnchorIndex != null) break;
       }
-      _centerIndex = (newCenterIndex ?? _centerIndex).clamp(0, newItemKeys.length);
-      _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, newItemKeys.length);
-
-      final addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
-      for (final itemKey in addedItemKeys) {
-        final index = newItemKeys.indexOf(itemKey);
-        final delta = _extents.length > index ? _extents[index] : null;
-        if (delta == null) {
-          _addedItems[itemKey] = 0.0;
-        } else if (_centerIndex <= index && index < _anchorIndex) {
-          _scrollController.position.correctImmediate(_addedItems[itemKey] = delta);
-        } else if (_anchorIndex <= index && index < _centerIndex) {
-          _scrollController.position.correctImmediate(_addedItems[itemKey] = -delta);
-        }
-      }
-
       _extents = {for (final value in newItemKeys) value: _extents[value]};
-      // 布局调整完成后重置数据
-      SchedulerBinding.instance.addPostFrameCallback((_) => _addedItems.clear());
     }
   }
 
@@ -318,13 +299,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
         if (_anchorIndex == _centerIndex) return;
+        // 首次布局时不需要处理尺寸变化
+        if (oldExtent == null) return;
         // 计算主轴方向上发生的尺寸变化
-        final delta = switch (oldExtent) {
-          double() => newExtent - oldExtent,
-          null => _addedItems.containsKey(itemKey) ? newExtent - (_addedItems.remove(itemKey) ?? 0.0) : null,
-        };
-        // 如果不需要修正主轴方向上的滚动偏移
-        if (delta == null || delta == 0) return;
+        final delta = newExtent - oldExtent;
+        // 主轴方向上的尺寸没有发生变化
+        if (delta == 0) return;
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
           return _scrollController.position.correctImmediate(delta);
