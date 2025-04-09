@@ -83,7 +83,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _addedItems = <Object, double?>{};
-  final _cachedSizes = <int, double>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -111,7 +110,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     }
     // 重置列表项尺寸
     if (widget.scrollDirection != oldWidget.scrollDirection) {
-      _cachedSizes.clear();
       _extents = {for (final value in widget.itemKeys) value: null};
     }
     // 对比列表数据差异
@@ -132,7 +130,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       final addedItemKeys = newItemKeys.toSet().difference(oldItemKeys.toSet());
       for (final itemKey in addedItemKeys) {
         final index = newItemKeys.indexOf(itemKey);
-        final delta = _cachedSizes.length > index ? _cachedSizes[index] : null;
+        final delta = _extents.length > index ? _extents[index] : null;
         if (delta == null) {
           _addedItems[itemKey] = 0.0;
         } else if (_centerIndex <= index && index < _anchorIndex) {
@@ -315,7 +313,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           Axis.horizontal => (oldSize?.width, newSize.width),
         };
         // 保存最新的列表项尺寸
-        _cachedSizes[index] = _extents[itemKey] = newExtent;
+        _extents[itemKey] = newExtent;
         // 更新列表项的信息
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
