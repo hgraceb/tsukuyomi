@@ -124,6 +124,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         newAnchorIndex ??= key == oldAnchorKey ? index : null;
         if (newCenterIndex != null && newAnchorIndex != null) break;
       }
+      _centerIndex = (newCenterIndex ?? _centerIndex).clamp(0, newItemKeys.length);
+      _anchorIndex = (newAnchorIndex ?? _anchorIndex).clamp(0, newItemKeys.length);
     }
   }
 
