@@ -79,6 +79,7 @@ class TsukuyomiList extends StatefulWidget {
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _centerIndex, _anchorIndex;
+  late List<Object> _oldItemKeys;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
@@ -94,6 +95,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   void initState() {
     super.initState();
     _centerIndex = _anchorIndex = widget.initialScrollIndex;
+    _oldItemKeys = [...widget.itemKeys];
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -110,6 +112,18 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     if (widget.scrollDirection != oldWidget.scrollDirection) {
       _extents.clear();
     }
+    // 对比列表数据差异
+    if (widget.itemKeys.length != _oldItemKeys.length) {
+      final oldAnchorKey = _oldItemKeys[_anchorIndex];
+      for (final (index, key) in widget.itemKeys.indexed) {
+        if (key != oldAnchorKey) continue;
+        for (var i = 1; i <= index - _anchorIndex; i++) {
+          _scrollController.position.correctImmediate(_extents[_anchorIndex - i]);
+        }
+        break;
+      }
+    }
+    _oldItemKeys = [...widget.itemKeys];
   }
 
   @override
@@ -519,9 +533,11 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   bool _corrected = false;
 
   /// 在下次布局时修正滚动偏移
-  void correctImmediate(double correction) {
-    _corrected = true;
-    correctBy(correction);
+  void correctImmediate(double? correction) {
+    if (correction != null) {
+      _corrected = true;
+      correctBy(correction);
+    }
   }
 
   @override
