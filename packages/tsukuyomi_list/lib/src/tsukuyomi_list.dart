@@ -275,8 +275,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
-      key: ValueKey(widget.itemKeys[index]),
-      index: index,
+      key: ValueKey(index),
       onMount: (element) {
         _elements.add(element);
         _scheduleUpdateItems();
@@ -364,7 +363,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
         final offset = viewport.getOffsetToReveal(box, 0.0).offset;
         final item = TsukuyomiListItem(
-          index: element.widget.index!,
+          index: element.widget.key!.value,
           size: box.size,
           axis: widget.scrollDirection,
           offset: offset - viewport.offset.pixels,
@@ -572,15 +571,16 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({super.key, this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
-
-  final int? index;
+  const _TsukuyomiListItem({ValueKey<int>? super.key, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
 
   final ValueChanged<_TsukuyomiListItemElement>? onMount;
 
   final ValueChanged<_TsukuyomiListItemElement>? onUnmount;
 
   final _OnPerformLayout? onPerformLayout;
+
+  @override
+  ValueKey<int>? get key => super.key as ValueKey<int>?;
 
   @override
   SingleChildRenderObjectElement createElement() => _TsukuyomiListItemElement(this);
