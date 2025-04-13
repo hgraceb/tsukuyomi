@@ -217,10 +217,10 @@ void main() {
 
       // 动态添加列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
-        itemKeys.insert(1, itemKeys.length);
-        itemKeys.insert(itemKeys.length - 1, itemKeys.length);
-        itemHeights.insert(1, 300.0);
-        itemHeights.insert(itemHeights.length - 1, 300.0);
+        itemKeys.insert(0, itemKeys.length);
+        itemKeys.insert(itemKeys.length, itemKeys.length);
+        itemHeights.insert(0, 300.0);
+        itemHeights.insert(itemHeights.length, 300.0);
         await tester.pumpWidget(builder());
         await tester.pumpAndSettle();
         expect(controller.centerIndex, 0);
