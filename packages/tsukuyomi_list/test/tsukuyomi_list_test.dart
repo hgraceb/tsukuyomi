@@ -200,7 +200,7 @@ void main() {
         );
       }
 
-      // 初始化列表并让第一个元素作为锚点元素
+      // 初始化列表并让第一个元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
       expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
@@ -222,13 +222,59 @@ void main() {
         itemHeights.insert(0, 300.0);
         itemHeights.insert(itemHeights.length, 300.0);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle();
+        await tester.pump();
         expect(controller.centerIndex, 0);
         expect(controller.anchorIndex, 6 + i);
         expect(controller.position.pixels, 300.0 + i * 300.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }
     });
+
+    testWidgets('when dynamic items addition 02', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: 9,
+          ),
+        );
+      }
+
+      // 初始化列表并让最后一个元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [9]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+
+      // 在锚点元素所在位置动态添加列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
+        itemKeys.insert(5, itemKeys.length);
+        itemHeights.insert(5, 300.0);
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 9);
+        expect(controller.anchorIndex, 5 + i);
+        expect(controller.position.pixels, -600.0 + i * 100.0);
+        expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+      }
+    }, skip: true);
   });
 
   group('TsukuyomiList respects initialScrollIndex', () {
