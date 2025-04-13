@@ -215,7 +215,7 @@ void main() {
       expect(controller.position.pixels, 300.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 动态添加列表项时能够锚定滚动位置
+      // 在列表首尾位置动态添加列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
         itemKeys.insert(0, itemKeys.length);
         itemKeys.insert(itemKeys.length, itemKeys.length);
