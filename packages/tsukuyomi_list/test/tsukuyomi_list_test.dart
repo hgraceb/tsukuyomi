@@ -255,7 +255,7 @@ void main() {
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 在列表首尾位置动态添加列表项时能够锚定滚动位置 // TODO(Flop): Change 3 to 9.
+      // 在列表首尾位置动态添加列表项时能够锚定滚动位置
       for (int i = 1; i <= 3; i++) {
         itemKeys.insert(0, itemKeys.length);
         itemKeys.insert(itemKeys.length, itemKeys.length);
@@ -303,15 +303,15 @@ void main() {
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 在锚点列表项的位置动态添加列表项时能够锚定滚动位置 // TODO(Flop): Change 3 to 9.
-      for (int i = 1; i <= 3; i++) {
+      // 在锚点列表项的位置动态添加列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
         itemKeys.insert(itemKeys.length - 5, itemKeys.length);
         itemHeights.insert(itemHeights.length - 5, 300.0);
         await tester.pumpWidget(builder());
         await tester.pump();
         expect(controller.centerIndex, 9);
         expect(controller.anchorIndex, 5 + i);
-        expect(controller.position.pixels, -600.0 + i * 100.0);
+        expect(controller.position.pixels, -600.0 + i * 100.0 + math.max(0, controller.anchorIndex - controller.centerIndex) * 200.0);
         expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
       }
     });

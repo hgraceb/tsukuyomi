@@ -118,11 +118,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       for (final (index, key) in widget.itemKeys.indexed) {
         if (key != oldAnchorKey) continue;
         for (var i = 1; i <= index - _anchorIndex; i++) {
-          if (index > _centerIndex) {
-            _scrollController.position.correctImmediate(_extents[_anchorIndex - i]);
-          } else if (index < _centerIndex) {
-            _scrollController.position.correctImmediate(_extents[_anchorIndex]);
-          }
+          _scrollController.position.correctImmediate(_extents[_anchorIndex]);
         }
         _anchorIndex = index;
         break;
