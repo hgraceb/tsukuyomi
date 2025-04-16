@@ -27,8 +27,10 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            itemKeys.insert(itemKeys.length - 5, itemKeys.length);
-            itemHeights.insert(itemHeights.length - 5, 300);
+            for (var i = 0; i < 6; i++) {
+              itemKeys.insert(itemKeys.length - 5, itemKeys.length);
+              itemHeights.insert(itemHeights.length - 5, 300);
+            }
           });
         },
         child: Center(
