@@ -49,14 +49,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
       // 列表项尺寸动态增大时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
       // 列表项尺寸动态减小时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, -400.0);
@@ -71,14 +69,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5, 6]);
       // 列表项尺寸动态增大时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4]);
       // 列表项尺寸动态减小时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -325.0);
@@ -93,14 +89,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, 125.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8]);
       // 列表项尺寸动态减小时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, -75.0);
@@ -115,14 +109,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 250.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9]);
       // 列表项尺寸动态减小时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 0.0);
