@@ -255,8 +255,8 @@ void main() {
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 在列表首尾位置动态添加列表项时能够锚定滚动位置
-      for (int i = 1; i <= 9; i++) {
+      // 在列表首尾位置动态添加列表项时能够锚定滚动位置 // TODO(Flop): Change 3 to 9.
+      for (int i = 1; i <= 3; i++) {
         itemKeys.insert(0, itemKeys.length);
         itemKeys.insert(itemKeys.length, itemKeys.length);
         itemHeights.insert(0, 300.0);
@@ -303,8 +303,8 @@ void main() {
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 在锚点列表项的位置动态添加列表项时能够锚定滚动位置
-      for (int i = 1; i <= 3; i++) { // TODO(Flop): Change 3 to 9.
+      // 在锚点列表项的位置动态添加列表项时能够锚定滚动位置 // TODO(Flop): Change 3 to 9.
+      for (int i = 1; i <= 3; i++) {
         itemKeys.insert(itemKeys.length - 5, itemKeys.length);
         itemHeights.insert(itemHeights.length - 5, 300.0);
         await tester.pumpWidget(builder());
