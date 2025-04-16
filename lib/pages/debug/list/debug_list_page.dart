@@ -38,7 +38,7 @@ class _DebugListPageState extends State<DebugListPage> {
             height: 600.0,
             child: TsukuyomiList.builder(
               itemKeys: itemKeys,
-              itemBuilder: (context, index) => Placeholder(child: SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}'))),
+              itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
               controller: controller,
               debugMask: true,
               anchor: 0.5,
