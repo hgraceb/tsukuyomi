@@ -304,7 +304,7 @@ void main() {
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
       // 在锚点列表项的位置动态添加列表项时能够锚定滚动位置
-      for (int i = 1; i <= 3; i++) {
+      for (int i = 1; i <= 3; i++) { // TODO(Flop): Change 3 to 9.
         itemKeys.insert(itemKeys.length - 5, itemKeys.length);
         itemHeights.insert(itemHeights.length - 5, 300.0);
         await tester.pumpWidget(builder());
