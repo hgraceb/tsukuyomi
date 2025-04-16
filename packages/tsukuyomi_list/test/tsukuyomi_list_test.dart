@@ -175,7 +175,7 @@ void main() {
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
     });
 
-    testWidgets('when dynamic items addition', (WidgetTester tester) async {
+    testWidgets('when adding dynamic items to start and end after center', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -222,7 +222,7 @@ void main() {
       }
     });
 
-    testWidgets('when dynamic items addition 02', (WidgetTester tester) async {
+    testWidgets('when adding dynamic items to start and end before center', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -270,7 +270,7 @@ void main() {
       }
     });
 
-    testWidgets('when dynamic items addition 03', (WidgetTester tester) async {
+    testWidgets('when adding dynamic item to anchor before center', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
