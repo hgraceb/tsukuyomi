@@ -263,10 +263,12 @@ void main() {
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 在锚点元素所在位置动态添加列表项时能够锚定滚动位置
+      // 在列表首尾位置动态添加列表项时能够锚定滚动位置
       for (int i = 1; i <= 9; i++) {
         itemKeys.insert(0, itemKeys.length);
+        itemKeys.insert(itemKeys.length, itemKeys.length);
         itemHeights.insert(0, 300.0);
+        itemHeights.insert(itemHeights.length, 300.0);
         await tester.pumpWidget(builder());
         await tester.pump();
         expect(controller.centerIndex, 9);
