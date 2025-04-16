@@ -156,21 +156,21 @@ void main() {
       unawaited(controller.slideViewport(0.5));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
+      expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, 300.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       // 列表项尺寸动态增大时能够锚定滚动位置
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 200.0)));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
-      expect(controller.position.pixels, 600.0);
-      expectList(length: itemKeys.length, visible: [4, 5, 6, 7]);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, 800.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6]);
       // 列表项尺寸动态减小时能够锚定滚动位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
+      expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, 300.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
@@ -178,7 +178,7 @@ void main() {
       unawaited(controller.slideViewport(-0.5));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 3);
+      expect(controller.anchorIndex, 2);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
     });
@@ -211,7 +211,7 @@ void main() {
       unawaited(controller.slideViewport(0.5));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
+      expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, 300.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
@@ -224,7 +224,7 @@ void main() {
         await tester.pumpWidget(builder());
         await tester.pump();
         expect(controller.centerIndex, 0);
-        expect(controller.anchorIndex, 6 + i);
+        expect(controller.anchorIndex, 5 + i);
         expect(controller.position.pixels, 300.0 + i * 300.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }

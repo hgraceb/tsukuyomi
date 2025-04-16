@@ -354,9 +354,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
       final anchor = widget.anchor ?? _calculateAnchor(position);
-      int anchorIndex = _anchorIndex;
+      final sortedElements = _elements.toList()..sort((a, b) => a.widget.key!.value.compareTo(b.widget.key!.value));
+      int? anchorIndex;
       RenderViewportBase? viewport;
-      for (final element in _elements) {
+      for (final element in sortedElements) {
         final box = element.findRenderObject() as RenderBox?;
         viewport ??= RenderAbstractViewport.maybeOf(box) as RenderViewportBase?;
         if (box == null || !box.hasSize || viewport == null) continue;
@@ -375,17 +376,17 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         if (widget.trailing && item.index == _centerIndex) {
           trailingFraction = 1.0 - item.leading;
         }
-        // 遍历获取最后一个符合条件的列表项作为锚点列表项
+        // 选择第一个符合条件的列表项作为锚点列表项
         if (item.leading <= anchor && item.trailing >= anchor) {
-          anchorIndex = item.index;
+          anchorIndex ??= item.index;
         }
       }
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
-      if (_anchorIndex != anchorIndex && (_anchorIndex != _centerIndex || position.pixels != 0.0)) {
-        setState(() => _anchorIndex = anchorIndex);
+      if (anchorIndex != null && _anchorIndex != anchorIndex && (_anchorIndex != _centerIndex || position.pixels != 0.0)) {
+        setState(() => _anchorIndex = anchorIndex!);
       }
-      // 根据索引顺序对列表项进行排序并回调
-      widget.onItemsChanged?.call(items..sort((a, b) => a.index.compareTo(b.index)));
+      // 回调根据索引顺序进行排序的所有已渲染列表项数据
+      widget.onItemsChanged?.call(items);
     });
   }
 
