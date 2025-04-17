@@ -257,7 +257,7 @@ void main() {
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
       // 在列表首尾位置同时添加多个列表项时能够锚定滚动位置
-      for (int i = 1; i <= 1; i++) {
+      for (int i = 1; i <= 10; i++) {
         itemKeys.insertAll(0, List.generate(10, (index) => itemKeys.length + index));
         itemKeys.insertAll(itemKeys.length, List.generate(10, (index) => itemKeys.length + index));
         itemHeights.insertAll(0, List.generate(10, (index) => 300.0));

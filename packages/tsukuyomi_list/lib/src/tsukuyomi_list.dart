@@ -83,6 +83,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
+  final _addedExtends = <int, double>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -117,13 +118,17 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       final oldAnchorKey = _oldItemKeys[_anchorIndex];
       for (final (index, key) in widget.itemKeys.indexed) {
         if (key != oldAnchorKey) continue;
-        for (var i = 1; i <= index - _anchorIndex; i++) {
-          _scrollController.position.correctImmediate(_extents[_anchorIndex]);
+        for (var i = 0, anchorExtent = _extents[_anchorIndex]; i < index - _anchorIndex && anchorExtent != null; i++) {
+          _scrollController.position.correctImmediate(_addedExtends[_anchorIndex + i] = anchorExtent);
         }
+        // 布局完成后重置数据
+        SchedulerBinding.instance.addPostFrameCallback((_) => _addedExtends.clear());
+        // 更新锚点列表项索引
         _anchorIndex = index;
         break;
       }
     }
+    // 更新列表项标识
     _oldItemKeys = [...widget.itemKeys];
   }
 
@@ -297,12 +302,13 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
         if (_anchorIndex == _centerIndex) return;
-        // 首次布局时不需要处理尺寸变化
-        if (oldExtent == null) return;
         // 计算主轴方向上发生的尺寸变化
-        final delta = newExtent - oldExtent;
-        // 主轴方向上的尺寸没有发生变化
-        if (delta == 0) return;
+        final delta = switch (oldExtent) {
+          double() => newExtent - oldExtent,
+          null => _addedExtends.containsKey(index) ? newExtent - (_addedExtends.remove(index) ?? 0.0) : null,
+        };
+        // 如果不需要修正主轴方向上的滚动偏移
+        if (delta == null || delta == 0) return;
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
           return _scrollController.position.correctImmediate(delta);
@@ -534,8 +540,8 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   bool _corrected = false;
 
   /// 在下次布局时修正滚动偏移
-  void correctImmediate(double? correction) {
-    if (correction != null) {
+  void correctImmediate(double correction) {
+    if (correction != 0.0) {
       _corrected = true;
       correctBy(correction);
     }
