@@ -83,7 +83,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
-  final _addedExtends = <int, double>{};
+  final _addedExtends = <int, double?>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -118,8 +118,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       final oldAnchorKey = _oldItemKeys[_anchorIndex];
       for (final (index, key) in widget.itemKeys.indexed) {
         if (key != oldAnchorKey) continue;
-        for (var i = 0, anchorExtent = _extents[_anchorIndex]; i < index - _anchorIndex && anchorExtent != null; i++) {
-          _scrollController.position.correctImmediate(_addedExtends[_anchorIndex + i] = anchorExtent);
+        for (var i = _anchorIndex, anchorExtent = _extents[_anchorIndex]; i < index; i++) {
+          _scrollController.position.correctImmediate(_addedExtends[i] = _extents[i] ?? anchorExtent);
         }
         // 布局完成后重置数据
         SchedulerBinding.instance.addPostFrameCallback((_) => _addedExtends.clear());
@@ -540,8 +540,8 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   bool _corrected = false;
 
   /// 在下次布局时修正滚动偏移
-  void correctImmediate(double correction) {
-    if (correction != 0.0) {
+  void correctImmediate(double? correction) {
+    if (correction != null && correction != 0.0) {
       _corrected = true;
       correctBy(correction);
     }

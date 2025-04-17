@@ -258,14 +258,14 @@ void main() {
 
       // 在列表首尾位置同时添加多个列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
-        itemKeys.insertAll(0, List.generate(10, (index) => itemKeys.length + index));
-        itemKeys.insertAll(itemKeys.length, List.generate(10, (index) => itemKeys.length + index));
-        itemHeights.insertAll(0, List.generate(10, (index) => 300.0));
-        itemHeights.insertAll(itemHeights.length, List.generate(10, (index) => 300.0));
+        itemKeys.insertAll(0, List.generate(100, (index) => itemKeys.length + index));
+        itemKeys.insertAll(itemKeys.length, List.generate(100, (index) => itemKeys.length + index));
+        itemHeights.insertAll(0, List.generate(100, (index) => 300.0));
+        itemHeights.insertAll(itemHeights.length, List.generate(100, (index) => 300.0));
         await tester.pumpWidget(builder());
         await tester.pump();
         expect(controller.centerIndex, 9);
-        expect(controller.anchorIndex, 5 + i * 10);
+        expect(controller.anchorIndex, 5 + i * 100);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }
     });
@@ -351,12 +351,12 @@ void main() {
 
       // 在锚点列表项的位置同时添加多个列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
-        itemKeys.insertAll(itemKeys.length - 5, List.generate(10, (index) => itemKeys.length + index));
-        itemHeights.insertAll(itemHeights.length - 5, List.generate(10, (index) => 300.0));
+        itemKeys.insertAll(itemKeys.length - 5, List.generate(100, (index) => itemKeys.length + index));
+        itemHeights.insertAll(itemHeights.length - 5, List.generate(100, (index) => 300.0));
         await tester.pumpWidget(builder());
         await tester.pump();
         expect(controller.centerIndex, 9);
-        expect(controller.anchorIndex, 5 + i * 10);
+        expect(controller.anchorIndex, 5 + i * 100);
         expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
       }
     });
