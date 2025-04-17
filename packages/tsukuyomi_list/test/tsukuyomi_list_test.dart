@@ -175,54 +175,7 @@ void main() {
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
     });
 
-    testWidgets('when adding dynamic items to start and end after center', (WidgetTester tester) async {
-      final itemKeys = List.generate(10, (index) => index);
-      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
-      final controller = TsukuyomiListController();
-
-      Widget builder() {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: TsukuyomiList.builder(
-            itemKeys: itemKeys,
-            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
-            controller: controller,
-            anchor: 0.5,
-          ),
-        );
-      }
-
-      // 初始化列表并让第一个元素作为中心元素和锚点元素
-      await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-
-      // 正向滚动半个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
-      unawaited(controller.slideViewport(0.5));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 5);
-      expect(controller.position.pixels, 300.0);
-      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
-
-      // 在列表首尾位置动态添加列表项时能够锚定滚动位置
-      for (int i = 1; i <= 10; i++) {
-        itemKeys.insert(0, itemKeys.length);
-        itemKeys.insert(itemKeys.length, itemKeys.length);
-        itemHeights.insert(0, 300.0);
-        itemHeights.insert(itemHeights.length, 300.0);
-        await tester.pumpWidget(builder());
-        await tester.pump();
-        expect(controller.centerIndex, 0);
-        expect(controller.anchorIndex, 5 + i);
-        expect(controller.position.pixels, 300.0 + i * 300.0);
-        expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
-      }
-    });
-
-    testWidgets('when adding dynamic items to start and end before center', (WidgetTester tester) async {
+    testWidgets('when adding single item to start and end', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -270,52 +223,7 @@ void main() {
       }
     });
 
-    testWidgets('when adding dynamic item to anchor after center', (WidgetTester tester) async {
-      final itemKeys = List.generate(10, (index) => index);
-      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
-      final controller = TsukuyomiListController();
-
-      Widget builder() {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: TsukuyomiList.builder(
-            itemKeys: itemKeys,
-            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
-            controller: controller,
-            anchor: 0.5,
-          ),
-        );
-      }
-
-      // 初始化列表并让第一个元素作为中心元素和锚点元素
-      await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-
-      // 正向滚动半个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
-      unawaited(controller.slideViewport(0.5));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 5);
-      expect(controller.position.pixels, 300.0);
-      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
-
-      // 在锚点列表项的位置动态添加列表项时能够锚定滚动位置
-      for (int i = 1; i <= 10; i++) {
-        itemKeys.insert(itemKeys.length - 5, itemKeys.length);
-        itemHeights.insert(itemHeights.length - 5, 300.0);
-        await tester.pumpWidget(builder());
-        await tester.pump();
-        expect(controller.centerIndex, 0);
-        expect(controller.anchorIndex, 5 + i);
-        expect(controller.position.pixels, 300.0 + i * 300.0);
-        expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
-      }
-    });
-
-    testWidgets('when adding dynamic item to anchor before center', (WidgetTester tester) async {
+    testWidgets('when adding single item to anchor', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
