@@ -266,7 +266,6 @@ void main() {
         await tester.pump();
         expect(controller.centerIndex, 9);
         expect(controller.anchorIndex, 5 + i * 10);
-        // expect(controller.position.pixels, -600.0 + i * 1000.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }
     });
@@ -358,8 +357,7 @@ void main() {
         await tester.pump();
         expect(controller.centerIndex, 9);
         expect(controller.anchorIndex, 5 + i * 10);
-        // expect(controller.position.pixels, -600.0 + i * 100.0 + math.max(0, controller.anchorIndex - controller.centerIndex) * 200.0);
-        // expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
+        expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
       }
     });
   });
