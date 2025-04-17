@@ -208,7 +208,7 @@ void main() {
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 在列表首尾位置动态添加列表项时能够锚定滚动位置
+      // 在列表首尾位置同时添加单个列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
         itemKeys.insert(0, itemKeys.length);
         itemKeys.insert(itemKeys.length, itemKeys.length);
@@ -219,6 +219,54 @@ void main() {
         expect(controller.centerIndex, 9);
         expect(controller.anchorIndex, 5 + i);
         expect(controller.position.pixels, -600.0 + i * 100.0 + math.max(0, i - controller.centerIndex) * 200.0);
+        expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+      }
+    });
+
+    testWidgets('when adding multi items to start and end', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: 9,
+          ),
+        );
+      }
+
+      // 初始化列表并让最后一个元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [9]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+
+      // 在列表首尾位置同时添加多个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 1; i++) {
+        itemKeys.insertAll(0, List.generate(10, (index) => itemKeys.length + index));
+        itemKeys.insertAll(itemKeys.length, List.generate(10, (index) => itemKeys.length + index));
+        itemHeights.insertAll(0, List.generate(10, (index) => 300.0));
+        itemHeights.insertAll(itemHeights.length, List.generate(10, (index) => 300.0));
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 9);
+        expect(controller.anchorIndex, 5 + i * 10);
+        // expect(controller.position.pixels, -600.0 + i * 1000.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }
     });
