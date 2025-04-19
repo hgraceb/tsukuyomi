@@ -118,6 +118,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       final oldAnchorKey = _oldItemKeys[_anchorIndex];
       for (final (index, key) in widget.itemKeys.indexed) {
         if (key != oldAnchorKey) continue;
+        // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = _anchorIndex, anchorExtent = _extents[_anchorIndex]; i < index; i++) {
           _scrollController.position.correctImmediate(_addedExtends[i] = _extents[i] ?? anchorExtent);
         }
