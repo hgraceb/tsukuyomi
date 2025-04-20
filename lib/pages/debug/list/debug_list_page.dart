@@ -11,14 +11,14 @@ class DebugListPage extends StatefulWidget {
 }
 
 class _DebugListPageState extends State<DebugListPage> {
-  late final itemKeys = List.generate(10, (index) => index);
+  late final itemKeys = List.generate(30, (index) => index);
   late final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
   late final controller = TsukuyomiListController();
 
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(0.5));
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(-1.0));
   }
 
   @override
@@ -27,21 +27,25 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            for (var i = 0; i < 6; i++) {
-              itemKeys.insert(itemKeys.length - 5, itemKeys.length);
-              itemHeights.insert(itemHeights.length - 5, 300);
-            }
+            itemKeys.removeAt(0);
+            itemHeights.removeAt(0);
+            itemKeys.removeAt(itemKeys.length - 1);
+            itemHeights.removeAt(itemHeights.length - 1);
           });
         },
         child: Center(
           child: SizedBox(
             height: 600.0,
             child: TsukuyomiList.builder(
-              itemKeys: itemKeys,
-              itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
-              controller: controller,
               debugMask: true,
               anchor: 0.5,
+              initialScrollIndex: 19,
+              controller: controller,
+              itemKeys: itemKeys,
+              itemBuilder: (context, index) => SizedBox(
+                height: itemHeights[index],
+                child: Placeholder(child: Text('${itemKeys[index]} [$index]')),
+              ),
             ),
           ),
         ),

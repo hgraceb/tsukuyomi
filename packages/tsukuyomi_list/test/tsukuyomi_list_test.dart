@@ -270,6 +270,54 @@ void main() {
       }
     });
 
+    testWidgets('when removing single item at start and end', (WidgetTester tester) async {
+      final itemKeys = List.generate(30, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: 19,
+          ),
+        );
+      }
+
+      // 初始化列表并让指定元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 19);
+      expect(controller.anchorIndex, 19);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [19, 20, 21, 22, 23, 24]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 19);
+      expect(controller.anchorIndex, 15);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [13, 14, 15, 16, 17, 18]);
+
+      // 在列表首尾位置同时移除单个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 5; i++) {
+        itemKeys.removeAt(0);
+        itemKeys.removeAt(itemKeys.length - 1);
+        itemHeights.removeAt(0);
+        itemHeights.removeAt(itemHeights.length - 1);
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 19);
+        expect(controller.anchorIndex, 15 - i);
+        expect(controller.position.pixels, -600.0 - i * 100.0);
+        expectList(length: itemKeys.length, visible: [13, 14, 15, 16, 17, 18]);
+      }
+    });
+
     testWidgets('when adding single item to anchor', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
