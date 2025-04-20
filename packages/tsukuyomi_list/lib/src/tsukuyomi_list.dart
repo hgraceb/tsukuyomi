@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart' show RenderProxyBox;
@@ -115,18 +116,23 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     }
     // 对比列表数据差异
     if (widget.itemKeys.length != _oldItemKeys.length) {
-      final oldAnchorKey = _oldItemKeys[_anchorIndex];
-      for (final (index, key) in widget.itemKeys.indexed) {
-        if (key != oldAnchorKey) continue;
+      final oldAnchorIndex = _anchorIndex;
+      final oldAnchorExtent = _extents[oldAnchorIndex];
+      final oldAnchorKey = _oldItemKeys[oldAnchorIndex];
+      final newAnchorIndex = widget.itemKeys.indexed.firstWhereOrNull((item) => item.$2 == oldAnchorKey)?.$1;
+      if (newAnchorIndex != null && newAnchorIndex != _anchorIndex && oldAnchorExtent != null) {
         // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
-        for (var i = _anchorIndex, anchorExtent = _extents[_anchorIndex]; i < index; i++) {
-          _scrollController.position.correctImmediate(_addedExtends[i] = _extents[i] ?? anchorExtent);
+        for (var i = _anchorIndex; i < newAnchorIndex; i++) {
+          _scrollController.position.correctImmediate(_addedExtends[i] = _extents[i] ?? oldAnchorExtent);
+        }
+        // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
+        for (var i = newAnchorIndex; i < _anchorIndex; i++) {
+          _scrollController.position.correctImmediate(_addedExtends[i] = -(_extents[i] ?? oldAnchorExtent));
         }
         // 布局完成后重置数据
         SchedulerBinding.instance.addPostFrameCallback((_) => _addedExtends.clear());
         // 更新锚点列表项索引
-        _anchorIndex = index;
-        break;
+        _anchorIndex = newAnchorIndex;
       }
     }
     // 更新列表项标识
