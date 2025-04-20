@@ -11,7 +11,7 @@ class DebugListPage extends StatefulWidget {
 }
 
 class _DebugListPageState extends State<DebugListPage> {
-  late final itemKeys = List.generate(30, (index) => index);
+  late final itemKeys = List.generate(20, (index) => index);
   late final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
   late final controller = TsukuyomiListController();
 
@@ -39,7 +39,7 @@ class _DebugListPageState extends State<DebugListPage> {
             child: TsukuyomiList.builder(
               debugMask: true,
               anchor: 0.5,
-              initialScrollIndex: 19,
+              initialScrollIndex: (itemKeys.length - 1).clamp(0, 14),
               controller: controller,
               itemKeys: itemKeys,
               itemBuilder: (context, index) => SizedBox(
