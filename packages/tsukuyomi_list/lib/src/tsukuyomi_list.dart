@@ -116,9 +116,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     }
     // 对比列表数据差异
     if (widget.itemKeys.length != _oldItemKeys.length) {
+      final oldCenterIndex = _centerIndex;
       final oldAnchorIndex = _anchorIndex;
       final oldAnchorExtent = _extents[oldAnchorIndex];
       final oldAnchorKey = _oldItemKeys[oldAnchorIndex];
+      final newCenterIndex = (widget.itemKeys.length - 1).clamp(0, oldCenterIndex);
       final newAnchorIndex = widget.itemKeys.indexed.firstWhereOrNull((item) => item.$2 == oldAnchorKey)?.$1;
       if (newAnchorIndex != null && newAnchorIndex != _anchorIndex && oldAnchorExtent != null) {
         // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
@@ -134,6 +136,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 更新锚点列表项索引
         _anchorIndex = newAnchorIndex;
       }
+      // 更新中心列表项索引
+      _centerIndex = newCenterIndex;
     }
     // 更新列表项标识
     _oldItemKeys = [...widget.itemKeys];
