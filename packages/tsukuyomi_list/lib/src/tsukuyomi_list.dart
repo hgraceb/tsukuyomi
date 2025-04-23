@@ -116,11 +116,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     }
     // 对比列表数据差异
     if (widget.itemKeys.length != _oldItemKeys.length) {
-      final oldCenterIndex = _centerIndex;
-      final oldAnchorIndex = _anchorIndex;
-      final oldAnchorExtent = _extents[oldAnchorIndex];
-      final oldAnchorKey = _oldItemKeys[oldAnchorIndex];
-      final newCenterIndex = (widget.itemKeys.length - 1).clamp(0, oldCenterIndex);
+      final oldAnchorExtent = _extents[_anchorIndex];
+      final oldAnchorKey = _oldItemKeys[_anchorIndex];
       final newAnchorIndex = widget.itemKeys.indexed.firstWhereOrNull((item) => item.$2 == oldAnchorKey)?.$1;
       if (newAnchorIndex != null && newAnchorIndex != _anchorIndex && oldAnchorExtent != null) {
         // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
@@ -129,15 +126,17 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         }
         // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = newAnchorIndex; i < _anchorIndex; i++) {
-          _scrollController.position.correctImmediate(_addedExtends[i] = -(_extents[i] ?? 0.0));
+          if (_extents[i] case final extent?) _scrollController.position.correctImmediate(-extent);
         }
-        // 布局完成后重置数据
+        // 布局重绘后清空数据
         SchedulerBinding.instance.addPostFrameCallback((_) => _addedExtends.clear());
         // 更新锚点列表项索引
         _anchorIndex = newAnchorIndex;
       }
-      // 更新中心列表项索引
-      _centerIndex = newCenterIndex;
+      if (_anchorIndex >= widget.itemKeys.length) {
+        // 更新锚点列表项索引
+        _anchorIndex = math.max(0, widget.itemKeys.length - 1);
+      }
     }
     // 更新列表项标识
     _oldItemKeys = [...widget.itemKeys];
@@ -341,7 +340,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           width: widget.scrollDirection == Axis.horizontal ? snapshot.data : null,
           height: widget.scrollDirection == Axis.vertical ? snapshot.data : null,
           foregroundDecoration: BoxDecoration(color: index == _anchorIndex ? _pinkDebugMask : null),
-          child: widget.itemBuilder(context, index),
+          child: index < widget.itemKeys.length ? widget.itemBuilder(context, index) : null,
         ),
       ),
     );
