@@ -1,7 +1,6 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
-import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart' show RenderProxyBox;
@@ -114,12 +113,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     if (widget.scrollDirection != oldWidget.scrollDirection) {
       _extents.clear();
     }
-    // 对比列表数据差异
-    if (widget.itemKeys.length != _oldItemKeys.length) {
+    // 修正锚点列表项位置
+    if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex >= 0) {
       final oldAnchorExtent = _extents[_anchorIndex];
-      final oldAnchorKey = _oldItemKeys[_anchorIndex];
-      final newAnchorIndex = widget.itemKeys.indexed.firstWhereOrNull((item) => item.$2 == oldAnchorKey)?.$1;
-      if (newAnchorIndex != null && newAnchorIndex != _anchorIndex && oldAnchorExtent != null) {
+      if (newAnchorIndex != _anchorIndex && oldAnchorExtent != null) {
         // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = _anchorIndex; i < newAnchorIndex; i++) {
           _scrollController.position.correctImmediate(_addedExtends[i] = _extents[i] ?? oldAnchorExtent);
