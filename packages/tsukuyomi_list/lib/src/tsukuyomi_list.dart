@@ -114,9 +114,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _extents.clear();
     }
     // 修正锚点列表项位置
-    if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex >= 0) {
-      final oldAnchorExtent = _extents[_anchorIndex];
-      if (newAnchorIndex != _anchorIndex && oldAnchorExtent != null) {
+    if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
+      if (_extents[_anchorIndex] case final oldAnchorExtent? when newAnchorIndex >= 0) {
         // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = _anchorIndex; i < newAnchorIndex; i++) {
           _scrollController.position.correctImmediate(_addedExtends[i] = _extents[i] ?? oldAnchorExtent);
