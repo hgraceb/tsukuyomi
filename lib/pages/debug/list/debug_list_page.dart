@@ -11,9 +11,8 @@ class DebugListPage extends StatefulWidget {
 }
 
 class _DebugListPageState extends State<DebugListPage> {
-  int id = 0;
-  late final itemKeys = List.generate(2000, (index) => id++);
-  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+  late final itemKeys = List.generate(100, (index) => index);
+  late final itemHeights = List.generate(itemKeys.length, (index) => index == 49 ? 101.0 : 100.0);
   late final controller = TsukuyomiListController();
 
   @override
@@ -28,7 +27,7 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            const count = 100;
+            const count = 5;
             itemKeys.removeRange(0, count);
             itemKeys.removeRange(itemKeys.length - count, itemKeys.length);
             itemHeights.removeRange(0, count);
@@ -41,7 +40,7 @@ class _DebugListPageState extends State<DebugListPage> {
             child: TsukuyomiList.builder(
               debugMask: true,
               anchor: 0.5,
-              initialScrollIndex: (itemKeys.length - 1).clamp(0, 1003),
+              initialScrollIndex: (itemKeys.length - 1).clamp(0, 53),
               controller: controller,
               itemKeys: itemKeys,
               itemBuilder: (context, index) => SizedBox(
