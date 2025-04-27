@@ -317,6 +317,53 @@ void main() {
       }
     });
 
+    testWidgets('when removing multi items at start and end', (WidgetTester tester) async {
+      final itemKeys = List.generate(2000, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: (itemKeys.length - 1).clamp(0, 1003),
+          ),
+        );
+      }
+
+      // 初始化列表并让指定元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 1003);
+      expect(controller.anchorIndex, 1003);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [1003, 1004, 1005, 1006, 1007, 1008]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 1003);
+      expect(controller.anchorIndex, 999);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [997, 998, 999, 1000, 1001, 1002]);
+
+      // 在列表首尾位置同时移除多个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
+        itemKeys.removeRange(0, 100);
+        itemKeys.removeRange(itemKeys.length - 100, itemKeys.length);
+        itemHeights.removeRange(0, 100);
+        itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 1003);
+        expect(controller.anchorIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
+        expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [997, 998, 999, 1000, 1001, 1002] : itemKeys);
+      }
+    });
+
     testWidgets('when adding single item to anchor', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);

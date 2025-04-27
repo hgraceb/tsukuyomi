@@ -122,7 +122,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         }
         // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = newAnchorIndex; i < _anchorIndex; i++) {
-          if (_extents[i] case final extent?) _scrollController.position.correctImmediate(-extent);
+          _scrollController.position.correctImmediate(-(_extents[i] ?? oldAnchorExtent));
         }
         // 布局重绘后清空数据
         SchedulerBinding.instance.addPostFrameCallback((_) => _addedExtends.clear());
@@ -371,13 +371,16 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       int? anchorIndex;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
+        final index = element.widget.key!.value;
+        if (index >= widget.itemKeys.length) continue;
+
         final box = element.findRenderObject() as RenderBox?;
         viewport ??= RenderAbstractViewport.maybeOf(box) as RenderViewportBase?;
         if (box == null || !box.hasSize || viewport == null) continue;
 
         final offset = viewport.getOffsetToReveal(box, 0.0).offset;
         final item = TsukuyomiListItem(
-          index: element.widget.key!.value,
+          index: index,
           size: box.size,
           axis: widget.scrollDirection,
           offset: offset - viewport.offset.pixels,
@@ -546,8 +549,8 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   bool _corrected = false;
 
   /// 在下次布局时修正滚动偏移
-  void correctImmediate(double? correction) {
-    if (correction != null && correction != 0.0) {
+  void correctImmediate(double correction) {
+    if (correction != 0.0) {
       _corrected = true;
       correctBy(correction);
     }
