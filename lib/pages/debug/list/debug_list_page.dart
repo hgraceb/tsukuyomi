@@ -22,7 +22,10 @@ class _DebugListPageState extends State<DebugListPage> {
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(-1.0));
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) async {
+      await controller.slideViewport(-1.0);
+      await controller.slideViewport(-0.5);
+    });
   }
 
   @override
