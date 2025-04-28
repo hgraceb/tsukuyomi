@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -318,8 +319,9 @@ void main() {
     });
 
     testWidgets('when removing multi items at start and end', (WidgetTester tester) async {
+      final random = Random(2147483647);
       final itemKeys = List.generate(2000, (index) => index);
-      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (997 <= index && index <= 1008 ? 0.0 : random.nextInt(100)));
       final controller = TsukuyomiListController();
 
       Widget builder() {

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
@@ -11,8 +13,9 @@ class DebugListPage extends StatefulWidget {
 }
 
 class _DebugListPageState extends State<DebugListPage> {
-  late final itemKeys = List.generate(100, (index) => index);
-  late final itemHeights = List.generate(itemKeys.length, (index) => index == 49 ? 101.0 : 100.0);
+  final random = Random(2147483647);
+  late final itemKeys = List.generate(2000, (index) => index);
+  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (997 <= index && index <= 1008 ? 0.0 : random.nextInt(100)));
   late final controller = TsukuyomiListController();
 
   @override
@@ -27,10 +30,10 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            const count = 5;
+            const count = 100;
             itemKeys.removeRange(0, count);
-            itemKeys.removeRange(itemKeys.length - count, itemKeys.length);
             itemHeights.removeRange(0, count);
+            itemKeys.removeRange(itemKeys.length - count, itemKeys.length);
             itemHeights.removeRange(itemHeights.length - count, itemHeights.length);
           });
         },
@@ -40,7 +43,7 @@ class _DebugListPageState extends State<DebugListPage> {
             child: TsukuyomiList.builder(
               debugMask: true,
               anchor: 0.5,
-              initialScrollIndex: (itemKeys.length - 1).clamp(0, 53),
+              initialScrollIndex: (itemKeys.length - 1).clamp(0, 1003),
               controller: controller,
               itemKeys: itemKeys,
               itemBuilder: (context, index) => SizedBox(
