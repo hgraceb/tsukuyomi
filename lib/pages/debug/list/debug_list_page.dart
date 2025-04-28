@@ -13,8 +13,9 @@ class DebugListPage extends StatefulWidget {
 }
 
 class _DebugListPageState extends State<DebugListPage> {
+  int id = 0;
   final random = Random(2147483647);
-  late final itemKeys = List.generate(2000, (index) => index);
+  late final itemKeys = List.generate(2000, (index) => id++);
   late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (997 <= index && index <= 1008 ? 0.0 : random.nextInt(100)));
   late final controller = TsukuyomiListController();
 
@@ -30,11 +31,12 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            const count = 100;
-            itemKeys.removeRange(0, count);
-            itemHeights.removeRange(0, count);
-            itemKeys.removeRange(itemKeys.length - count, itemKeys.length);
-            itemHeights.removeRange(itemHeights.length - count, itemHeights.length);
+            final adding = random.nextInt(100);
+            final removing = random.nextInt(100);
+            itemKeys.removeRange(0, removing);
+            itemHeights.removeRange(0, removing);
+            itemKeys.insertAll(adding, List.generate(adding, (index) => id));
+            itemHeights.insertAll(adding, List.generate(adding, (index) => 100.0 + random.nextInt(100)));
           });
         },
         child: Center(

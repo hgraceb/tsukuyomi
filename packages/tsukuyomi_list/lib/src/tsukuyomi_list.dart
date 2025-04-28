@@ -83,7 +83,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
-  final _addedExtends = <int, double?>{};
+  final _correctedExtends = <int, double?>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -118,14 +118,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       if (_extents[_anchorIndex] case final oldAnchorExtent? when newAnchorIndex >= 0) {
         // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = _anchorIndex; i < newAnchorIndex; i++) {
-          _scrollController.position.correctImmediate(_addedExtends[i] = _extents[i] ?? oldAnchorExtent);
+          _scrollController.position.correctImmediate(_correctedExtends[i] = _extents[i] ?? oldAnchorExtent);
         }
         // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = newAnchorIndex; i < _anchorIndex; i++) {
-          _scrollController.position.correctImmediate(-(_addedExtends[i] = _extents[i] ?? oldAnchorExtent));
+          _scrollController.position.correctImmediate(-(_correctedExtends[i] = _extents[i] ?? oldAnchorExtent));
         }
         // 布局重绘后清空数据
-        SchedulerBinding.instance.addPostFrameCallback((_) => _addedExtends.clear());
+        SchedulerBinding.instance.addPostFrameCallback((_) => _correctedExtends.clear());
         // 更新锚点列表项索引
         _anchorIndex = newAnchorIndex;
       }
@@ -311,7 +311,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 计算主轴方向上发生的尺寸变化
         final delta = switch (oldExtent) {
           double() => newExtent - oldExtent,
-          null => _addedExtends.containsKey(index) ? newExtent - (_addedExtends.remove(index) ?? 0.0) : null,
+          null => _correctedExtends.containsKey(index) ? newExtent - (_correctedExtends.remove(index) ?? 0.0) : null,
         };
         // 如果不需要修正主轴方向上的滚动偏移
         if (delta == null || delta == 0) return;
