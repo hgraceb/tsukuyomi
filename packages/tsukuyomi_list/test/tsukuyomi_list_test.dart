@@ -225,6 +225,7 @@ void main() {
     });
 
     testWidgets('when adding multi items to start and end', (WidgetTester tester) async {
+      final random = Random(2147483647);
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -261,8 +262,8 @@ void main() {
       for (int i = 1; i <= 10; i++) {
         itemKeys.insertAll(0, List.generate(100, (index) => itemKeys.length + index));
         itemKeys.insertAll(itemKeys.length, List.generate(100, (index) => itemKeys.length + index));
-        itemHeights.insertAll(0, List.generate(100, (index) => 300.0));
-        itemHeights.insertAll(itemHeights.length, List.generate(100, (index) => 300.0));
+        itemHeights.insertAll(0, List.generate(100, (index) => 100.0 + random.nextInt(100)));
+        itemHeights.insertAll(itemHeights.length, List.generate(100, (index) => 100.0 + random.nextInt(100)));
         await tester.pumpWidget(builder());
         await tester.pump();
         expect(controller.centerIndex, 9);
