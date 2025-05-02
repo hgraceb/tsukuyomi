@@ -22,6 +22,7 @@ class _DebugListPageState extends State<DebugListPage> {
   @override
   void initState() {
     super.initState();
+    itemHeights[15] = 600 - itemHeights[16] - itemHeights[17] - itemHeights[18];
     SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(-1.0));
   }
 
@@ -31,9 +32,8 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            final removing = random.nextInt(8);
-            itemKeys.removeRange(0, removing);
-            itemHeights.removeRange(0, removing);
+            itemKeys.removeRange(0, 5);
+            itemHeights.removeRange(0, 5);
           });
         },
         child: Center(

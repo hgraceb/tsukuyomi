@@ -122,7 +122,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         }
         // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
         for (var i = newAnchorIndex; i < _anchorIndex; i++) {
-          _scrollController.position.correctImmediate(-(_correctedExtends[i] = _extents[i] ?? oldAnchorExtent));
+          if (_extents[i] case final extent?) {
+            _scrollController.position.correctImmediate(-extent);
+          } else {
+            _scrollController.position.correctImmediate(-(_correctedExtends[i] = oldAnchorExtent));
+          }
         }
         // 布局重绘后清空数据
         SchedulerBinding.instance.addPostFrameCallback((_) => _correctedExtends.clear());
