@@ -47,7 +47,7 @@ class _DebugListPageState extends State<DebugListPage> {
               itemKeys: itemKeys,
               itemBuilder: (context, index) => SizedBox(
                 height: itemHeights[index],
-                child: Placeholder(child: Text('${itemKeys[index]} [$index]')),
+                child: Placeholder(child: Text('${itemKeys[index]} [$index]: ${itemHeights[index]}')),
               ),
             ),
           ),
