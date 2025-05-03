@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,14 +50,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
       // 列表项尺寸动态增大时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
       // 列表项尺寸动态减小时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, -400.0);
@@ -71,14 +70,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5, 6]);
       // 列表项尺寸动态增大时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4]);
       // 列表项尺寸动态减小时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -325.0);
@@ -93,14 +90,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, 125.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8]);
       // 列表项尺寸动态减小时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, -75.0);
@@ -115,14 +110,12 @@ void main() {
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 250.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9]);
       // 列表项尺寸动态减小时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
       expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 0.0);
@@ -156,21 +149,21 @@ void main() {
       unawaited(controller.slideViewport(0.5));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
+      expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, 300.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       // 列表项尺寸动态增大时能够锚定滚动位置
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 200.0)));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
-      expect(controller.position.pixels, 600.0);
-      expectList(length: itemKeys.length, visible: [4, 5, 6, 7]);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, 800.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6]);
       // 列表项尺寸动态减小时能够锚定滚动位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
+      expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, 300.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
@@ -178,12 +171,12 @@ void main() {
       unawaited(controller.slideViewport(-0.5));
       await tester.pumpAndSettle();
       expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 3);
+      expect(controller.anchorIndex, 2);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
     });
 
-    testWidgets('when dynamic items addition', (WidgetTester tester) async {
+    testWidgets('when adding single item to start and end', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -196,39 +189,275 @@ void main() {
             itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
             controller: controller,
             anchor: 0.5,
+            initialScrollIndex: 9,
           ),
         );
       }
 
-      // 初始化列表并让第一个元素作为锚点元素
+      // 初始化列表并让最后一个元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 0);
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+      expectList(length: itemKeys.length, visible: [9]);
 
-      // 正向滚动半个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
-      unawaited(controller.slideViewport(0.5));
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle();
-      expect(controller.centerIndex, 0);
-      expect(controller.anchorIndex, 6);
-      expect(controller.position.pixels, 300.0);
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -600.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 动态添加列表项时能够锚定滚动位置
+      // 在列表首尾位置同时添加单个列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
-        itemKeys.insert(1, itemKeys.length);
-        itemKeys.insert(itemKeys.length - 1, itemKeys.length);
-        itemHeights.insert(1, 300.0);
-        itemHeights.insert(itemHeights.length - 1, 300.0);
+        itemKeys.insert(0, itemKeys.length);
+        itemKeys.insert(itemKeys.length, itemKeys.length);
+        itemHeights.insert(0, 300.0);
+        itemHeights.insert(itemHeights.length, 300.0);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle();
-        expect(controller.centerIndex, 0);
-        expect(controller.anchorIndex, 6 + i);
-        expect(controller.position.pixels, 300.0 + i * 300.0);
+        await tester.pump();
+        expect(controller.centerIndex, 9);
+        expect(controller.anchorIndex, 5 + i);
+        expect(controller.position.pixels, -600.0 + i * 100.0 + math.max(0, i - controller.centerIndex) * 200.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       }
-    }, skip: true);
+    });
+
+    testWidgets('when adding multi items to start and end', (WidgetTester tester) async {
+      final random = Random(2147483647);
+      final itemKeys = List.generate(10, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: 9,
+          ),
+        );
+      }
+
+      // 初始化列表并让最后一个元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [9]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+
+      // 在列表首尾位置同时添加多个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
+        itemKeys.insertAll(0, List.generate(100, (index) => itemKeys.length + index));
+        itemKeys.insertAll(itemKeys.length, List.generate(100, (index) => itemKeys.length + index));
+        itemHeights.insertAll(0, List.generate(100, (index) => 100.0 + random.nextInt(100)));
+        itemHeights.insertAll(itemHeights.length, List.generate(100, (index) => 100.0 + random.nextInt(100)));
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 9);
+        expect(controller.anchorIndex, 5 + i * 100);
+        expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+      }
+    });
+
+    testWidgets('when removing single item at start and end', (WidgetTester tester) async {
+      final random = Random(2147483647);
+      final itemKeys = List.generate(20, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (7 <= index && index <= 18 ? 0.0 : random.nextInt(100)));
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: (itemKeys.length - 1).clamp(0, 13),
+          ),
+        );
+      }
+
+      // 初始化列表并让指定元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 13);
+      expect(controller.anchorIndex, 13);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [13, 14, 15, 16, 17, 18]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 13);
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [7, 8, 9, 10, 11, 12]);
+
+      // 在列表首尾位置同时移除单个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
+        itemKeys.removeAt(0);
+        itemKeys.removeAt(itemKeys.length - 1);
+        itemHeights.removeAt(0);
+        itemHeights.removeAt(itemHeights.length - 1);
+        await tester.pumpWidget(builder());
+        await tester.pumpAndSettle();
+        expect(controller.centerIndex, 13);
+        expect(controller.anchorIndex, itemKeys.length > 6 ? 9 - i : (itemKeys.length - 1).clamp(0, 2));
+        expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [7, 8, 9, 10, 11, 12] : itemKeys);
+      }
+    });
+
+    testWidgets('when removing multi items at start and end', (WidgetTester tester) async {
+      final random = Random(2147483647);
+      final itemKeys = List.generate(2000, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (997 <= index && index <= 1008 ? 0.0 : random.nextInt(100)));
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: (itemKeys.length - 1).clamp(0, 1003),
+          ),
+        );
+      }
+
+      // 初始化列表并让指定元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 1003);
+      expect(controller.anchorIndex, 1003);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [1003, 1004, 1005, 1006, 1007, 1008]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 1003);
+      expect(controller.anchorIndex, 999);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [997, 998, 999, 1000, 1001, 1002]);
+
+      // 在列表首尾位置同时移除多个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
+        itemKeys.removeRange(0, 100);
+        itemKeys.removeRange(itemKeys.length - 100, itemKeys.length);
+        itemHeights.removeRange(0, 100);
+        itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 1003);
+        expect(controller.anchorIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
+        expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [997, 998, 999, 1000, 1001, 1002] : itemKeys);
+      }
+    });
+
+    testWidgets('when adding single item to anchor', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: 9,
+          ),
+        );
+      }
+
+      // 初始化列表并让最后一个元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [9]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+
+      // 在锚点列表项的位置同时添加单个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
+        itemKeys.insert(itemKeys.length - 5, itemKeys.length);
+        itemHeights.insert(itemHeights.length - 5, 300.0);
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 9);
+        expect(controller.anchorIndex, 5 + i);
+        expect(controller.position.pixels, -600.0 + i * 100.0 + math.max(0, controller.anchorIndex - controller.centerIndex) * 200.0);
+        expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
+      }
+    });
+
+    testWidgets('when adding multi items to anchor', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: 9,
+          ),
+        );
+      }
+
+      // 初始化列表并让最后一个元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [9]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -600.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+
+      // 在锚点列表项的位置同时添加多个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 10; i++) {
+        itemKeys.insertAll(itemKeys.length - 5, List.generate(100, (index) => itemKeys.length + index));
+        itemHeights.insertAll(itemHeights.length - 5, List.generate(100, (index) => 300.0));
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.centerIndex, 9);
+        expect(controller.anchorIndex, 5 + i * 100);
+        expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
+      }
+    });
   });
 
   group('TsukuyomiList respects initialScrollIndex', () {

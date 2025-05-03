@@ -1,6 +1,7 @@
-import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
@@ -12,178 +13,45 @@ class DebugListPage extends StatefulWidget {
 }
 
 class _DebugListPageState extends State<DebugListPage> {
-  bool _compare = false;
-  final _itemCount = 100;
-  final _random = math.Random(2147483647);
-  final _listController = TsukuyomiListController();
-  late final List<Object> _itemKeys = List.generate(_itemCount, (index) => index);
-  late final List<double> _itemExtents = List.generate(_itemCount, (index) => 80.0 + _random.nextInt(120));
+  int id = 0;
+  final random = Random(2147483647);
+  late final itemKeys = List.generate(20, (index) => id++);
+  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + random.nextInt(100));
+  late final controller = TsukuyomiListController();
+
+  @override
+  void initState() {
+    super.initState();
+    itemHeights[15] = 600 - itemHeights[16] - itemHeights[17] - itemHeights[18];
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(-1.0));
+  }
 
   @override
   Widget build(BuildContext context) {
     return TsukuyomiScaffold(
-      body: Row(children: [
-        Offstage(
-          offstage: !_compare,
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            itemKeys.removeRange(0, 5);
+            itemHeights.removeRange(0, 5);
+          });
+        },
+        child: Center(
           child: SizedBox(
-            width: MediaQuery.sizeOf(context).width / 2,
-            child: ListView.builder(
-              itemCount: _itemCount,
-              itemBuilder: (context, index) => _buildItem(index),
-              scrollDirection: Axis.vertical,
-            ),
-          ),
-        ),
-        Flexible(
-          child: Stack(children: [
-            TsukuyomiInteractiveList.builder(
-              itemKeys: _itemKeys,
-              itemBuilder: (context, index) => _buildItem(index),
-              controller: _listController,
+            height: 600.0,
+            child: TsukuyomiList.builder(
               debugMask: true,
-              initialScrollIndex: _itemCount - 1,
-              scrollDirection: Axis.vertical,
+              anchor: 0.5,
+              initialScrollIndex: (itemKeys.length - 1).clamp(0, 19),
+              controller: controller,
+              itemKeys: itemKeys,
+              itemBuilder: (context, index) => SizedBox(
+                height: itemHeights[index],
+                child: Placeholder(child: Text('${itemKeys[index]} [$index]: ${itemHeights[index]}')),
+              ),
             ),
-            _FloatingActions(
-              onUp: () => _listController.slideViewport(-0.75),
-              onDown: () => _listController.slideViewport(0.75),
-              onDoubleUp: () => _listController.jumpToIndex(0),
-              onDoubleDown: () => _listController.jumpToIndex(_itemCount - 1),
-              onToggleCompare: () => setState(() => _compare = !_compare),
-            ),
-          ]),
+          ),
         ),
-      ]),
-    );
-  }
-
-  Widget _buildItem(int index) {
-    return FutureBuilder(
-      future: Future.delayed(
-        Duration(milliseconds: 1000 + _itemExtents[index].toInt() * 5),
-        () => _itemExtents[index].toDouble(),
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return Card(
-            child: SizedBox(
-              width: snapshot.data!,
-              height: snapshot.data!,
-              child: Center(child: Text('Item $index')),
-            ),
-          );
-        }
-        return Card(
-          child: SizedBox(
-            width: 120,
-            height: 120,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Flexible(
-                  child: SizedBox(
-                    width: 10,
-                    height: 10,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                const Flexible(
-                  child: SizedBox(width: 10),
-                ),
-                Flexible(
-                  flex: 10,
-                  child: Text('Item $index'),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _FloatingActions extends StatelessWidget {
-  const _FloatingActions({
-    required this.onUp,
-    required this.onDown,
-    required this.onDoubleUp,
-    required this.onDoubleDown,
-    required this.onToggleCompare,
-  });
-
-  final VoidCallback onUp;
-
-  final VoidCallback onDown;
-
-  final VoidCallback onDoubleUp;
-
-  final VoidCallback onDoubleDown;
-
-  final VoidCallback onToggleCompare;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      alignment: Alignment.centerRight,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          Flexible(
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: null,
-              onPressed: () => onDoubleUp(),
-              child: const Icon(Icons.keyboard_double_arrow_up),
-            ),
-          ),
-          const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),
-          Flexible(
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: null,
-              onPressed: () => onUp(),
-              child: const Icon(Icons.keyboard_arrow_up),
-            ),
-          ),
-          const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),
-          Flexible(
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: null,
-              onPressed: () => onDown(),
-              child: const Icon(Icons.keyboard_arrow_down),
-            ),
-          ),
-          const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),
-          Flexible(
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: null,
-              onPressed: () => onDoubleDown(),
-              child: const Icon(Icons.keyboard_double_arrow_down),
-            ),
-          ),
-          const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),
-          Flexible(
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: null,
-              onPressed: () => onToggleCompare(),
-              child: const Icon(Icons.compare),
-            ),
-          ),
-          const Flexible(child: Padding(padding: EdgeInsets.only(top: 8.0))),
-          Flexible(
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: null,
-              onPressed: () => context.canPop() ? context.pop() : null,
-              child: const Icon(Icons.exit_to_app_outlined),
-            ),
-          ),
-        ],
       ),
     );
   }
