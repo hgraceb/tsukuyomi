@@ -1,6 +1,6 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart' show RenderProxyBox;
@@ -79,9 +79,11 @@ class TsukuyomiList extends StatefulWidget {
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _centerIndex, _anchorIndex;
+  late List<Object> _oldItemKeys;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
+  final _correctedExtends = <int, double?>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -94,6 +96,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   void initState() {
     super.initState();
     _centerIndex = _anchorIndex = widget.initialScrollIndex;
+    _oldItemKeys = [...widget.itemKeys];
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -110,6 +113,33 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     if (widget.scrollDirection != oldWidget.scrollDirection) {
       _extents.clear();
     }
+    // 修正锚点列表项位置
+    if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
+      if (_extents[_anchorIndex] case final oldAnchorExtent? when newAnchorIndex >= 0) {
+        // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
+        for (var i = _anchorIndex; i < newAnchorIndex; i++) {
+          _scrollController.position.correctImmediate(_correctedExtends[i] = _extents[i] ?? oldAnchorExtent);
+        }
+        // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
+        for (var i = newAnchorIndex; i < _anchorIndex; i++) {
+          if (_extents[i] case final extent?) {
+            _scrollController.position.correctImmediate(-extent);
+          } else {
+            _scrollController.position.correctImmediate(-(_correctedExtends[i] = oldAnchorExtent));
+          }
+        }
+        // 布局重绘后清空数据
+        SchedulerBinding.instance.addPostFrameCallback((_) => _correctedExtends.clear());
+        // 更新锚点列表项索引
+        _anchorIndex = newAnchorIndex;
+      }
+      if (_anchorIndex >= widget.itemKeys.length) {
+        // 更新锚点列表项索引
+        _anchorIndex = math.max(0, widget.itemKeys.length - 1);
+      }
+    }
+    // 更新列表项标识
+    _oldItemKeys = [...widget.itemKeys];
   }
 
   @override
@@ -261,8 +291,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
-      key: ValueKey(widget.itemKeys[index]),
-      index: index,
+      key: ValueKey(index),
       onMount: (element) {
         _elements.add(element);
         _scheduleUpdateItems();
@@ -283,12 +312,13 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
         if (_anchorIndex == _centerIndex) return;
-        // 首次布局时不需要处理尺寸变化
-        if (oldExtent == null) return;
         // 计算主轴方向上发生的尺寸变化
-        final delta = newExtent - oldExtent;
-        // 主轴方向上的尺寸没有发生变化
-        if (delta == 0) return;
+        final delta = switch (oldExtent) {
+          double() => newExtent - oldExtent,
+          null => _correctedExtends.containsKey(index) ? newExtent - (_correctedExtends.remove(index) ?? 0.0) : null,
+        };
+        // 如果不需要修正主轴方向上的滚动偏移
+        if (delta == null || delta == 0) return;
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
           return _scrollController.position.correctImmediate(delta);
@@ -310,7 +340,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           width: widget.scrollDirection == Axis.horizontal ? snapshot.data : null,
           height: widget.scrollDirection == Axis.vertical ? snapshot.data : null,
           foregroundDecoration: BoxDecoration(color: index == _anchorIndex ? _pinkDebugMask : null),
-          child: widget.itemBuilder(context, index),
+          child: index < widget.itemKeys.length ? widget.itemBuilder(context, index) : null,
         ),
       ),
     );
@@ -341,16 +371,20 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
       final anchor = widget.anchor ?? _calculateAnchor(position);
-      int anchorIndex = _anchorIndex;
+      final sortedElements = _elements.toList()..sort((a, b) => a.widget.key!.value.compareTo(b.widget.key!.value));
+      int? anchorIndex;
       RenderViewportBase? viewport;
-      for (final element in _elements) {
+      for (final element in sortedElements) {
+        final index = element.widget.key!.value;
+        if (index >= widget.itemKeys.length) continue;
+
         final box = element.findRenderObject() as RenderBox?;
         viewport ??= RenderAbstractViewport.maybeOf(box) as RenderViewportBase?;
         if (box == null || !box.hasSize || viewport == null) continue;
 
         final offset = viewport.getOffsetToReveal(box, 0.0).offset;
         final item = TsukuyomiListItem(
-          index: element.widget.index!,
+          index: index,
           size: box.size,
           axis: widget.scrollDirection,
           offset: offset - viewport.offset.pixels,
@@ -362,17 +396,17 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         if (widget.trailing && item.index == _centerIndex) {
           trailingFraction = 1.0 - item.leading;
         }
-        // 遍历获取最后一个符合条件的列表项作为锚点列表项
+        // 选择第一个符合条件的列表项作为锚点列表项
         if (item.leading <= anchor && item.trailing >= anchor) {
-          anchorIndex = item.index;
+          anchorIndex ??= item.index;
         }
       }
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
-      if (_anchorIndex != anchorIndex && (_anchorIndex != _centerIndex || position.pixels != 0.0)) {
-        setState(() => _anchorIndex = anchorIndex);
+      if (anchorIndex != null && _anchorIndex != anchorIndex && (_anchorIndex != _centerIndex || position.pixels != 0.0)) {
+        setState(() => _anchorIndex = anchorIndex!);
       }
-      // 根据索引顺序对列表项进行排序并回调
-      widget.onItemsChanged?.call(items..sort((a, b) => a.index.compareTo(b.index)));
+      // 回调根据索引顺序进行排序的所有已渲染列表项数据
+      widget.onItemsChanged?.call(items);
     });
   }
 
@@ -520,8 +554,10 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 
   /// 在下次布局时修正滚动偏移
   void correctImmediate(double correction) {
-    _corrected = true;
-    correctBy(correction);
+    if (correction != 0.0) {
+      _corrected = true;
+      correctBy(correction);
+    }
   }
 
   @override
@@ -556,15 +592,16 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({super.key, this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
-
-  final int? index;
+  const _TsukuyomiListItem({ValueKey<int>? super.key, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
 
   final ValueChanged<_TsukuyomiListItemElement>? onMount;
 
   final ValueChanged<_TsukuyomiListItemElement>? onUnmount;
 
   final _OnPerformLayout? onPerformLayout;
+
+  @override
+  ValueKey<int>? get key => super.key as ValueKey<int>?;
 
   @override
   SingleChildRenderObjectElement createElement() => _TsukuyomiListItemElement(this);

@@ -14,7 +14,7 @@ GlobalKey<NavigatorState> routerNavigatorKey(RouterNavigatorKeyRef ref) {
 /// 路由配置
 @Riverpod(keepAlive: true)
 RouterConfig<Object> routerConfig(RouterConfigRef ref) {
-  const initialLocation = '/'; // TODO 删除测试代码
+  const initialLocation = '/debug/list'; // TODO 删除测试代码
   final navigatorKey = ref.watch(routerNavigatorKeyProvider);
   return TsukuyomiRouterConfig(initialLocation: initialLocation, navigatorKey: navigatorKey);
 }

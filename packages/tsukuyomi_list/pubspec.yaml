@@ -13,6 +13,7 @@ dependencies:
   meta: any
   vector_math: any
   sliver_tools: any
+  collection: any
 
 dev_dependencies:
   flutter_test:
