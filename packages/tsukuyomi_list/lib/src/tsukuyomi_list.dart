@@ -83,7 +83,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
-  final _correctedExtends = <int, double?>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -113,32 +112,13 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     if (widget.scrollDirection != oldWidget.scrollDirection) {
       _extents.clear();
     }
-    // 修正锚点列表项位置
-    if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
-      if (_extents[_anchorIndex] case final oldAnchorExtent? when newAnchorIndex >= 0) {
-        // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
-        for (var i = _anchorIndex; i < newAnchorIndex; i++) {
-          _scrollController.position.correctImmediate(_correctedExtends[i] = _extents[i] ?? oldAnchorExtent);
-        }
-        // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
-        for (var i = newAnchorIndex; i < _anchorIndex; i++) {
-          if (_extents[i] case final extent?) {
-            _scrollController.position.correctImmediate(-extent);
-          } else {
-            _scrollController.position.correctImmediate(-(_correctedExtends[i] = oldAnchorExtent));
-          }
-        }
-        // 布局重绘后清空数据
-        SchedulerBinding.instance.addPostFrameCallback((_) => _correctedExtends.clear());
-        // 更新锚点列表项索引
-        _anchorIndex = newAnchorIndex;
-      }
-      if (_anchorIndex >= widget.itemKeys.length) {
-        // 更新锚点列表项索引
-        _anchorIndex = math.max(0, widget.itemKeys.length - 1);
-      }
-    }
-    // 更新列表项标识
+
+    final oldAnchorIndex = _anchorIndex;
+    final oldCenterIndex = _centerIndex;
+    _anchorIndex = widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]);
+    _centerIndex = widget.itemKeys.indexOf(_oldItemKeys[_centerIndex]);
+    print('_anchorIndex: $oldAnchorIndex => $_anchorIndex, _centerIndex: $oldCenterIndex => $_centerIndex');
+
     _oldItemKeys = [...widget.itemKeys];
   }
 
@@ -312,19 +292,20 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
         if (_anchorIndex == _centerIndex) return;
+        // 首次布局时不需要处理尺寸变化
+        if (oldExtent == null) return;
         // 计算主轴方向上发生的尺寸变化
-        final delta = switch (oldExtent) {
-          double() => newExtent - oldExtent,
-          null => _correctedExtends.containsKey(index) ? newExtent - (_correctedExtends.remove(index) ?? 0.0) : null,
-        };
+        final delta = newExtent - oldExtent;
         // 如果不需要修正主轴方向上的滚动偏移
-        if (delta == null || delta == 0) return;
+        if (delta == 0) return;
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
+          print('$index: correctImmediate 3333333333: delta = $delta');
           return _scrollController.position.correctImmediate(delta);
         }
         // 当前列表项在锚点列表项和中心列表项之间
         if (_anchorIndex <= index && index < _centerIndex) {
+          print('$index: correctImmediate 4444444444: delta = -$delta');
           return _scrollController.position.correctImmediate(-delta);
         }
       },
