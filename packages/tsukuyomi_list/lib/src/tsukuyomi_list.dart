@@ -118,6 +118,9 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     _anchorIndex = widget.itemKeys.indexOf(17);
     _centerIndex = widget.itemKeys.indexOf(_oldItemKeys[_centerIndex]);
     print('_anchorIndex: $oldAnchorIndex => $_anchorIndex, _centerIndex: $oldCenterIndex => $_centerIndex');
+    if (oldCenterIndex != _centerIndex) {
+      // _scrollController.position.correctImmediate(-195);
+    }
 
     _oldItemKeys = [...widget.itemKeys];
   }
@@ -283,7 +286,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         _scheduleUpdateItems();
       },
       onPerformLayout: (box, oldSize, newSize) {
-        print('onPerformLayout: $oldSize => $newSize');
+        print('onPerformLayout ($index): $oldSize => $newSize');
         // 获取主轴方向尺寸
         final (oldExtent, newExtent) = switch (widget.scrollDirection) {
           Axis.vertical => (oldSize?.height, newSize.height),
@@ -304,12 +307,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
           print('$index: correctImmediate 3333333333: delta = $delta');
-          // return _scrollController.position.correctImmediate(delta);
+          return _scrollController.position.correctImmediate(delta);
         }
         // 当前列表项在锚点列表项和中心列表项之间
         if (_anchorIndex <= index && index < _centerIndex) {
           print('$index: correctImmediate 4444444444: delta = -$delta');
-          // return _scrollController.position.correctImmediate(-delta);
+          return _scrollController.position.correctImmediate(-delta);
         }
       },
       // 首帧布局优先使用最后一次显示时记录的尺寸大小，避免由于列表重新布局导致列表显示错位问题。

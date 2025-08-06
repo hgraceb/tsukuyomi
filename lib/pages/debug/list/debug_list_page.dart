@@ -16,13 +16,12 @@ class _DebugListPageState extends State<DebugListPage> {
   int id = 0;
   final random = Random(2147483647);
   late final itemKeys = List.generate(20, (index) => id++);
-  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + random.nextInt(100));
+  late final itemHeights = List.generate(itemKeys.length, (index) => 60.0 + random.nextInt(100));
   late final controller = TsukuyomiListController();
 
   @override
   void initState() {
     super.initState();
-    itemHeights[15] = 600 - itemHeights[16] - itemHeights[17] - itemHeights[18];
     SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(-1.0));
   }
 
@@ -43,9 +42,11 @@ class _DebugListPageState extends State<DebugListPage> {
               // itemHeights.insert(position2, 0);
               // print('position = $position, position2 = $position2');
 
-              final position = itemKeys.indexOf(17);
+              final position = itemKeys.indexOf(18);
               itemKeys.insert(position, id++);
-              itemHeights.insert(position, 100);
+              itemHeights.insert(position, 300);
+              itemKeys.insert(position, id++);
+              itemHeights.insert(position, 300);
               print('position = $position');
             }
             print(itemKeys);
