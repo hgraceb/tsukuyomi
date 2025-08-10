@@ -113,27 +113,50 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _extents.clear();
     }
 
-    final oldAnchorIndex = _anchorIndex;
-    final oldCenterIndex = _centerIndex;
-    _anchorIndex = widget.itemKeys.indexOf(17);
-    _centerIndex = widget.itemKeys.indexOf(_oldItemKeys[_centerIndex]);
-    final oldDelta = oldAnchorIndex - oldCenterIndex;
-    final newDelta = _anchorIndex - _centerIndex;
-    print('_anchorIndex: $oldAnchorIndex => $_anchorIndex ($oldDelta => $newDelta), _centerIndex: $oldCenterIndex => $_centerIndex');
-
     if (widget.itemKeys.length != _oldItemKeys.length) {
+      final oldAnchorIndex = _anchorIndex;
+      final oldCenterIndex = _centerIndex;
+      _anchorIndex = widget.itemKeys.indexOf(17);
+      _centerIndex = _anchorIndex;
+      final oldDelta = oldAnchorIndex - oldCenterIndex;
+      final newDelta = _anchorIndex - _centerIndex;
+      print('_anchorIndex: $oldAnchorIndex => $_anchorIndex ($oldDelta => $newDelta), _centerIndex: $oldCenterIndex => $_centerIndex');
       print('============================================');
-      for (var i = _anchorIndex - _centerIndex + 1; i <= oldAnchorIndex - oldCenterIndex; i++) {
+      for (var i = oldAnchorIndex - oldCenterIndex; i < oldCenterIndex - oldCenterIndex; i++) {
         final index = oldCenterIndex + i;
         final extent = _extents[i];
         print('i = $i, index = $index, extent = -$extent');
         if (extent case final extent?) {
-          _scrollController.position.correctImmediate(-extent);
+          _scrollController.position.correctImmediate(extent);
         } else {
           _extents[i] = 0;
         }
       }
+    } else if (_anchorIndex == 19) {
+      _anchorIndex = 17;
     }
+
+    // final oldAnchorIndex = _anchorIndex;
+    // final oldCenterIndex = _centerIndex;
+    // _anchorIndex = widget.itemKeys.indexOf(17);
+    // _centerIndex = widget.itemKeys.indexOf(_oldItemKeys[_centerIndex]);
+    // final oldDelta = oldAnchorIndex - oldCenterIndex;
+    // final newDelta = _anchorIndex - _centerIndex;
+    // print('_anchorIndex: $oldAnchorIndex => $_anchorIndex ($oldDelta => $newDelta), _centerIndex: $oldCenterIndex => $_centerIndex');
+    //
+    // if (widget.itemKeys.length != _oldItemKeys.length) {
+    //   print('============================================');
+    //   for (var i = _anchorIndex - _centerIndex + 1; i <= oldAnchorIndex - oldCenterIndex; i++) {
+    //     final index = oldCenterIndex + i;
+    //     final extent = _extents[i];
+    //     print('i = $i, index = $index, extent = -$extent');
+    //     if (extent case final extent?) {
+    //       _scrollController.position.correctImmediate(-extent);
+    //     } else {
+    //       _extents[i] = 0;
+    //     }
+    //   }
+    // }
 
     // // 修正锚点列表项位置
     // if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
@@ -347,16 +370,16 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
           print('$index (${index - _centerIndex}): correctImmediate 3333333333: delta = $delta');
-          return _scrollController.position.correctImmediate(delta);
+          // return _scrollController.position.correctImmediate(delta);
         }
         // 当前列表项在锚点列表项和中心列表项之间
         if (_anchorIndex <= index && index < _centerIndex /*&& test.contains(index - _centerIndex)*/) {
           print('$index (${index - _centerIndex}): correctImmediate 4444444444: delta = -$delta');
-          final test = List.generate(widget.itemKeys.length - 20, (index) => -2 - index);
-          if (test.contains(index - _centerIndex)) {
-            print('====================: $test');
-            return _scrollController.position.correctImmediate(-delta);
-          }
+          // final test = List.generate(widget.itemKeys.length - 20, (index) => -2 - index);
+          // if (test.contains(index - _centerIndex)) {
+          //   print('====================: $test');
+          //   return _scrollController.position.correctImmediate(-delta);
+          // }
         }
       },
       // 首帧布局优先使用最后一次显示时记录的尺寸大小，避免由于列表重新布局导致列表显示错位问题。

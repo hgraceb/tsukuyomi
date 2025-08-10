@@ -33,7 +33,7 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            for (int i = 0; i < 35; i++) {
+            for (int i = 0; i < 100; i++) {
               // final position = itemKeys.indexOf(17);
               // itemKeys.insert(position, id++);
               // itemHeights.insert(position, 0);
@@ -44,10 +44,9 @@ class _DebugListPageState extends State<DebugListPage> {
 
               final position = itemKeys.indexOf(18);
               itemKeys.insert(position, id++);
-              itemHeights.insert(position, 300);
+              itemHeights.insert(position, 133);
               // itemKeys.insert(position, id++);
               // itemHeights.insert(position, 300);
-              print('position = $position');
             }
             print(itemKeys);
             print(itemHeights);
