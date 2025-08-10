@@ -33,7 +33,7 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            for (int i = 0; i < 1; i++) {
+            for (int i = 0; i < 35; i++) {
               // final position = itemKeys.indexOf(17);
               // itemKeys.insert(position, id++);
               // itemHeights.insert(position, 0);
@@ -45,8 +45,8 @@ class _DebugListPageState extends State<DebugListPage> {
               final position = itemKeys.indexOf(18);
               itemKeys.insert(position, id++);
               itemHeights.insert(position, 300);
-              itemKeys.insert(position, id++);
-              itemHeights.insert(position, 300);
+              // itemKeys.insert(position, id++);
+              // itemHeights.insert(position, 300);
               print('position = $position');
             }
             print(itemKeys);
@@ -64,7 +64,7 @@ class _DebugListPageState extends State<DebugListPage> {
               itemKeys: itemKeys,
               itemBuilder: (context, index) => SizedBox(
                 height: itemHeights[index],
-                child: Placeholder(child: Text('${itemKeys[index]} [$index]: ${itemHeights[index]}')),
+                child: Placeholder(child: Text('${itemKeys[index]} [$index] [${index - itemKeys.length + 1}]: ${itemHeights[index]}')),
               ),
             ),
           ),
