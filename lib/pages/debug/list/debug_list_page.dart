@@ -25,28 +25,16 @@ class _DebugListPageState extends State<DebugListPage> {
     SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(-1.0));
   }
 
-  int index = 0;
-
   @override
   Widget build(BuildContext context) {
     return TsukuyomiScaffold(
       body: GestureDetector(
         onTap: () {
           setState(() {
-            for (int i = 0; i < 100; i++) {
-              // final position = itemKeys.indexOf(17);
-              // itemKeys.insert(position, id++);
-              // itemHeights.insert(position, 0);
-              // final position2 = position + 2;
-              // itemKeys.insert(position2, id++);
-              // itemHeights.insert(position2, 0);
-              // print('position = $position, position2 = $position2');
-
+            for (int i = 0; i < 1000; i++) {
               final position = itemKeys.indexOf(18);
               itemKeys.insert(position, id++);
               itemHeights.insert(position, 133);
-              // itemKeys.insert(position, id++);
-              // itemHeights.insert(position, 300);
             }
             print(itemKeys);
             print(itemHeights);
@@ -63,7 +51,7 @@ class _DebugListPageState extends State<DebugListPage> {
               itemKeys: itemKeys,
               itemBuilder: (context, index) => SizedBox(
                 height: itemHeights[index],
-                child: Placeholder(child: Text('${itemKeys[index]} [$index] [${index - itemKeys.length + 1}]: ${itemHeights[index]}')),
+                child: Placeholder(child: Text('${itemKeys[index]} [$index]: ${itemHeights[index]}')),
               ),
             ),
           ),

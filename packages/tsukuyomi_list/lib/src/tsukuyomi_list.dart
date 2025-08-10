@@ -370,16 +370,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
           print('$index (${index - _centerIndex}): correctImmediate 3333333333: delta = $delta');
-          // return _scrollController.position.correctImmediate(delta);
+          return _scrollController.position.correctImmediate(delta);
         }
         // 当前列表项在锚点列表项和中心列表项之间
-        if (_anchorIndex <= index && index < _centerIndex /*&& test.contains(index - _centerIndex)*/) {
+        if (_anchorIndex <= index && index < _centerIndex) {
           print('$index (${index - _centerIndex}): correctImmediate 4444444444: delta = -$delta');
-          // final test = List.generate(widget.itemKeys.length - 20, (index) => -2 - index);
-          // if (test.contains(index - _centerIndex)) {
-          //   print('====================: $test');
-          //   return _scrollController.position.correctImmediate(-delta);
-          // }
+          return _scrollController.position.correctImmediate(-delta);
         }
       },
       // 首帧布局优先使用最后一次显示时记录的尺寸大小，避免由于列表重新布局导致列表显示错位问题。
