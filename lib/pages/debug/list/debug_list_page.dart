@@ -31,13 +31,13 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            for (int i = 0; i < 1000; i++) {
-              final position = itemKeys.indexOf(18);
+            for (int i = 0; i < 1; i++) {
+              final position = itemKeys.indexOf(17) + 1;
               itemKeys.insert(position, id++);
               itemHeights.insert(position, 133);
             }
-            print(itemKeys);
-            print(itemHeights);
+            print('itemKeys (${itemKeys.length}): $itemKeys');
+            print('itemHeights (${itemHeights.length}): $itemHeights');
           });
         },
         child: Center(
