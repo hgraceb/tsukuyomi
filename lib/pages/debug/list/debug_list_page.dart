@@ -22,7 +22,10 @@ class _DebugListPageState extends State<DebugListPage> {
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.slideViewport(-1.0));
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp)async {
+      await controller.slideViewport(-1.0);
+      await controller.slideViewport(-0.5);
+    });
   }
 
   @override
@@ -31,7 +34,7 @@ class _DebugListPageState extends State<DebugListPage> {
       body: GestureDetector(
         onTap: () {
           setState(() {
-            for (int i = 0; i < 1; i++) {
+            for (int i = 0; i < 8; i++) {
               final position = itemKeys.indexOf(16);
               itemKeys.insert(position - 1, id++);
               itemHeights.insert(position - 1, 60.0 + random.nextInt(100));
@@ -40,8 +43,7 @@ class _DebugListPageState extends State<DebugListPage> {
               itemKeys.insert(position, id++);
               itemHeights.insert(position, 60.0 + random.nextInt(100));
             }
-            print('itemKeys (${itemKeys.length}): $itemKeys');
-            print('itemHeights (${itemHeights.length}): $itemHeights');
+            print('itemKeys: ${itemKeys.length}, itemHeights: ${itemHeights.length}');
           });
         },
         child: Center(
