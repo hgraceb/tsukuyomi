@@ -115,17 +115,21 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     // 修正锚点列表项位置
     if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
       if (newAnchorIndex >= 0) {
-        for (var i = _anchorIndex; i < _centerIndex; i++) {
+        for (var i = _anchorIndex - _centerIndex; i < 0; i++) {
           final extent = _extents[i];
           if (extent == null) continue;
+          print('111111111111111: correctImmediate: $extent');
           _scrollController.position.correctImmediate(extent);
         }
-        for (var i = _centerIndex; i < _anchorIndex; i++) {
+        for (var i = 0; i < _anchorIndex - _centerIndex; i++) {
           final extent = _extents[i];
           if (extent == null) continue;
+          print('222222222222222: correctImmediate: ${-extent}');
           _scrollController.position.correctImmediate(-extent);
         }
         _centerIndex = _anchorIndex = newAnchorIndex;
+      } else {
+        // TODO 处理旧的 _centerIndex 和 _anchorIndex 越界的情况
       }
     }
     // 更新列表项标识
@@ -282,7 +286,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
-      key: ValueKey(index),
+      key: ValueKey(index - _centerIndex),
       onMount: (element) {
         _elements.add(element);
         _scheduleUpdateItems();
@@ -298,7 +302,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           Axis.horizontal => (oldSize?.width, newSize.width),
         };
         // 保存最新的列表项尺寸
-        _extents[index] = newExtent;
+        _extents[index - _centerIndex] = newExtent;
         // 更新列表项的信息
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
@@ -311,10 +315,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         if (delta == 0) return;
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
+          print('333333333333333: correctImmediate: $delta');
           return _scrollController.position.correctImmediate(delta);
         }
         // 当前列表项在锚点列表项和中心列表项之间
         if (_anchorIndex <= index && index < _centerIndex) {
+          print('444444444444444: correctImmediate: ${-delta}');
           return _scrollController.position.correctImmediate(-delta);
         }
       },
@@ -324,7 +330,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 还是 100，并且在列表项 A 重新渲染后有某处代码调用 setState 方法触发了与列表布局相关
       // 的 performRebuild 方法，就会导致列表项 A 之后的列表项整体向前错位 200。
       child: FutureBuilder(
-        initialData: _extents[index],
+        initialData: _extents[index - _centerIndex],
         future: Future.value(null),
         builder: (context, snapshot) => Container(
           width: widget.scrollDirection == Axis.horizontal ? snapshot.data : null,
@@ -366,7 +372,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       int? anchorIndex;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
-        final index = element.widget.key!.value;
+        final index = element.widget.key!.value + _centerIndex;
         if (index >= widget.itemKeys.length) continue;
 
         final box = element.findRenderObject() as RenderBox?;
