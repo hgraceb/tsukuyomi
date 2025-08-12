@@ -83,6 +83,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
+  final _correctedExtends = <int, double?>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -112,30 +113,32 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     if (widget.scrollDirection != oldWidget.scrollDirection) {
       _extents.clear();
     }
-
-    if (widget.itemKeys.length != _oldItemKeys.length) {
-      final oldAnchorIndex = _anchorIndex;
-      final oldCenterIndex = _centerIndex;
-      _anchorIndex = widget.itemKeys.indexOf(17);
-      _centerIndex = _anchorIndex;
-      final oldDelta = oldAnchorIndex - oldCenterIndex;
-      final newDelta = _anchorIndex - _centerIndex;
-      print('_anchorIndex: $oldAnchorIndex => $_anchorIndex ($oldDelta => $newDelta), _centerIndex: $oldCenterIndex => $_centerIndex');
-      print('============================================');
-      for (var i = oldAnchorIndex - oldCenterIndex; i < oldCenterIndex - oldCenterIndex; i++) {
-        final index = oldCenterIndex + i;
-        final extent = _extents[i];
-        print('i = $i, index = $index, extent = -$extent');
-        if (extent case final extent?) {
-          _scrollController.position.correctImmediate(extent);
-        } else {
-          _extents[i] = 0;
+    // 修正锚点列表项位置
+    if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
+      if (_extents[_anchorIndex] case final oldAnchorExtent? when newAnchorIndex >= 0) {
+        // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
+        for (var i = _anchorIndex; i < newAnchorIndex; i++) {
+          _scrollController.position.correctImmediate(_correctedExtends[i] = _extents[i] ?? oldAnchorExtent);
         }
+        // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
+        for (var i = newAnchorIndex; i < _anchorIndex; i++) {
+          if (_extents[i] case final extent?) {
+            _scrollController.position.correctImmediate(-extent);
+          } else {
+            _scrollController.position.correctImmediate(-(_correctedExtends[i] = oldAnchorExtent));
+          }
+        }
+        // 布局重绘后清空数据
+        SchedulerBinding.instance.addPostFrameCallback((_) => _correctedExtends.clear());
+        // 更新锚点列表项索引
+        _anchorIndex = newAnchorIndex;
       }
-    } else if (_anchorIndex == 19) {
-      _anchorIndex = 17;
+      if (_anchorIndex >= widget.itemKeys.length) {
+        // 更新锚点列表项索引
+        _anchorIndex = math.max(0, widget.itemKeys.length - 1);
+      }
     }
-
+    // 更新列表项标识
     _oldItemKeys = [...widget.itemKeys];
   }
 
@@ -277,7 +280,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   /// 列表末尾空白部分占比
   double get trailingFraction => _trailingFraction;
   double _trailingFraction = 1.0;
-
   set trailingFraction(double value) {
     final trailingFraction = value.clamp(0.0, 1.0);
     // 列表末尾空白部分占比只能减少不能增加
@@ -289,44 +291,40 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
-      key: ValueKey(index - _centerIndex),
+      key: ValueKey(index),
       onMount: (element) {
-        print('onMount: $index (${index - _centerIndex}) (${element.hashCode})');
         _elements.add(element);
         _scheduleUpdateItems();
       },
       onUnmount: (element) {
-        print('onUnmount: $index (${index - _centerIndex}) (${element.hashCode})');
         _elements.remove(element);
         _scheduleUpdateItems();
       },
       onPerformLayout: (box, oldSize, newSize) {
-        print('onPerformLayout $index (${index - _centerIndex}): $oldSize (${_extents[index - _centerIndex]}) => $newSize');
         // 获取主轴方向尺寸
         final (oldExtent, newExtent) = switch (widget.scrollDirection) {
-          Axis.vertical => (oldSize?.height ?? _extents[index - _centerIndex], newSize.height),
-          Axis.horizontal => (oldSize?.width ?? _extents[index - _centerIndex], newSize.width),
+          Axis.vertical => (oldSize?.height, newSize.height),
+          Axis.horizontal => (oldSize?.width, newSize.width),
         };
         // 保存最新的列表项尺寸
-        _extents[index - _centerIndex] = newExtent;
+        _extents[index] = newExtent;
         // 更新列表项的信息
         if (oldExtent != newExtent) _scheduleUpdateItems();
         // 当前的锚点列表项同时又是中心列表项
         if (_anchorIndex == _centerIndex) return;
-        // 首次布局时不需要处理尺寸变化
-        if (oldExtent == null) return;
         // 计算主轴方向上发生的尺寸变化
-        final delta = newExtent - oldExtent;
+        final delta = switch (oldExtent) {
+          double() => newExtent - oldExtent,
+          null => _correctedExtends.containsKey(index) ? newExtent - (_correctedExtends.remove(index) ?? 0.0) : null,
+        };
         // 如果不需要修正主轴方向上的滚动偏移
-        if (delta == 0) return;
+        if (delta == null || delta == 0) return;
         // 当前列表项在中心列表项和锚点列表项之间
         if (_centerIndex <= index && index < _anchorIndex) {
-          print('$index (${index - _centerIndex}): correctImmediate 3333333333: delta = $delta');
           return _scrollController.position.correctImmediate(delta);
         }
         // 当前列表项在锚点列表项和中心列表项之间
         if (_anchorIndex <= index && index < _centerIndex) {
-          print('$index (${index - _centerIndex}): correctImmediate 4444444444: delta = -$delta');
           return _scrollController.position.correctImmediate(-delta);
         }
       },
@@ -336,7 +334,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 还是 100，并且在列表项 A 重新渲染后有某处代码调用 setState 方法触发了与列表布局相关
       // 的 performRebuild 方法，就会导致列表项 A 之后的列表项整体向前错位 200。
       child: FutureBuilder(
-        // initialData: _extents[index],
+        initialData: _extents[index],
         future: Future.value(null),
         builder: (context, snapshot) => Container(
           width: widget.scrollDirection == Axis.horizontal ? snapshot.data : null,
@@ -365,7 +363,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   bool _updateScheduled = false;
   void _scheduleUpdateItems() {
-    return;
     if (_updateScheduled) return;
     _updateScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
