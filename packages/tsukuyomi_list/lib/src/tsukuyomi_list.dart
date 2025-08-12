@@ -136,54 +136,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _anchorIndex = 17;
     }
 
-    // final oldAnchorIndex = _anchorIndex;
-    // final oldCenterIndex = _centerIndex;
-    // _anchorIndex = widget.itemKeys.indexOf(17);
-    // _centerIndex = widget.itemKeys.indexOf(_oldItemKeys[_centerIndex]);
-    // final oldDelta = oldAnchorIndex - oldCenterIndex;
-    // final newDelta = _anchorIndex - _centerIndex;
-    // print('_anchorIndex: $oldAnchorIndex => $_anchorIndex ($oldDelta => $newDelta), _centerIndex: $oldCenterIndex => $_centerIndex');
-    //
-    // if (widget.itemKeys.length != _oldItemKeys.length) {
-    //   print('============================================');
-    //   for (var i = _anchorIndex - _centerIndex + 1; i <= oldAnchorIndex - oldCenterIndex; i++) {
-    //     final index = oldCenterIndex + i;
-    //     final extent = _extents[i];
-    //     print('i = $i, index = $index, extent = -$extent');
-    //     if (extent case final extent?) {
-    //       _scrollController.position.correctImmediate(-extent);
-    //     } else {
-    //       _extents[i] = 0;
-    //     }
-    //   }
-    // }
-
-    // // 修正锚点列表项位置
-    // if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
-    //   if (_extents[_anchorIndex] case final oldAnchorExtent? when newAnchorIndex >= 0) {
-    //     // 如果锚点列表项向后移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
-    //     for (var i = _anchorIndex; i < newAnchorIndex; i++) {
-    //       _scrollController.position.correctImmediate(_correctedExtends[i] = _extents[i] ?? oldAnchorExtent);
-    //     }
-    //     // 如果锚点列表项向前移动，在列表项尺寸发生变化时会自动修正滚动偏移的前提下，只需要依次修正锚点列表项在移动过程中发生的偏移即可
-    //     for (var i = newAnchorIndex; i < _anchorIndex; i++) {
-    //       if (_extents[i] case final extent?) {
-    //         _scrollController.position.correctImmediate(-extent);
-    //       } else {
-    //         _scrollController.position.correctImmediate(-(_correctedExtends[i] = oldAnchorExtent));
-    //       }
-    //     }
-    //     // 布局重绘后清空数据
-    //     SchedulerBinding.instance.addPostFrameCallback((_) => _correctedExtends.clear());
-    //     // 更新锚点列表项索引
-    //     _anchorIndex = newAnchorIndex;
-    //   }
-    //   if (_anchorIndex >= widget.itemKeys.length) {
-    //     // 更新锚点列表项索引
-    //     _anchorIndex = math.max(0, widget.itemKeys.length - 1);
-    //   }
-    // }
-
     _oldItemKeys = [...widget.itemKeys];
   }
 
@@ -412,7 +364,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   bool _updateScheduled = false;
-
   void _scheduleUpdateItems() {
     return;
     if (_updateScheduled) return;
