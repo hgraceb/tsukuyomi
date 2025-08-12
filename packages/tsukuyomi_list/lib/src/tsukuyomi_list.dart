@@ -118,13 +118,13 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         for (var i = _anchorIndex - _centerIndex; i < 0; i++) {
           final extent = _extents[i];
           if (extent == null) continue;
-          print('111111111111111: correctImmediate: $extent');
+          print('111111111111111: correctImmediate $i: $extent');
           _scrollController.position.correctImmediate(extent);
         }
         for (var i = 0; i < _anchorIndex - _centerIndex; i++) {
           final extent = _extents[i];
           if (extent == null) continue;
-          print('222222222222222: correctImmediate: ${-extent}');
+          print('222222222222222: correctImmediate $i: ${-extent}');
           _scrollController.position.correctImmediate(-extent);
         }
         _centerIndex = _anchorIndex = newAnchorIndex;
