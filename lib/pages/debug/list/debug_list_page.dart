@@ -32,11 +32,11 @@ class _DebugListPageState extends State<DebugListPage> {
         onTap: () {
           setState(() {
             for (int i = 0; i < 1; i++) {
-              final position = itemKeys.indexOf(17) + 1;
+              final position = itemKeys.indexOf(16);
+              itemKeys.insert(position - 1, id++);
+              itemHeights.insert(position - 1, 60.0 + random.nextInt(100));
               itemKeys.removeRange(position, position + 1);
               itemHeights.removeRange(position, position + 1);
-              itemKeys.insert(position, id++);
-              itemHeights.insert(position, 60.0 + random.nextInt(100));
               itemKeys.insert(position, id++);
               itemHeights.insert(position, 60.0 + random.nextInt(100));
             }
