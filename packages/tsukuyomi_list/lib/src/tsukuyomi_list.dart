@@ -330,7 +330,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 还是 100，并且在列表项 A 重新渲染后有某处代码调用 setState 方法触发了与列表布局相关
       // 的 performRebuild 方法，就会导致列表项 A 之后的列表项整体向前错位 200。
       child: FutureBuilder(
-        initialData: _extents[index - _centerIndex],
+        // initialData: _extents[index - _centerIndex],
         future: Future.value(null),
         builder: (context, snapshot) => Container(
           width: widget.scrollDirection == Axis.horizontal ? snapshot.data : null,
