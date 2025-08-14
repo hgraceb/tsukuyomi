@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListWhenAnchorHalf extends StatefulWidget {
-  const DebugListWhenAnchorHalf({super.key});
+class DebugListCaseDecreaseExtent extends StatefulWidget {
+  const DebugListCaseDecreaseExtent({super.key});
 
   @override
-  State<DebugListWhenAnchorHalf> createState() => _DebugListWhenAnchorHalfState();
+  State<DebugListCaseDecreaseExtent> createState() => _DebugListCaseDecreaseExtentState();
 }
 
-class _DebugListWhenAnchorHalfState extends State<DebugListWhenAnchorHalf> {
+class _DebugListCaseDecreaseExtentState extends State<DebugListCaseDecreaseExtent> {
   int step = 0;
   final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
