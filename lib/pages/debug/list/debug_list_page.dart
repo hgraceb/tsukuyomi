@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'debug_list_when_anchor_half.dart';
+import 'debug_list_case_decrease_extent.dart';
 
 class DebugListPage extends StatelessWidget {
   const DebugListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const DebugListWhenAnchorHalf();
+    return const DebugListCaseDecreaseExtent();
   }
 }
 
