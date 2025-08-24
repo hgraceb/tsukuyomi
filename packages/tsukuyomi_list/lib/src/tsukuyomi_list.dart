@@ -303,7 +303,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         _extents[index - _centerIndex] = newExtent;
       },
       child: Container(
-        foregroundDecoration: BoxDecoration(color: index == _anchorIndex ? _pinkDebugMask : null),
+        key: ValueKey(index),
+        foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
         child: index < widget.itemKeys.length ? widget.itemBuilder(context, index) : null,
       ),
     );
