@@ -282,6 +282,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   Widget _buildItem(BuildContext context, int index) {
+    final childGlobalKey = _TsukuyomiListChildGlobalKey(listKey: _centerKey, itemKey: widget.itemKeys[index]);
     return _TsukuyomiListItem(
       // 保证添加列表项和移除列表项的对应关系
       key: ValueKey(index - _centerIndex),
@@ -303,9 +304,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         _extents[index - _centerIndex] = newExtent;
       },
       child: Container(
-        key: ValueKey(index),
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
-        child: index < widget.itemKeys.length ? widget.itemBuilder(context, index) : null,
+        child: childGlobalKey.currentWidget ?? KeyedSubtree(key: childGlobalKey, child: widget.itemBuilder(context, index)),
       ),
     );
   }
@@ -451,6 +451,25 @@ class TsukuyomiListItem {
     }
     return value;
   }
+}
+
+class _TsukuyomiListChildGlobalKey extends GlobalObjectKey {
+  const _TsukuyomiListChildGlobalKey({required this.listKey, required this.itemKey}) : super(listKey);
+
+  final Key listKey;
+
+  final Object itemKey;
+
+  @override
+  bool operator ==(Object other) {
+    if (other.runtimeType != runtimeType) {
+      return false;
+    }
+    return other is _TsukuyomiListChildGlobalKey && other.listKey == listKey && other.itemKey == itemKey;
+  }
+
+  @override
+  int get hashCode => Object.hash(listKey, itemKey);
 }
 
 class TsukuyomiListController {
