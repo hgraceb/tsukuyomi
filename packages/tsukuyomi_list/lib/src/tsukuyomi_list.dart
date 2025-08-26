@@ -272,7 +272,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   /// 列表末尾空白部分占比
   double get trailingFraction => _trailingFraction;
   double _trailingFraction = 1.0;
-
   set trailingFraction(double value) {
     final trailingFraction = value.clamp(0.0, 1.0);
     // 列表末尾空白部分占比只能减少不能增加
@@ -284,8 +283,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   Widget _buildItem(BuildContext context, int index) {
     final childGlobalKey = _TsukuyomiListChildGlobalKey(listKey: _centerKey, itemKey: widget.itemKeys[index]);
     return _TsukuyomiListItem(
-      // 保证添加列表项和移除列表项的对应关系
-      key: ValueKey(index - _centerIndex),
+      index: index - _centerIndex,
       onMount: (element) {
         _elements.add(element);
         _scheduleUpdateItems();
@@ -326,7 +324,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   bool _updateScheduled = false;
-
   void _scheduleUpdateItems() {
     if (_updateScheduled) return;
     _updateScheduled = true;
@@ -336,11 +333,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
       final anchor = widget.anchor ?? _calculateAnchor(position);
-      final sortedElements = _elements.toList()..sort((a, b) => a.widget.key!.value.compareTo(b.widget.key!.value));
+      final sortedElements = _elements.toList()..sort((a, b) => a.widget.index!.compareTo(b.widget.index!));
       int? anchorIndex;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
-        final index = element.widget.key!.value + _centerIndex;
+        final index = element.widget.index! + _centerIndex;
         if (index >= widget.itemKeys.length) continue;
 
         final box = element.findRenderObject() as RenderBox?;
@@ -419,15 +416,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 }
 
 class TsukuyomiListItem {
-  /// 列表项索引
-  final int index;
-
-  /// 列表项起点相对于视窗的位置
-  late final double leading;
-
-  /// 列表项终点相对于视窗的位置
-  late final double trailing;
-
   TsukuyomiListItem({
     required this.index,
     required Size size,
@@ -439,6 +427,15 @@ class TsukuyomiListItem {
     leading = _position(offset, viewport);
     trailing = _position(offset + extent, viewport);
   }
+
+  /// 列表项索引
+  final int index;
+
+  /// 列表项起点相对于视窗的位置
+  late final double leading;
+
+  /// 列表项终点相对于视窗的位置
+  late final double trailing;
 
   /// 计算相对于视窗的位置
   double _position(double offset, double viewport) {
@@ -625,16 +622,15 @@ class _TsukuyomiListBallisticScrollActivity extends BallisticScrollActivity {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({ValueKey<int>? super.key, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
+  const _TsukuyomiListItem({this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
+
+  final int? index;
 
   final ValueChanged<_TsukuyomiListItemElement>? onMount;
 
   final ValueChanged<_TsukuyomiListItemElement>? onUnmount;
 
   final _OnPerformLayout? onPerformLayout;
-
-  @override
-  ValueKey<int>? get key => super.key as ValueKey<int>?;
 
   @override
   SingleChildRenderObjectElement createElement() => _TsukuyomiListItemElement(this);
