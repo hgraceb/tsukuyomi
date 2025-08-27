@@ -34,12 +34,16 @@ class _DebugListCaseDisposedState extends State<DebugListCaseDisposed> {
               debugMask: true,
               trailing: false,
               itemKeys: itemKeys,
-              itemBuilder: (context, index) => FutureBuilder(
-                future: index == 4 ? Future.delayed(const Duration(milliseconds: 200), () => itemHeights[index] * heightFactor) : null,
-                builder: (context, snapshot) => SizedBox(
-                  height: snapshot.data ?? itemHeights[index],
-                  child: Placeholder(
-                    child: Text('${itemKeys[index]} [${snapshot.data ?? itemHeights[index]}]'),
+              itemBuilder: (context, index) => _TestWidget(
+                key: LabeledGlobalKey('_TestWidget_$index'),
+                index: index,
+                child: FutureBuilder(
+                  future: index == 4 ? Future.delayed(const Duration(milliseconds: 200), () => itemHeights[index] * heightFactor) : null,
+                  builder: (context, snapshot) => SizedBox(
+                    height: snapshot.data ?? itemHeights[index],
+                    child: Placeholder(
+                      child: Text('${itemKeys[index]} [${snapshot.data ?? itemHeights[index]}]'),
+                    ),
                   ),
                 ),
               ),
@@ -48,5 +52,35 @@ class _DebugListCaseDisposedState extends State<DebugListCaseDisposed> {
         ),
       ),
     );
+  }
+}
+
+class _TestWidget extends StatefulWidget {
+  const _TestWidget({super.key, required this.index, required this.child});
+
+  final int index;
+
+  final Widget child;
+
+  @override
+  State<_TestWidget> createState() => _TestWidgetState();
+}
+
+class _TestWidgetState extends State<_TestWidget> {
+  @override
+  void initState() {
+    super.initState();
+    print('_TestWidgetState.initState: ${widget.index} ($hashCode)');
+  }
+
+  @override
+  void dispose() {
+    print('_TestWidgetState.dispose: ${widget.index} ($hashCode)');
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
