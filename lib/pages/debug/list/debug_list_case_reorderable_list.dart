@@ -166,18 +166,9 @@ class SliverReorderableList extends StatefulWidget {
     this.findChildIndexCallback,
     required this.itemCount,
     required this.onReorder,
-    this.onReorderStart,
-    this.onReorderEnd,
-    this.itemExtent,
-    this.prototypeItem,
-    this.proxyDecorator,
     double? autoScrollerVelocityScalar,
   }) : autoScrollerVelocityScalar = autoScrollerVelocityScalar ?? _kDefaultAutoScrollVelocityScalar,
-        assert(itemCount >= 0),
-        assert(
-        itemExtent == null || prototypeItem == null,
-        'You can only pass itemExtent or prototypeItem, not both',
-        );
+        assert(itemCount >= 0);
 
   static const double _kDefaultAutoScrollVelocityScalar = 50;
 
@@ -189,43 +180,13 @@ class SliverReorderableList extends StatefulWidget {
 
   final ReorderCallback onReorder;
 
-  final void Function(int)? onReorderStart;
-
-  final void Function(int)? onReorderEnd;
-
-  final ReorderItemProxyDecorator? proxyDecorator;
-
-  final double? itemExtent;
-
-  final Widget? prototypeItem;
-
   final double autoScrollerVelocityScalar;
 
   @override
   SliverReorderableListState createState() => SliverReorderableListState();
 
   static SliverReorderableListState of(BuildContext context) {
-    final SliverReorderableListState? result = context.findAncestorStateOfType<SliverReorderableListState>();
-    assert(() {
-      if (result == null) {
-        throw FlutterError.fromParts(<DiagnosticsNode>[
-          ErrorSummary(
-            'SliverReorderableList.of() called with a context that does not contain a SliverReorderableList.',
-          ),
-          ErrorDescription(
-            'No SliverReorderableList ancestor could be found starting from the context that was passed to SliverReorderableList.of().',
-          ),
-          ErrorHint(
-            'This can happen when the context provided is from the same StatefulWidget that '
-                'built the SliverReorderableList. Please see the SliverReorderableList documentation for examples '
-                'of how to refer to an SliverReorderableList object:\n'
-          ),
-          context.describeElement('The context used was'),
-        ]);
-      }
-      return true;
-    }());
-    return result!;
+    return context.findAncestorStateOfType<SliverReorderableListState>()!;
   }
 
   static SliverReorderableListState? maybeOf(BuildContext context) {
@@ -342,7 +303,6 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
     assert(_dragInfo == null);
     final _ReorderableItemState item = _items[_dragIndex!]!;
     item.dragging = true;
-    widget.onReorderStart?.call(_dragIndex!);
     item.rebuild();
     _dragStartTransitionComplete = false;
     SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
@@ -358,7 +318,6 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
       onCancel: _dragCancel,
       onEnd: _dragEnd,
       onDropCompleted: _dropCompleted,
-      proxyDecorator: widget.proxyDecorator,
       tickerProvider: this,
     );
     _dragInfo!.startDrag();
@@ -406,7 +365,6 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
         }
       }
     });
-    widget.onReorderEnd?.call(_insertIndex!);
   }
 
   void _dropCompleted() {
@@ -556,17 +514,6 @@ class SliverReorderableListState extends State<SliverReorderableList> with Ticke
       childCount: widget.itemCount + (_dragInfo != null ? 1 : 0),
       findChildIndexCallback: widget.findChildIndexCallback,
     );
-    if (widget.itemExtent != null) {
-      return SliverFixedExtentList(
-        delegate: childrenDelegate,
-        itemExtent: widget.itemExtent!,
-      );
-    } else if (widget.prototypeItem != null) {
-      return SliverPrototypeExtentList(
-        delegate: childrenDelegate,
-        prototypeItem: widget.prototypeItem!,
-      );
-    }
     return SliverList(delegate: childrenDelegate);
   }
 }
