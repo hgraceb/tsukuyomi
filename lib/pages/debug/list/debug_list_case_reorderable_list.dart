@@ -11,36 +11,107 @@ class DebugListCaseReorderableList extends StatefulWidget {
 }
 
 class _DebugListCaseReorderableListState extends State<DebugListCaseReorderableList> {
-  double factor = 50.0;
-  final itemKeys = List.generate(10, (index) => index);
+  @override
+  Widget build(BuildContext context) {
+    return TsukuyomiScaffold(
+      body: Row(
+        children: [
+          Expanded(
+            child: _DefaultList(),
+          ),
+          Expanded(
+            child: _ReorderableList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DefaultList extends StatefulWidget {
+  @override
+  State<_DefaultList> createState() => _DefaultListState();
+}
+
+class _DefaultListState extends State<_DefaultList> {
+  double heightFactor = 2.0;
+  final itemKeys = List.generate(20, (index) => index);
+  final itemHeights = List.generate(20, (index) => 100.0);
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
+    return ListView.builder(
+      itemCount: itemKeys.length,
+      itemBuilder: (context, index) => FutureBuilder(
+        key: ValueKey(itemKeys[index]),
+        future: itemKeys[index] == 3 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * heightFactor) : null,
+        builder: (context, snapshot) => GestureDetector(
+          onTap: () {
+            if (itemKeys[index] == 2 || itemKeys[index] == 3) {
+              itemKeys.insert(3, itemKeys.removeAt(2));
+            } else {
+              final itemHeight = itemHeights.first == 100.0 ? 80.0 : 100.0;
+              itemHeights.clear();
+              itemHeights.addAll(List.generate(itemKeys.length, (index) => itemHeight));
+            }
+            setState(() {});
+          },
+          child: SizedBox(
+            width: double.infinity,
+            height: snapshot.data ?? itemHeights[index],
+            child: Placeholder(
+              child: Text('${itemKeys[index]} [${snapshot.data ?? itemHeights[index]}]'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReorderableList extends StatefulWidget {
+  @override
+  State<_ReorderableList> createState() => _ReorderableListState();
+}
+
+class _ReorderableListState extends State<_ReorderableList> {
+  double heightFactor = 2.0;
+  final itemKeys = List.generate(20, (index) => index);
+  final itemHeights = List.generate(20, (index) => 100.0);
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView(
+      onReorder: (int oldIndex, int newIndex) {
         setState(() {
-          factor = factor == 50.0 ? 60.0 : 50.0;
+          if (oldIndex < newIndex) {
+            newIndex -= 1;
+          }
+          final int item = itemKeys.removeAt(oldIndex);
+          itemKeys.insert(newIndex, item);
         });
       },
-      child: TsukuyomiScaffold(
-        body: ReorderableListView(
-          onReorder: (int oldIndex, int newIndex) {
-            setState(() {
-              if (oldIndex < newIndex) {
-                newIndex -= 1;
+      children: List.generate(
+        10,
+        (index) => FutureBuilder(
+          key: ValueKey(itemKeys[index]),
+          future: itemKeys[index] == 3 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * heightFactor) : null,
+          builder: (context, snapshot) => GestureDetector(
+            onTap: () {
+              if (itemKeys[index] == 2 || itemKeys[index] == 3) {
+                itemKeys.insert(3, itemKeys.removeAt(2));
+              } else {
+                final itemHeight = itemHeights.first == 100.0 ? 80.0 : 100.0;
+                itemHeights.clear();
+                itemHeights.addAll(List.generate(itemKeys.length, (index) => itemHeight));
               }
-              final int item = itemKeys.removeAt(oldIndex);
-              itemKeys.insert(newIndex, item);
-            });
-          },
-          children: List.generate(
-            10,
-            (index) => SizedBox(
-              key: ValueKey(index),
+              setState(() {});
+            },
+            child: SizedBox(
               width: double.infinity,
-              height: itemKeys[index] * factor,
+              height: snapshot.data ?? itemHeights[index],
               child: Placeholder(
-                child: Text('${itemKeys[index]}'),
+                child: Text('${itemKeys[index]} [${snapshot.data ?? itemHeights[index]}]'),
               ),
             ),
           ),
@@ -57,9 +128,9 @@ class ReorderableListView extends StatefulWidget {
     required this.onReorder,
     this.buildDefaultDragHandles = true,
   }) : assert(
-        children.every((Widget w) => w.key != null),
-        'All children of this widget must have a key.',
-        ),
+  children.every((Widget w) => w.key != null),
+  'All children of this widget must have a key.',
+  ),
         itemBuilder = ((BuildContext context, int index) => children[index]),
         itemCount = children.length;
 
