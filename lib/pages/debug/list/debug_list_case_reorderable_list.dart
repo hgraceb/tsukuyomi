@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
+import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
 class DebugListCaseReorderableList extends StatefulWidget {
   const DebugListCaseReorderableList({super.key});
@@ -16,6 +17,9 @@ class _DebugListCaseReorderableListState extends State<DebugListCaseReorderableL
         children: [
           Expanded(
             child: _DefaultList(),
+          ),
+          Expanded(
+            child: _TsukuyomiList(),
           ),
           Expanded(
             child: _ReorderableList(),
@@ -40,6 +44,53 @@ class _DefaultListState extends State<_DefaultList> {
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: itemKeys.length,
+      itemBuilder: (context, index) => KeyedSubtree(
+        key: _ReorderableListViewChildGlobalKey(ValueKey(itemKeys[index]), this),
+        child: FutureBuilder(
+          key: ValueKey(itemKeys[index]),
+          future: itemKeys[index] == 3 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * heightFactor) : null,
+          builder: (context, snapshot) => GestureDetector(
+            onTap: () {
+              if (itemKeys[index] == 2 || itemKeys[index] == 3) {
+                itemKeys.insert(3, itemKeys.removeAt(2));
+              } else {
+                final itemHeight = itemHeights.first == 100.0 ? 80.0 : 100.0;
+                itemHeights.clear();
+                itemHeights.addAll(List.generate(itemKeys.length, (index) => itemHeight));
+              }
+              setState(() {});
+            },
+            child: SizedBox(
+              width: double.infinity,
+              height: snapshot.data ?? itemHeights[index],
+              child: Placeholder(
+                child: Text('${itemKeys[index]} [${snapshot.data ?? itemHeights[index]}]'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TsukuyomiList extends StatefulWidget {
+  @override
+  State<_TsukuyomiList> createState() => _TsukuyomiListState();
+}
+
+class _TsukuyomiListState extends State<_TsukuyomiList> {
+  double heightFactor = 2.0;
+  final itemKeys = List.generate(20, (index) => index);
+  final itemHeights = List.generate(20, (index) => 100.0);
+
+  @override
+  Widget build(BuildContext context) {
+    return TsukuyomiList.builder(
+      debugMask: true,
+      trailing: false,
+      anchor: 0.5,
+      itemKeys: itemKeys,
       itemBuilder: (context, index) => KeyedSubtree(
         key: _ReorderableListViewChildGlobalKey(ValueKey(itemKeys[index]), this),
         child: FutureBuilder(
