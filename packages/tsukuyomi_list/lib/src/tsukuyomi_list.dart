@@ -281,7 +281,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   Widget _buildItem(BuildContext context, int index) {
-    final childGlobalKey = _TsukuyomiListChildGlobalKey(listKey: _centerKey, itemKey: widget.itemKeys[index]);
     return _TsukuyomiListItem(
       index: index - _centerIndex,
       onMount: (element) {
@@ -303,7 +302,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       },
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
-        child: childGlobalKey.currentWidget ?? KeyedSubtree(key: childGlobalKey, child: widget.itemBuilder(context, index)),
+        child: KeyedSubtree(
+          key: _TsukuyomiListChildGlobalKey(listKey: _centerKey, itemKey: widget.itemKeys[index]),
+          child: widget.itemBuilder(context, index),
+        ),
       ),
     );
   }

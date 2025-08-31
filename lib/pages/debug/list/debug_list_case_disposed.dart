@@ -35,7 +35,7 @@ class _DebugListCaseDisposedState extends State<DebugListCaseDisposed> {
               trailing: false,
               itemKeys: itemKeys,
               itemBuilder: (context, index) => _TestWidget(
-                key: LabeledGlobalKey('_TestWidget_$index'),
+                key: ValueKey(itemKeys[index]),
                 index: index,
                 child: FutureBuilder(
                   future: index == 4 ? Future.delayed(const Duration(milliseconds: 200), () => itemHeights[index] * heightFactor) : null,
