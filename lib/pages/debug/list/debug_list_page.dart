@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'debug_list_case_disposed.dart';
+import 'debug_list_case_slide_default.dart';
 
 class DebugListPage extends StatelessWidget {
   const DebugListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const DebugListCaseDisposed();
+    return const DebugListCaseSlideDefault();
   }
 }
 
