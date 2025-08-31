@@ -21,8 +21,9 @@ class _DebugListCaseDisposedState extends State<DebugListCaseDisposed> {
     return GestureDetector(
       onTap: () {
         setState(() {
+          final itemHeight = itemHeights.first == 100.0 ? 80.0 : 100.0;
           itemHeights.clear();
-          itemHeights.addAll(List.generate(itemKeys.length, (index) => 150.0));
+          itemHeights.addAll(List.generate(itemKeys.length, (index) => itemHeight));
         });
       },
       child: TsukuyomiScaffold(
