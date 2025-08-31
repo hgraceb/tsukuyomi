@@ -638,7 +638,7 @@ void main() {
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
     });
 
-    testWidgets('when size changes with bouncing scroll physics', (WidgetTester tester) async {
+    testWidgets('when out of range with bouncing scroll physics', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final controller = TsukuyomiListController();
 
@@ -655,26 +655,31 @@ void main() {
         );
       }
 
-      // 默认以指定索引作为列表中心索引并显示首屏的元素
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
+      // 默认显示首屏的元素
+      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
       expect(controller.centerIndex, 3);
       expect(controller.anchorIndex, 3);
       expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [3, 4, 5, 6]);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
-      // 逆向滚动到视窗边缘并动态减小列表项尺寸，列表不应该发生越界滚动
-      double minPixels = controller.position.pixels;
-      listener() => minPixels = math.min(minPixels, controller.position.pixels);
+      // 正向滚动一个屏幕的距离，列表不应该发生越界滚动
+      listener() => expect(controller.position.outOfRange, false);
       controller.position.addListener(listener);
+      unawaited(controller.slideViewport(1.0));
+      await tester.pumpAndSettle(const Duration(microseconds: 500));
+      expect(controller.centerIndex, 9);
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, -500.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
+
+      // 逆向滚动一个屏幕的距离，列表不应该发生越界滚动
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
-      controller.position.removeListener(listener);
-      expect(controller.centerIndex, 3);
+      await tester.pumpAndSettle(const Duration(microseconds: 500));
+      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, -300.0);
-      expect(controller.position.pixels == minPixels, true);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+      controller.position.removeListener(listener);
     });
   });
 }
