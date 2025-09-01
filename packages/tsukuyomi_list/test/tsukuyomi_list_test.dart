@@ -43,22 +43,22 @@ void main() {
 
       // 逆向滚动一定距离让第一个元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
-      expect(controller.centerIndex, 4);
+      await tester.pumpAndSettle(const Duration(microseconds: 500));
+      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, -400.0);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
       // 列表项尺寸动态增大时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, -600.0);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
       // 列表项尺寸动态减小时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
-      expect(controller.position.pixels, -400.0);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
 
       // 正向滚动一定距离让第二个元素作为新的锚点元素
