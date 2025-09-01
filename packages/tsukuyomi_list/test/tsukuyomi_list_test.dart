@@ -223,7 +223,7 @@ void main() {
     });
 
     testWidgets('when adding multi items to start and end', (WidgetTester tester) async {
-      final random = Random(2147483647);
+      final random = math.Random(2147483647);
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
