@@ -83,21 +83,21 @@ void main() {
       // 正向滚动一定距离让倒数第二个元素作为新的锚点元素
       unawaited(controller.slideViewport(250 / 600));
       await tester.pumpAndSettle();
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 8);
       expect(controller.anchorIndex, 8);
-      expect(controller.position.pixels, -75.0);
+      expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 8);
       expect(controller.anchorIndex, 8);
-      expect(controller.position.pixels, 125.0);
+      expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8]);
       // 列表项尺寸动态减小时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 8);
       expect(controller.anchorIndex, 8);
-      expect(controller.position.pixels, -75.0);
+      expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8, 9]);
 
       // 正向滚动一定距离让最后一个元素作为新的锚点元素

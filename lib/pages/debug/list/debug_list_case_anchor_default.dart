@@ -42,6 +42,9 @@ class _DebugListCaseAnchorDefaultState extends State<DebugListCaseAnchorDefault>
               4 => List.generate(itemKeys.length, (index) => 100.0),
               5 => List.generate(itemKeys.length, (index) => 150.0),
               6 => List.generate(itemKeys.length, (index) => 100.0),
+              7 => List.generate(itemKeys.length, (index) => 100.0),
+              8 => List.generate(itemKeys.length, (index) => 150.0),
+              9 => List.generate(itemKeys.length, (index) => 100.0),
               _ => List.generate(itemKeys.length, (index) => 100.0),
             },
           ),
@@ -56,6 +59,9 @@ class _DebugListCaseAnchorDefaultState extends State<DebugListCaseAnchorDefault>
             4 => await controller.slideViewport(75 / 600),
             5 => null,
             6 => null,
+            7 => await controller.slideViewport(250 / 600),
+            8 => null,
+            9 => null,
             _ => --step,
           };
           setState(() {});
