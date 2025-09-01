@@ -215,7 +215,6 @@ void main() {
         itemHeights.insert(0, 300.0);
         itemHeights.insert(itemHeights.length, 300.0);
         await tester.pumpWidget(builder());
-        await tester.pump();
         expect(controller.centerIndex, 5 + i);
         expect(controller.anchorIndex, 5 + i);
         expect(controller.position.pixels, -200.0);
