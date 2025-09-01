@@ -19,10 +19,11 @@ class _DebugListCaseAnchorHalfState extends State<DebugListCaseAnchorHalf> {
       textDirection: TextDirection.ltr,
       child: TsukuyomiList.builder(
         debugMask: true,
+        trailing: false,
         itemKeys: itemKeys,
         itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
-        anchor: 0.5,
+        initialScrollIndex: 4,
       ),
     );
   }
@@ -30,29 +31,49 @@ class _DebugListCaseAnchorHalfState extends State<DebugListCaseAnchorHalf> {
   @override
   Widget build(BuildContext context) {
     return TsukuyomiScaffold(
-      body: GestureDetector(
-        onTap: () async {
-          if (step == 0) {
-            await controller.slideViewport(0.5);
-            setState(() => step++);
-          } else {
-            setState(() {
-
-            });
-          }
-        },
-        child: Center(
-          child: SizedBox(
-            height: 600.0,
-            child: builder(
-              itemHeights: switch (step) {
-                0 => List.generate(itemKeys.length, (index) => 100.0),
-                1 => List.generate(itemKeys.length, (index) => 200.0),
-                _ => throw AssertionError(step),
-              },
-            ),
+      body: Center(
+        child: SizedBox(
+          height: 600.0,
+          child: builder(
+            itemHeights: switch (step) {
+              1 => List.generate(itemKeys.length, (index) => 100.0),
+              2 => List.generate(itemKeys.length, (index) => 150.0),
+              3 => List.generate(itemKeys.length, (index) => 100.0),
+              4 => List.generate(itemKeys.length, (index) => 100.0),
+              5 => List.generate(itemKeys.length, (index) => 150.0),
+              6 => List.generate(itemKeys.length, (index) => 100.0),
+              7 => List.generate(itemKeys.length, (index) => 100.0),
+              8 => List.generate(itemKeys.length, (index) => 150.0),
+              9 => List.generate(itemKeys.length, (index) => 100.0),
+              10 => List.generate(itemKeys.length, (index) => 100.0),
+              11 => List.generate(itemKeys.length, (index) => 150.0),
+              12 => List.generate(itemKeys.length, (index) => 100.0),
+              _ => List.generate(itemKeys.length, (index) => 100.0),
+            },
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final _ = switch (++step) {
+            1 => await controller.slideViewport(-1.0),
+            2 => null,
+            3 => null,
+            4 => await controller.slideViewport(75 / 600),
+            5 => null,
+            6 => null,
+            7 => await controller.slideViewport(250 / 600),
+            8 => null,
+            9 => null,
+            10 => await controller.slideViewport(1.0),
+            11 => null,
+            12 => null,
+            _ => --step,
+          };
+          setState(() {});
+        },
+        shape: const CircleBorder(),
+        child: Text('$step'),
       ),
     );
   }
