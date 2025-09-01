@@ -103,21 +103,21 @@ void main() {
       // 正向滚动一定距离让最后一个元素作为新的锚点元素
       unawaited(controller.slideViewport(1.0));
       await tester.pumpAndSettle();
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
-      expect(controller.position.pixels, 0.0);
+      expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
-      expect(controller.position.pixels, 250.0);
+      expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9]);
       // 列表项尺寸动态减小时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
-      expect(controller.position.pixels, 0.0);
+      expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
     });
 
