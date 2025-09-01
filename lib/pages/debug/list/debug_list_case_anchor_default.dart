@@ -39,6 +39,9 @@ class _DebugListCaseAnchorDefaultState extends State<DebugListCaseAnchorDefault>
               1 => List.generate(itemKeys.length, (index) => 100.0),
               2 => List.generate(itemKeys.length, (index) => 150.0),
               3 => List.generate(itemKeys.length, (index) => 100.0),
+              4 => List.generate(itemKeys.length, (index) => 100.0),
+              5 => List.generate(itemKeys.length, (index) => 150.0),
+              6 => List.generate(itemKeys.length, (index) => 100.0),
               _ => List.generate(itemKeys.length, (index) => 100.0),
             },
           ),
@@ -47,9 +50,12 @@ class _DebugListCaseAnchorDefaultState extends State<DebugListCaseAnchorDefault>
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final _ = switch (++step) {
-            1 => controller.slideViewport(-1.0),
+            1 => await controller.slideViewport(-1.0),
             2 => null,
             3 => null,
+            4 => await controller.slideViewport(75 / 600),
+            5 => null,
+            6 => null,
             _ => --step,
           };
           setState(() {});

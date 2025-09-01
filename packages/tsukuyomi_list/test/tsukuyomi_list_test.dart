@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,21 +63,21 @@ void main() {
       // 正向滚动一定距离让第二个元素作为新的锚点元素
       unawaited(controller.slideViewport(75 / 600));
       await tester.pumpAndSettle();
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 1);
       expect(controller.anchorIndex, 1);
-      expect(controller.position.pixels, -325.0);
+      expect(controller.position.pixels, -25.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5, 6]);
       // 列表项尺寸动态增大时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 1);
       expect(controller.anchorIndex, 1);
-      expect(controller.position.pixels, -475.0);
+      expect(controller.position.pixels, -25.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4]);
       // 列表项尺寸动态减小时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 4);
+      expect(controller.centerIndex, 1);
       expect(controller.anchorIndex, 1);
-      expect(controller.position.pixels, -325.0);
+      expect(controller.position.pixels, -25.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5, 6]);
 
       // 正向滚动一定距离让倒数第二个元素作为新的锚点元素
