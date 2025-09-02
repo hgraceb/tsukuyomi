@@ -113,7 +113,9 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _extents.clear();
     }
     // 修正锚点列表项位置
-    if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
+    if (widget.itemKeys.isEmpty) {
+      _centerIndex = _anchorIndex = 0;
+    } else if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
       if (newAnchorIndex >= 0) {
         for (var i = _anchorIndex - _centerIndex; i < 0; i++) {
           final extent = _extents[i];

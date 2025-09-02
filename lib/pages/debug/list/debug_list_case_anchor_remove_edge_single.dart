@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
@@ -11,8 +13,9 @@ class DebugListCaseAnchorRemoveEdgeSingle extends StatefulWidget {
 
 class _DebugListCaseAnchorRemoveEdgeSingleState extends State<DebugListCaseAnchorRemoveEdgeSingle> {
   int step = 0;
-  final itemKeys = List.generate(10, (index) => index);
-  final itemHeights = List.generate(10, (index) => 100.0);
+  final random = Random(2147483647);
+  final itemKeys = List.generate(20, (index) => index);
+  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (7 <= index && index <= 18 ? 0.0 : random.nextInt(100)));
   final controller = TsukuyomiListController();
 
   Widget builder() {
@@ -24,7 +27,7 @@ class _DebugListCaseAnchorRemoveEdgeSingleState extends State<DebugListCaseAncho
         itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
         anchor: 0.5,
-        initialScrollIndex: 9,
+        initialScrollIndex: (itemKeys.length - 1).clamp(0, 13),
       ),
     );
   }
@@ -32,10 +35,10 @@ class _DebugListCaseAnchorRemoveEdgeSingleState extends State<DebugListCaseAncho
   @override
   Widget build(BuildContext context) {
     void insertItem() {
-      itemKeys.insert(0, itemKeys.length);
-      itemKeys.insert(itemKeys.length, itemKeys.length);
-      itemHeights.insert(0, 300.0);
-      itemHeights.insert(itemHeights.length, 300.0);
+      itemKeys.removeAt(0);
+      itemKeys.removeAt(itemKeys.length - 1);
+      itemHeights.removeAt(0);
+      itemHeights.removeAt(itemHeights.length - 1);
     }
 
     return TsukuyomiScaffold(
@@ -57,6 +60,8 @@ class _DebugListCaseAnchorRemoveEdgeSingleState extends State<DebugListCaseAncho
             7 => insertItem(),
             8 => insertItem(),
             9 => insertItem(),
+            10 => insertItem(),
+            11 => insertItem(),
             _ => --step,
           };
           setState(() {});
