@@ -14,8 +14,8 @@ class DebugListCaseAnchorRemoveEdgeMulti extends StatefulWidget {
 class _DebugListCaseAnchorRemoveEdgeMultiState extends State<DebugListCaseAnchorRemoveEdgeMulti> {
   int step = 0;
   final random = Random(2147483647);
-  final itemKeys = List.generate(10, (index) => index);
-  final itemHeights = List.generate(10, (index) => 100.0);
+  final itemKeys = List.generate(2000, (index) => index);
+  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (997 <= index && index <= 1008 ? 0.0 : random.nextInt(100)));
   final controller = TsukuyomiListController();
 
   Widget builder() {
@@ -27,7 +27,7 @@ class _DebugListCaseAnchorRemoveEdgeMultiState extends State<DebugListCaseAnchor
         itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
         anchor: 0.5,
-        initialScrollIndex: 9,
+        initialScrollIndex: (itemKeys.length - 1).clamp(0, 1003),
       ),
     );
   }

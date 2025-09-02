@@ -349,9 +349,9 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle();
-      expect(controller.centerIndex, 1003);
+      expect(controller.centerIndex, 999);
       expect(controller.anchorIndex, 999);
-      expect(controller.position.pixels, -600.0);
+      expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [997, 998, 999, 1000, 1001, 1002]);
 
       // 在列表首尾位置同时移除多个列表项时能够锚定滚动位置
@@ -362,7 +362,7 @@ void main() {
         itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
         await tester.pumpWidget(builder());
         await tester.pump();
-        expect(controller.centerIndex, 1003);
+        expect(controller.centerIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.anchorIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
         expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [997, 998, 999, 1000, 1001, 1002] : itemKeys);
       }
