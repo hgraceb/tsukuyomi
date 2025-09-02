@@ -35,10 +35,10 @@ class _DebugListCaseAnchorRemoveEdgeMultiState extends State<DebugListCaseAnchor
   @override
   Widget build(BuildContext context) {
     void insertItem() {
-      itemKeys.insertAll(0, List.generate(100, (index) => itemKeys.length + index));
-      itemKeys.insertAll(itemKeys.length, List.generate(100, (index) => itemKeys.length + index));
-      itemHeights.insertAll(0, List.generate(100, (index) => 100.0 + random.nextInt(100)));
-      itemHeights.insertAll(itemHeights.length, List.generate(100, (index) => 100.0 + random.nextInt(100)));
+      itemKeys.removeRange(0, 100);
+      itemKeys.removeRange(itemKeys.length - 100, itemKeys.length);
+      itemHeights.removeRange(0, 100);
+      itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
     }
 
     return TsukuyomiScaffold(
@@ -60,6 +60,8 @@ class _DebugListCaseAnchorRemoveEdgeMultiState extends State<DebugListCaseAnchor
             7 => insertItem(),
             8 => insertItem(),
             9 => insertItem(),
+            10 => insertItem(),
+            11 => insertItem(),
             _ => --step,
           };
           setState(() {});
