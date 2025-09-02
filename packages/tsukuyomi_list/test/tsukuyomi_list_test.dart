@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -176,7 +176,7 @@ void main() {
     });
 
     testWidgets('when adding single item to start and end', (WidgetTester tester) async {
-      final random = math.Random(2147483647);
+      final random = Random(2147483647);
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -224,7 +224,7 @@ void main() {
     });
 
     testWidgets('when adding multi items to start and end', (WidgetTester tester) async {
-      final random = math.Random(2147483647);
+      final random = Random(2147483647);
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -483,7 +483,7 @@ void main() {
         expect(controller.centerIndex, i);
         expect(controller.anchorIndex, i);
         expect(controller.position.pixels, 0.0);
-        expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
+        expectList(length: itemKeys.length, visible: List.generate(min(6, itemKeys.length - i), (index) => index + i));
       }
     });
   });
@@ -512,7 +512,7 @@ void main() {
         expect(controller.centerIndex, i);
         expect(controller.anchorIndex, i);
         expect(controller.position.pixels, 0.0);
-        expectList(length: itemKeys.length, visible: List.generate(math.min(6, itemKeys.length - i), (index) => index + i));
+        expectList(length: itemKeys.length, visible: List.generate(min(6, itemKeys.length - i), (index) => index + i));
       }
     });
 
