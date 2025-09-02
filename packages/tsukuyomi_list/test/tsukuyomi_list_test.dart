@@ -408,7 +408,6 @@ void main() {
         itemKeys.insert(itemKeys.length - 5, itemKeys.length);
         itemHeights.insert(itemHeights.length - 5, 200.0 + random.nextInt(100));
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle();
         expect(controller.centerIndex, 5 + i);
         expect(controller.anchorIndex, 5 + i);
         expect(controller.position.pixels, -200.0);
@@ -455,7 +454,6 @@ void main() {
         itemKeys.insertAll(itemKeys.length - 5, List.generate(100, (index) => itemKeys.length + index));
         itemHeights.insertAll(itemHeights.length - 5, List.generate(100, (index) => 200.0 + random.nextInt(100)));
         await tester.pumpWidget(builder());
-        await tester.pump();
         expect(controller.centerIndex, 5 + i * 100);
         expect(controller.anchorIndex, 5 + i * 100);
         expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
