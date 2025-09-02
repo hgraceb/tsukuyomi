@@ -35,10 +35,8 @@ class _DebugListCaseAnchorAddAnchorSingleState extends State<DebugListCaseAnchor
   @override
   Widget build(BuildContext context) {
     void insertItem() {
-      itemKeys.insert(0, itemKeys.length);
-      itemKeys.insert(itemKeys.length, itemKeys.length);
-      itemHeights.insert(0, 100.0 + random.nextInt(100));
-      itemHeights.insert(itemHeights.length, 100.0 + random.nextInt(100));
+      itemKeys.insert(itemKeys.length - 5, itemKeys.length);
+      itemHeights.insert(itemHeights.length - 5, 200.0 + random.nextInt(100));
     }
 
     return TsukuyomiScaffold(
