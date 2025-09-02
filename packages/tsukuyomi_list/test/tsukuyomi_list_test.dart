@@ -417,6 +417,7 @@ void main() {
     });
 
     testWidgets('when adding multi items to anchor', (WidgetTester tester) async {
+      final random = Random(2147483647);
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
       final controller = TsukuyomiListController();
@@ -444,18 +445,18 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle();
-      expect(controller.centerIndex, 9);
+      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
-      expect(controller.position.pixels, -600.0);
+      expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
       // 在锚点列表项的位置同时添加多个列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
         itemKeys.insertAll(itemKeys.length - 5, List.generate(100, (index) => itemKeys.length + index));
-        itemHeights.insertAll(itemHeights.length - 5, List.generate(100, (index) => 300.0));
+        itemHeights.insertAll(itemHeights.length - 5, List.generate(100, (index) => 200.0 + random.nextInt(100)));
         await tester.pumpWidget(builder());
         await tester.pump();
-        expect(controller.centerIndex, 9);
+        expect(controller.centerIndex, 5 + i * 100);
         expect(controller.anchorIndex, 5 + i * 100);
         expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
       }
