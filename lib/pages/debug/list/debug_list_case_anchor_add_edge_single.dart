@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
@@ -11,6 +13,7 @@ class DebugListCaseAnchorAddEdgeSingle extends StatefulWidget {
 
 class _DebugListCaseAnchorAddEdgeSingleState extends State<DebugListCaseAnchorAddEdgeSingle> {
   int step = 0;
+  final random = Random(2147483647);
   final itemKeys = List.generate(10, (index) => index);
   final itemHeights = List.generate(10, (index) => 100.0);
   final controller = TsukuyomiListController();
@@ -34,8 +37,8 @@ class _DebugListCaseAnchorAddEdgeSingleState extends State<DebugListCaseAnchorAd
     void insertItem() {
       itemKeys.insert(0, itemKeys.length);
       itemKeys.insert(itemKeys.length, itemKeys.length);
-      itemHeights.insert(0, 300.0);
-      itemHeights.insert(itemHeights.length, 300.0);
+      itemHeights.insert(0, 100.0 + random.nextInt(100));
+      itemHeights.insert(itemHeights.length, 100.0 + random.nextInt(100));
     }
 
     return TsukuyomiScaffold(
