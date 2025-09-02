@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseAnchorAddEdgeSingle extends StatefulWidget {
-  const DebugListCaseAnchorAddEdgeSingle({super.key});
+class DebugListCaseAnchorRemoveEdgeSingle extends StatefulWidget {
+  const DebugListCaseAnchorRemoveEdgeSingle({super.key});
 
   @override
-  State<DebugListCaseAnchorAddEdgeSingle> createState() => _DebugListCaseAnchorAddEdgeSingleState();
+  State<DebugListCaseAnchorRemoveEdgeSingle> createState() => _DebugListCaseAnchorRemoveEdgeSingleState();
 }
 
-class _DebugListCaseAnchorAddEdgeSingleState extends State<DebugListCaseAnchorAddEdgeSingle> {
+class _DebugListCaseAnchorRemoveEdgeSingleState extends State<DebugListCaseAnchorRemoveEdgeSingle> {
   int step = 0;
   final itemKeys = List.generate(10, (index) => index);
   final itemHeights = List.generate(10, (index) => 100.0);
