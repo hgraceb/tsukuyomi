@@ -5,17 +5,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
 
-void main() {
-  void expectList({required int length, required List<int> visible}) {
-    final hidden = List.generate(length, (i) => i).toSet().difference(visible.toSet());
-    for (final i in visible) {
-      expect(find.text('$i'), findsOneWidget);
-    }
-    for (final i in hidden) {
-      expect(find.text('$i'), findsNothing);
-    }
-  }
+import 'tsukuyomi_list_utils.dart';
 
+void main() {
   group('TsukuyomiList respects anchor', () {
     testWidgets('when default', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
