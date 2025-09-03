@@ -35,8 +35,11 @@ class _DebugListCaseAnchorAddAnchorMultiState extends State<DebugListCaseAnchorA
   @override
   Widget build(BuildContext context) {
     void insertItem() {
-      itemKeys.insertAll(itemKeys.length - 5, List.generate(100, (index) => itemKeys.length + index));
-      itemHeights.insertAll(itemHeights.length - 5, List.generate(100, (index) => 200.0 + random.nextInt(100)));
+      final anchorIndex = itemKeys.indexOf(5);
+      itemKeys.insertAll(anchorIndex + 1, List.generate(100, (index) => itemKeys.length + index));
+      itemHeights.insertAll(anchorIndex + 1, List.generate(100, (index) => 300.0 + random.nextInt(100)));
+      itemKeys.insertAll(anchorIndex, List.generate(100, (index) => itemKeys.length + index));
+      itemHeights.insertAll(anchorIndex, List.generate(100, (index) => 300.0 + random.nextInt(100)));
     }
 
     return TsukuyomiScaffold(

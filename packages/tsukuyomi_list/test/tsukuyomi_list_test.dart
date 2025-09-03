@@ -418,7 +418,7 @@ void main() {
       }
     });
 
-    testWidgets('when adding multi items to anchor', (WidgetTester tester) async {
+    testWidgets('when adding multi items before and after anchor', (WidgetTester tester) async {
       final random = Random(2147483647);
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
@@ -454,12 +454,15 @@ void main() {
 
       // 在锚点列表项的位置同时添加多个列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
-        itemKeys.insertAll(itemKeys.length - 5, List.generate(100, (index) => itemKeys.length + index));
-        itemHeights.insertAll(itemHeights.length - 5, List.generate(100, (index) => 200.0 + random.nextInt(100)));
+        final anchorIndex = itemKeys.indexOf(5);
+        itemKeys.insertAll(anchorIndex + 1, List.generate(100, (index) => itemKeys.length + index));
+        itemHeights.insertAll(anchorIndex + 1, List.generate(100, (index) => 300.0 + random.nextInt(100)));
+        itemKeys.insertAll(anchorIndex, List.generate(100, (index) => itemKeys.length + index));
+        itemHeights.insertAll(anchorIndex, List.generate(100, (index) => 300.0 + random.nextInt(100)));
         await tester.pumpWidget(builder());
         expect(controller.centerIndex, 5 + i * 100);
         expect(controller.anchorIndex, 5 + i * 100);
-        expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
+        expectList(length: itemKeys.length, visible: [5, itemKeys.length - 200, itemKeys.length - 1]);
       }
     });
   });
