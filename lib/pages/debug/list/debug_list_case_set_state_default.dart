@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseSetState extends StatefulWidget {
-  const DebugListCaseSetState({super.key});
+class DebugListCaseSetStateDefault extends StatefulWidget {
+  const DebugListCaseSetStateDefault({super.key});
 
   @override
-  State<DebugListCaseSetState> createState() => _DebugListCaseSetStateState();
+  State<DebugListCaseSetStateDefault> createState() => _DebugListCaseSetStateDefaultState();
 }
 
-class _DebugListCaseSetStateState extends State<DebugListCaseSetState> {
+class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefault> {
   int step = 0;
   final itemKeys = List.generate(20, (index) => index);
   final controller = TsukuyomiListController();
