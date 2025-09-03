@@ -9,7 +9,7 @@ class DebugListCaseSetStateDefault extends StatefulWidget {
 }
 
 class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefault> {
-  final itemHeights = List.generate(10, (index) => 100.0);
+  final itemHeights = List.generate(10, (index) => 120.0);
   final scrollController = ScrollController();
 
   @override
@@ -34,41 +34,11 @@ class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefa
             controller: scrollController,
             itemCount: itemHeights.length,
             itemBuilder: (context, index) => FutureBuilder(
-              future: Future.delayed(const Duration(seconds: 2), () => this),
-              builder: (context, snapshot) {
-                if (snapshot.hasData && index == 1) {
-                  return Card(
-                    child: SizedBox(
-                      height: itemHeights[index] * 1.5,
-                      child: Center(child: Text('Item $index')),
-                    ),
-                  );
-                }
-                return Card(
-                  child: SizedBox(
-                    height: itemHeights[index],
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Flexible(
-                          child: SizedBox(
-                            width: 10,
-                            height: 10,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                        const Flexible(
-                          child: SizedBox(width: 10),
-                        ),
-                        Flexible(
-                          flex: 10,
-                          child: Text('Item $index'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+              future: index == 1 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * 2) : null,
+              builder: (context, snapshot) => SizedBox(
+                height: snapshot.data ?? itemHeights[index],
+                child: Placeholder(child: Text('Item $index')),
+              ),
             ),
           ),
         ),
