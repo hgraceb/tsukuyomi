@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
 
-import 'tsukuyomi_list_utils.dart';
+import 'tsukuyomi_list_util.dart';
 
 void main() {
   group('TsukuyomiList respects anchor', () {
