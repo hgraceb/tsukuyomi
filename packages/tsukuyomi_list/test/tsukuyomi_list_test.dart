@@ -369,7 +369,7 @@ void main() {
       }
     });
 
-    testWidgets('when adding single item to anchor', (WidgetTester tester) async {
+    testWidgets('when adding single item before and after anchor', (WidgetTester tester) async {
       final random = Random(2147483647);
       final itemKeys = List.generate(10, (index) => index);
       final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
@@ -405,13 +405,16 @@ void main() {
 
       // 在锚点列表项的位置同时添加单个列表项时能够锚定滚动位置
       for (int i = 1; i <= 10; i++) {
-        itemKeys.insert(itemKeys.length - 5, itemKeys.length);
-        itemHeights.insert(itemHeights.length - 5, 200.0 + random.nextInt(100));
+        final anchorIndex = itemKeys.indexOf(5);
+        itemKeys.insert(anchorIndex + 1, itemKeys.length);
+        itemHeights.insert(anchorIndex + 1, 300.0 + random.nextInt(100));
+        itemKeys.insert(anchorIndex, itemKeys.length);
+        itemHeights.insert(anchorIndex, 300.0 + random.nextInt(100));
         await tester.pumpWidget(builder());
         expect(controller.centerIndex, 5 + i);
         expect(controller.anchorIndex, 5 + i);
         expect(controller.position.pixels, -200.0);
-        expectList(length: itemKeys.length, visible: [itemKeys.length - 1, 5, 6, 7, 8]);
+        expectList(length: itemKeys.length, visible: [5, itemKeys.length - 2, itemKeys.length - 1]);
       }
     });
 
