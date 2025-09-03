@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:tsukuyomi/pages/debug/list/debug_list_case_anchor_add_anchor_multi.dart';
+
+import 'debug_list_case_set_state.dart';
 
 class DebugListPage extends StatelessWidget {
   const DebugListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const DebugListCaseAnchorAddAnchorMulti();
+    return const DebugListCaseSetState();
   }
 }
 
