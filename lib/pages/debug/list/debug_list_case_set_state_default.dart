@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
-import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
 class DebugListCaseSetStateDefault extends StatefulWidget {
   const DebugListCaseSetStateDefault({super.key});
@@ -10,35 +9,19 @@ class DebugListCaseSetStateDefault extends StatefulWidget {
 }
 
 class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefault> {
-  int step = 0;
-  final itemKeys = List.generate(20, (index) => index);
-  final controller = TsukuyomiListController();
+  final itemHeights = List.generate(10, (index) => 100.0);
+  final scrollController = ScrollController();
 
-  Future<void> next() async {
-    final _ = switch (++step) {
-      1 => await controller.slideViewport(0.0),
-      2 => await controller.slideViewport(0.5),
-      3 => await controller.slideViewport(1.0),
-      4 => await controller.slideViewport(1.0),
-      5 => await controller.slideViewport(-1.0),
-      6 => await controller.slideViewport(-0.5),
-      7 => await controller.slideViewport(-1.0),
-      _ => null,
-    };
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    scrollController.addListener(() => setState(() {}));
   }
 
-  Widget builder() {
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: TsukuyomiList.builder(
-        debugMask: true,
-        trailing: false,
-        itemKeys: itemKeys,
-        itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
-        controller: controller,
-      ),
-    );
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -47,13 +30,48 @@ class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefa
       body: Center(
         child: SizedBox(
           height: 600.0,
-          child: builder(),
+          child: ListView.builder(
+            controller: scrollController,
+            itemCount: itemHeights.length,
+            itemBuilder: (context, index) => FutureBuilder(
+              future: Future.delayed(const Duration(seconds: 2), () => this),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && index == 1) {
+                  return Card(
+                    child: SizedBox(
+                      height: itemHeights[index] * 1.5,
+                      child: Center(child: Text('Item $index')),
+                    ),
+                  );
+                }
+                return Card(
+                  child: SizedBox(
+                    height: itemHeights[index],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Flexible(
+                          child: SizedBox(
+                            width: 10,
+                            height: 10,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        const Flexible(
+                          child: SizedBox(width: 10),
+                        ),
+                        Flexible(
+                          flex: 10,
+                          child: Text('Item $index'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: next,
-        shape: const CircleBorder(),
-        child: Text('$step'),
       ),
     );
   }
