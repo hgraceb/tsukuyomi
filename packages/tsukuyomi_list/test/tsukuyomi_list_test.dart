@@ -619,23 +619,38 @@ void main() {
       // 正向滚动半个屏幕的距离
       unawaited(controller.slideViewport(0.5));
       await tester.pumpAndSettle();
+      expect(controller.centerIndex, 3);
+      expect(controller.anchorIndex, 3);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       // 正向滚动一个屏幕的距离
       unawaited(controller.slideViewport(1.0));
       await tester.pumpAndSettle();
+      expect(controller.centerIndex, 12);
+      expect(controller.anchorIndex, 12);
+      expect(controller.position.pixels, -300.0);
       expectList(length: itemKeys.length, visible: [9, 10, 11, 12, 13, 14]);
       // 正向滚动越界时停止滚动
       unawaited(controller.slideViewport(1.0));
       await tester.pumpAndSettle();
+      expect(controller.centerIndex, 19);
+      expect(controller.anchorIndex, 19);
+      expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [14, 15, 16, 17, 18, 19]);
 
       // 逆向滚动一个屏幕的距离
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle();
+      expect(controller.centerIndex, 10);
+      expect(controller.anchorIndex, 10);
+      expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [8, 9, 10, 11, 12, 13]);
       // 逆向滚动半个屏幕的距离
       unawaited(controller.slideViewport(-0.5));
       await tester.pumpAndSettle();
+      expect(controller.centerIndex, 7);
+      expect(controller.anchorIndex, 7);
+      expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
       // 逆向滚动越界时停止滚动
       unawaited(controller.slideViewport(-1.0));

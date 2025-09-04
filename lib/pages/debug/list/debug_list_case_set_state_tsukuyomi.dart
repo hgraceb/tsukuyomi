@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
-import 'package:tsukuyomi_list/src/tsukuyomi_list_old.dart';
+import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseSetStateOld extends StatefulWidget {
-  const DebugListCaseSetStateOld({super.key});
+class DebugListCaseSetStateTsukuyomi extends StatefulWidget {
+  const DebugListCaseSetStateTsukuyomi({super.key});
 
   @override
-  State<DebugListCaseSetStateOld> createState() => _DebugListCaseSetStateOldState();
+  State<DebugListCaseSetStateTsukuyomi> createState() => _DebugListCaseSetStateTsukuyomiState();
 }
 
-class _DebugListCaseSetStateOldState extends State<DebugListCaseSetStateOld> {
+class _DebugListCaseSetStateTsukuyomiState extends State<DebugListCaseSetStateTsukuyomi> {
   int step = 0;
   final itemKeys = List.generate(20, (index) => index);
   final itemHeights = List.generate(20, (index) => 100.0);
@@ -25,7 +25,7 @@ class _DebugListCaseSetStateOldState extends State<DebugListCaseSetStateOld> {
             controller: controller,
             itemKeys: itemKeys,
             itemBuilder: (context, index) => FutureBuilder(
-              future: index == 1 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * (step == 2 ? 1.0 : 2.0)) : null,
+              future: index == 0 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * (step == 2 ? 1.0 : 2.0)) : null,
               builder: (context, snapshot) => SizedBox(
                 height: snapshot.data ?? itemHeights[index],
                 child: Placeholder(child: Text('Item $index')),
