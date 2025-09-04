@@ -504,6 +504,12 @@ class TsukuyomiListController {
     return _tsukuyomiListState!._anchorIndex;
   }
 
+  @visibleForTesting
+  double? get correction {
+    assert(_tsukuyomiListState != null);
+    return _tsukuyomiListState!._scrollController.position._correction;
+  }
+
   void jumpToIndex(int index) {
     assert(_tsukuyomiListState != null);
     _tsukuyomiListState!._jumpToIndex(index);

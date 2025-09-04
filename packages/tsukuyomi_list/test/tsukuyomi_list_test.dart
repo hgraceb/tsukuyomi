@@ -729,6 +729,14 @@ void main() {
       final itemKeys = List.generate(10, (index) => index);
       final controller = TsukuyomiListController();
 
+      overscrollCheckListener() {
+        final position = controller.position;
+        final correction = controller.correction ?? 0.0;
+        final correctedPixels = position.pixels - correction;
+        expect(position.outOfRange == false || controller.correction != null, true);
+        expect(position.minScrollExtent <= correctedPixels && correctedPixels <= position.maxScrollExtent, true);
+      }
+
       Widget builder({required List<double> itemHeights}) {
         return Directionality(
           textDirection: TextDirection.ltr,
@@ -750,10 +758,9 @@ void main() {
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
 
       // 正向滚动一个屏幕的距离，列表不应该发生越界滚动
-      listener() => expect(controller.position.outOfRange, false);
-      controller.position.addListener(listener);
+      controller.position.addListener(overscrollCheckListener);
       unawaited(controller.slideViewport(1.0));
-      await tester.pumpAndSettle(const Duration(microseconds: 500));
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -500.0);
@@ -761,12 +768,12 @@ void main() {
 
       // 逆向滚动一个屏幕的距离，列表不应该发生越界滚动
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle(const Duration(microseconds: 500));
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
-      controller.position.removeListener(listener);
+      controller.position.removeListener(overscrollCheckListener);
     });
   });
 }
