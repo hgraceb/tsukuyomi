@@ -54,7 +54,7 @@ void main() {
 
       // 正向滚动一定距离让第二个元素作为新的锚点元素
       unawaited(controller.slideViewport(75 / 600));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 1);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -25.0);
@@ -74,7 +74,7 @@ void main() {
 
       // 正向滚动一定距离让倒数第二个元素作为新的锚点元素
       unawaited(controller.slideViewport(250 / 600));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 8);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, -475.0);
@@ -94,7 +94,7 @@ void main() {
 
       // 正向滚动一定距离让最后一个元素作为新的锚点元素
       unawaited(controller.slideViewport(1.0));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -500.0);
@@ -138,21 +138,21 @@ void main() {
 
       // 正向滚动半个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(0.5));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       // 列表项尺寸动态增大时能够锚定滚动位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 200.0)));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6]);
       // 列表项尺寸动态减小时能够锚定滚动位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
@@ -160,7 +160,7 @@ void main() {
 
       // 逆向滚动半个屏幕的距离可以回到原点
       unawaited(controller.slideViewport(-0.5));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 2);
       expect(controller.anchorIndex, 2);
       expect(controller.position.pixels, -200.0);
@@ -195,7 +195,7 @@ void main() {
 
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
@@ -243,7 +243,7 @@ void main() {
 
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
@@ -291,7 +291,7 @@ void main() {
 
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -200.0);
@@ -304,7 +304,7 @@ void main() {
         itemHeights.removeAt(0);
         itemHeights.removeAt(itemHeights.length - 1);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(const Duration(milliseconds: 16));
         expect(controller.centerIndex, itemKeys.length > 6 ? 9 - i : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.anchorIndex, itemKeys.length > 6 ? 9 - i : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.position.pixels, itemKeys.length > 2 ? -200.0 : itemKeys.length / 2 * -100.0);
@@ -340,7 +340,7 @@ void main() {
 
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 999);
       expect(controller.anchorIndex, 999);
       expect(controller.position.pixels, -200.0);
@@ -353,7 +353,7 @@ void main() {
         itemHeights.removeRange(0, 100);
         itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(const Duration(milliseconds: 16));
         expect(controller.centerIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.anchorIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.position.pixels, itemKeys.length > 2 ? -200.0 : itemKeys.length / 2 * -100.0);
@@ -389,7 +389,7 @@ void main() {
 
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
@@ -438,7 +438,7 @@ void main() {
 
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
@@ -701,7 +701,7 @@ void main() {
 
       // 正向滚动一个屏幕的距离
       unawaited(controller.slideViewport(6 / 6));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.centerIndex, 7);
       expect(controller.anchorIndex, 7);
       expect(controller.position.pixels, -200.0);
@@ -717,7 +717,7 @@ void main() {
 
       // 逆向滚动回到首屏的元素
       unawaited(controller.slideViewport(5 / 6 * -1));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       await tester.pump(const Duration(seconds: 1));
       expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
