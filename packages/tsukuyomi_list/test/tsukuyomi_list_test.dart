@@ -603,11 +603,17 @@ void main() {
 
       // 默认显示首屏的元素
       await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
 
       // 滚动零个屏幕的距离
       unawaited(controller.slideViewport(0.0));
       await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
 
       // 正向滚动半个屏幕的距离
@@ -634,6 +640,73 @@ void main() {
       // 逆向滚动越界时停止滚动
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle();
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+    });
+
+    testWidgets('when size changes', (WidgetTester tester) async {
+      final itemKeys = List.generate(20, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final controller = TsukuyomiListController();
+
+      Widget builder({required double customHeight}) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            controller: controller,
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => FutureBuilder(
+              future: index == 0 ? Future.delayed(const Duration(seconds: 1), () => customHeight) : null,
+              builder: (context, snapshot) => SizedBox(
+                height: snapshot.data ?? itemHeights[index],
+                child: Text('${itemKeys[index]}'),
+              ),
+            ),
+          ),
+        );
+      }
+
+      // 默认显示首屏的元素
+      await tester.pumpWidget(builder(customHeight: 100.0));
+      await tester.pump(const Duration(seconds: 1));
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 自定义增加列表项的尺寸
+      await tester.pumpWidget(builder(customHeight: 200.0));
+      await tester.pump(const Duration(seconds: 1));
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4]);
+
+      // 正向滚动一个屏幕的距离
+      unawaited(controller.slideViewport(6 / 6));
+      await tester.pumpAndSettle();
+      expect(controller.centerIndex, 7);
+      expect(controller.anchorIndex, 7);
+      expect(controller.position.pixels, -200.0);
+      expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
+
+      // 还原回列表项的原始尺寸
+      await tester.pumpWidget(builder(customHeight: 100.0));
+      await tester.pump(const Duration(seconds: 1));
+      expect(controller.centerIndex, 7);
+      expect(controller.anchorIndex, 7);
+      expect(controller.position.pixels, -200.0);
+      expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
+
+      // 逆向滚动回到首屏的元素
+      unawaited(controller.slideViewport(5 / 6 * -1));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+      expect(controller.centerIndex, 0);
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
     });
 
