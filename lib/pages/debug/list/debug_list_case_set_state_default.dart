@@ -9,7 +9,8 @@ class DebugListCaseSetStateDefault extends StatefulWidget {
 }
 
 class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefault> {
-  final itemHeights = List.generate(10, (index) => 120.0);
+  int step = 0;
+  final itemHeights = List.generate(20, (index) => 100.0);
   final scrollController = ScrollController();
 
   @override
@@ -34,7 +35,7 @@ class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefa
             controller: scrollController,
             itemCount: itemHeights.length,
             itemBuilder: (context, index) => FutureBuilder(
-              future: index == 1 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * 2) : null,
+              future: index == 1 ? Future.delayed(const Duration(seconds: 1), () => itemHeights[index] * (step == 2 ? 1.0 : 2.0)) : null,
               builder: (context, snapshot) => SizedBox(
                 height: snapshot.data ?? itemHeights[index],
                 child: Placeholder(child: Text('Item $index')),
@@ -42,6 +43,18 @@ class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefa
             ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final _ = switch (++step) {
+            1 => await scrollController.animateTo(600.0, duration: const Duration(milliseconds: 5000), curve: Curves.linear),
+            2 => await scrollController.animateTo(0.0, duration: const Duration(milliseconds: 5000), curve: Curves.linear),
+            _ => --step,
+          };
+          setState(() {});
+        },
+        shape: const CircleBorder(),
+        child: Text('$step'),
       ),
     );
   }
