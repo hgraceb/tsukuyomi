@@ -34,7 +34,7 @@ class _DebugListCaseAnchorRemoveAnchorSingleState extends State<DebugListCaseAnc
 
   @override
   Widget build(BuildContext context) {
-    void insertItem() {
+    void next() {
       itemKeys.removeAt(0);
       itemKeys.removeAt(itemKeys.length - 1);
       itemHeights.removeAt(0);
@@ -52,16 +52,16 @@ class _DebugListCaseAnchorRemoveAnchorSingleState extends State<DebugListCaseAnc
         onPressed: () async {
           final _ = switch (++step) {
             1 => await controller.slideViewport(-1.0),
-            2 => insertItem(),
-            3 => insertItem(),
-            4 => insertItem(),
-            5 => insertItem(),
-            6 => insertItem(),
-            7 => insertItem(),
-            8 => insertItem(),
-            9 => insertItem(),
-            10 => insertItem(),
-            11 => insertItem(),
+            2 => next(),
+            3 => next(),
+            4 => next(),
+            5 => next(),
+            6 => next(),
+            7 => next(),
+            8 => next(),
+            9 => next(),
+            10 => next(),
+            11 => next(),
             _ => --step,
           };
           setState(() {});
