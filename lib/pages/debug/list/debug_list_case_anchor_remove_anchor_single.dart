@@ -1,4 +1,4 @@
-import 'dart:math';
+// ignore_for_file: invalid_use_of_visible_for_testing_member
 
 import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
@@ -13,9 +13,7 @@ class DebugListCaseAnchorRemoveAnchorSingle extends StatefulWidget {
 
 class _DebugListCaseAnchorRemoveAnchorSingleState extends State<DebugListCaseAnchorRemoveAnchorSingle> {
   int step = 0;
-  final random = Random(2147483647);
   final itemKeys = List.generate(20, (index) => index);
-  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (7 <= index && index <= 18 ? 0.0 : random.nextInt(100)));
   final controller = TsukuyomiListController();
 
   Widget builder() {
@@ -24,10 +22,10 @@ class _DebugListCaseAnchorRemoveAnchorSingleState extends State<DebugListCaseAnc
       child: TsukuyomiList.builder(
         debugMask: true,
         itemKeys: itemKeys,
-        itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
+        itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
         anchor: 0.5,
-        initialScrollIndex: (itemKeys.length - 1).clamp(0, 13),
+        initialScrollIndex: (itemKeys.length - 1).clamp(0, 6),
       ),
     );
   }
@@ -35,10 +33,7 @@ class _DebugListCaseAnchorRemoveAnchorSingleState extends State<DebugListCaseAnc
   @override
   Widget build(BuildContext context) {
     void next() {
-      itemKeys.removeAt(0);
-      itemKeys.removeAt(itemKeys.length - 1);
-      itemHeights.removeAt(0);
-      itemHeights.removeAt(itemHeights.length - 1);
+      itemKeys.removeAt(controller.anchorIndex);
     }
 
     return TsukuyomiScaffold(
@@ -62,6 +57,16 @@ class _DebugListCaseAnchorRemoveAnchorSingleState extends State<DebugListCaseAnc
             9 => next(),
             10 => next(),
             11 => next(),
+            12 => next(),
+            13 => next(),
+            14 => next(),
+            15 => next(),
+            16 => next(),
+            17 => next(),
+            18 => next(),
+            19 => next(),
+            20 => next(),
+            21 => next(),
             _ => --step,
           };
           setState(() {});

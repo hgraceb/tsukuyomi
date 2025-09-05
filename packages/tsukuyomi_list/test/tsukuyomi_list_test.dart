@@ -263,6 +263,53 @@ void main() {
       }
     });
 
+    testWidgets('when removing single item at anchor', (WidgetTester tester) async {
+      final itemKeys = List.generate(20, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: (itemKeys.length - 1).clamp(0, 6),
+          ),
+        );
+      }
+
+      // 初始化列表并让指定元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.centerIndex, 6);
+      expect(controller.anchorIndex, 6);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [6, 7, 8, 9, 10, 11]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
+      expect(controller.centerIndex, 2);
+      expect(controller.anchorIndex, 2);
+      expect(controller.position.pixels, -200.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 在列表锚点位置移除单个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 20; i++) {
+        itemKeys.removeAt(controller.anchorIndex);
+        await tester.pumpWidget(builder());
+        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        expect(controller.centerIndex, (itemKeys.length - 1).clamp(0, 2));
+        expect(controller.anchorIndex, (itemKeys.length - 1).clamp(0, 2));
+        expect(controller.position.pixels, controller.centerIndex * -100.0);
+        expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [0, 1, 2 + i, 3 + i, 4 + i, 5 + i] : itemKeys);
+      }
+
+      // 列表项全部被移除
+      expect(itemKeys.isEmpty, true);
+    });
+
     testWidgets('when removing single item at start and end', (WidgetTester tester) async {
       final random = Random(2147483647);
       final itemKeys = List.generate(20, (index) => index);
@@ -310,6 +357,9 @@ void main() {
         expect(controller.position.pixels, itemKeys.length > 2 ? -200.0 : itemKeys.length / 2 * -100.0);
         expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [7, 8, 9, 10, 11, 12] : itemKeys);
       }
+
+      // 列表项全部被移除
+      expect(itemKeys.isEmpty, true);
     });
 
     testWidgets('when removing multi items at start and end', (WidgetTester tester) async {
@@ -359,6 +409,9 @@ void main() {
         expect(controller.position.pixels, itemKeys.length > 2 ? -200.0 : itemKeys.length / 2 * -100.0);
         expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [997, 998, 999, 1000, 1001, 1002] : itemKeys);
       }
+
+      // 列表项全部被移除
+      expect(itemKeys.isEmpty, true);
     });
 
     testWidgets('when adding single item before and after anchor', (WidgetTester tester) async {
