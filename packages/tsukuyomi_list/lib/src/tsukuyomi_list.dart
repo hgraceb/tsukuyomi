@@ -274,7 +274,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   /// 列表末尾空白部分占比
   double get trailingFraction => _trailingFraction;
   double _trailingFraction = 1.0;
-
   set trailingFraction(double value) {
     final trailingFraction = value.clamp(0.0, 1.0);
     // 列表末尾空白部分占比只能减少不能增加
@@ -329,7 +328,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   bool _updateScheduled = false;
-
   void _scheduleUpdateItems() {
     if (_updateScheduled) return;
     _updateScheduled = true;
