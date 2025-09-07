@@ -27,7 +27,6 @@ void main() {
 
       // 初始化列表并让中间元素作为锚点元素
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 4);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
@@ -35,19 +34,16 @@ void main() {
       // 逆向滚动一定距离让第一个元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(microseconds: 500));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
       // 列表项尺寸动态增大时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
       // 列表项尺寸动态减小时能够锚定第一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -55,19 +51,16 @@ void main() {
       // 正向滚动一定距离让第二个元素作为新的锚点元素
       unawaited(controller.slideViewport(75 / 600));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 1);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -25.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5, 6]);
       // 列表项尺寸动态增大时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 1);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -25.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4]);
       // 列表项尺寸动态减小时能够锚定第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 1);
       expect(controller.anchorIndex, 1);
       expect(controller.position.pixels, -25.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5, 6]);
@@ -75,19 +68,16 @@ void main() {
       // 正向滚动一定距离让倒数第二个元素作为新的锚点元素
       unawaited(controller.slideViewport(250 / 600));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 8);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 8);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8]);
       // 列表项尺寸动态减小时能够锚定倒数第二个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 8);
       expect(controller.anchorIndex, 8);
       expect(controller.position.pixels, -475.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8, 9]);
@@ -95,19 +85,16 @@ void main() {
       // 正向滚动一定距离让最后一个元素作为新的锚点元素
       unawaited(controller.slideViewport(1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
       // 列表项尺寸动态增大时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9]);
       // 列表项尺寸动态减小时能够锚定最后一个元素的位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
@@ -131,7 +118,6 @@ void main() {
 
       // 初始化列表并让第一个元素作为锚点元素
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -139,21 +125,18 @@ void main() {
       // 正向滚动半个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(0.5));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       // 列表项尺寸动态增大时能够锚定滚动位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 200.0)));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6]);
       // 列表项尺寸动态减小时能够锚定滚动位置
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -161,7 +144,6 @@ void main() {
       // 逆向滚动半个屏幕的距离可以回到原点
       unawaited(controller.slideViewport(-0.5));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 2);
       expect(controller.anchorIndex, 2);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -188,7 +170,6 @@ void main() {
 
       // 初始化列表并让最后一个元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [9]);
@@ -196,7 +177,6 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -208,7 +188,6 @@ void main() {
         itemHeights.insert(0, 100.0 + random.nextInt(100));
         itemHeights.insert(itemHeights.length, 100.0 + random.nextInt(100));
         await tester.pumpWidget(builder());
-        expect(controller.centerIndex, 5 + i);
         expect(controller.anchorIndex, 5 + i);
         expect(controller.position.pixels, -200.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -236,7 +215,6 @@ void main() {
 
       // 初始化列表并让最后一个元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [9]);
@@ -244,7 +222,6 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -256,7 +233,6 @@ void main() {
         itemHeights.insertAll(0, List.generate(100, (index) => 100.0 + random.nextInt(100)));
         itemHeights.insertAll(itemHeights.length, List.generate(100, (index) => 100.0 + random.nextInt(100)));
         await tester.pumpWidget(builder());
-        expect(controller.centerIndex, 5 + i * 100);
         expect(controller.anchorIndex, 5 + i * 100);
         expect(controller.position.pixels, -200.0);
         expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -282,7 +258,6 @@ void main() {
 
       // 初始化列表并让指定元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 6);
       expect(controller.anchorIndex, 6);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [6, 7, 8, 9, 10, 11]);
@@ -290,7 +265,6 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 2);
       expect(controller.anchorIndex, 2);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -300,9 +274,8 @@ void main() {
         itemKeys.removeAt(controller.anchorIndex);
         await tester.pumpWidget(builder());
         await tester.pumpAndSettle(const Duration(milliseconds: 16));
-        expect(controller.centerIndex, (itemKeys.length - 1).clamp(0, 2));
         expect(controller.anchorIndex, (itemKeys.length - 1).clamp(0, 2));
-        expect(controller.position.pixels, controller.centerIndex * -100.0);
+        expect(controller.position.pixels, controller.anchorIndex * -100.0);
         expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [0, 1, 2 + i, 3 + i, 4 + i, 5 + i] : itemKeys);
       }
 
@@ -331,7 +304,6 @@ void main() {
 
       // 初始化列表并让指定元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 13);
       expect(controller.anchorIndex, 13);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [13, 14, 15, 16, 17, 18]);
@@ -339,7 +311,6 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [7, 8, 9, 10, 11, 12]);
@@ -352,7 +323,6 @@ void main() {
         itemHeights.removeAt(itemHeights.length - 1);
         await tester.pumpWidget(builder());
         await tester.pumpAndSettle(const Duration(milliseconds: 16));
-        expect(controller.centerIndex, itemKeys.length > 6 ? 9 - i : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.anchorIndex, itemKeys.length > 6 ? 9 - i : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.position.pixels, itemKeys.length > 2 ? -200.0 : itemKeys.length / 2 * -100.0);
         expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [7, 8, 9, 10, 11, 12] : itemKeys);
@@ -383,7 +353,6 @@ void main() {
 
       // 初始化列表并让指定元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 1003);
       expect(controller.anchorIndex, 1003);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [1003, 1004, 1005, 1006, 1007, 1008]);
@@ -391,7 +360,6 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 999);
       expect(controller.anchorIndex, 999);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [997, 998, 999, 1000, 1001, 1002]);
@@ -404,7 +372,6 @@ void main() {
         itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
         await tester.pumpWidget(builder());
         await tester.pumpAndSettle(const Duration(milliseconds: 16));
-        expect(controller.centerIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.anchorIndex, itemKeys.length > 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 2));
         expect(controller.position.pixels, itemKeys.length > 2 ? -200.0 : itemKeys.length / 2 * -100.0);
         expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [997, 998, 999, 1000, 1001, 1002] : itemKeys);
@@ -435,7 +402,6 @@ void main() {
 
       // 初始化列表并让最后一个元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [9]);
@@ -443,7 +409,6 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -456,7 +421,6 @@ void main() {
         itemKeys.insert(anchorIndex, itemKeys.length);
         itemHeights.insert(anchorIndex, 300.0 + random.nextInt(100));
         await tester.pumpWidget(builder());
-        expect(controller.centerIndex, 5 + i);
         expect(controller.anchorIndex, 5 + i);
         expect(controller.position.pixels, -200.0);
         expectList(length: itemKeys.length, visible: [5, itemKeys.length - 2, itemKeys.length - 1]);
@@ -484,7 +448,6 @@ void main() {
 
       // 初始化列表并让最后一个元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [9]);
@@ -492,7 +455,6 @@ void main() {
       // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 5);
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -505,7 +467,6 @@ void main() {
         itemKeys.insertAll(anchorIndex, List.generate(100, (index) => itemKeys.length + index));
         itemHeights.insertAll(anchorIndex, List.generate(100, (index) => 300.0 + random.nextInt(100)));
         await tester.pumpWidget(builder());
-        expect(controller.centerIndex, 5 + i * 100);
         expect(controller.anchorIndex, 5 + i * 100);
         expectList(length: itemKeys.length, visible: [5, itemKeys.length - 200, itemKeys.length - 1]);
       }
@@ -533,7 +494,6 @@ void main() {
       // 可以指定初始元素并越界显示
       for (int i = 0; i < itemKeys.length; i++) {
         await tester.pumpWidget(builder(i));
-        expect(controller.centerIndex, i);
         expect(controller.anchorIndex, i);
         expect(controller.position.pixels, 0.0);
         expectList(length: itemKeys.length, visible: List.generate(min(6, itemKeys.length - i), (index) => index + i));
@@ -562,7 +522,6 @@ void main() {
       for (int i = 0; i < itemKeys.length; i++) {
         controller.jumpToIndex(i);
         await tester.pump();
-        expect(controller.centerIndex, i);
         expect(controller.anchorIndex, i);
         expect(controller.position.pixels, 0.0);
         expectList(length: itemKeys.length, visible: List.generate(min(6, itemKeys.length - i), (index) => index + i));
@@ -586,14 +545,12 @@ void main() {
 
       // 默认显示首屏的元素
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
 
       // 动态修改列表项尺寸
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
@@ -601,14 +558,12 @@ void main() {
       // 跳转到指定元素
       controller.jumpToIndex(10);
       await tester.pump();
-      expect(controller.centerIndex, 10);
       expect(controller.anchorIndex, 10);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [10, 11, 12, 13]);
 
       // 修改列表项尺寸
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 10);
       expect(controller.anchorIndex, 10);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [10, 11, 12, 13, 14, 15]);
@@ -616,14 +571,12 @@ void main() {
       // 跳转回第一个元素，此时应该根据最新的列表项尺寸进行布局显示
       controller.jumpToIndex(0);
       await tester.pump();
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
 
       // 再次修改列表项尺寸
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 150.0)));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3]);
@@ -631,7 +584,6 @@ void main() {
       // 再次跳转到指定元素，此时应该根据最新的列表项尺寸进行布局显示
       controller.jumpToIndex(10);
       await tester.pump();
-      expect(controller.centerIndex, 10);
       expect(controller.anchorIndex, 10);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [10, 11, 12, 13]);
@@ -656,7 +608,6 @@ void main() {
 
       // 默认显示首屏的元素
       await tester.pumpWidget(builder());
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -664,7 +615,6 @@ void main() {
       // 滚动零个屏幕的距离
       unawaited(controller.slideViewport(0.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -672,21 +622,18 @@ void main() {
       // 正向滚动半个屏幕的距离
       unawaited(controller.slideViewport(0.5));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 4);
       expect(controller.anchorIndex, 4);
       expect(controller.position.pixels, -100.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
       // 正向滚动一个屏幕的距离
       unawaited(controller.slideViewport(1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 12);
       expect(controller.anchorIndex, 12);
       expect(controller.position.pixels, -300.0);
       expectList(length: itemKeys.length, visible: [9, 10, 11, 12, 13, 14]);
       // 正向滚动越界时停止滚动
       unawaited(controller.slideViewport(1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 19);
       expect(controller.anchorIndex, 19);
       expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [14, 15, 16, 17, 18, 19]);
@@ -694,21 +641,18 @@ void main() {
       // 逆向滚动一个屏幕的距离
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 10);
       expect(controller.anchorIndex, 10);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [8, 9, 10, 11, 12, 13]);
       // 逆向滚动半个屏幕的距离
       unawaited(controller.slideViewport(-0.5));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 7);
       expect(controller.anchorIndex, 7);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
       // 逆向滚动越界时停止滚动
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -739,7 +683,6 @@ void main() {
       // 默认显示首屏的元素
       await tester.pumpWidget(builder(customHeight: 100.0));
       await tester.pump(const Duration(seconds: 1));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -747,7 +690,6 @@ void main() {
       // 自定义增加列表项的尺寸
       await tester.pumpWidget(builder(customHeight: 200.0));
       await tester.pump(const Duration(seconds: 1));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4]);
@@ -755,7 +697,6 @@ void main() {
       // 正向滚动一个屏幕的距离
       unawaited(controller.slideViewport(6 / 6));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 7);
       expect(controller.anchorIndex, 7);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
@@ -763,7 +704,6 @@ void main() {
       // 还原回列表项的原始尺寸
       await tester.pumpWidget(builder(customHeight: 100.0));
       await tester.pump(const Duration(seconds: 1));
-      expect(controller.centerIndex, 7);
       expect(controller.anchorIndex, 7);
       expect(controller.position.pixels, -200.0);
       expectList(length: itemKeys.length, visible: [5, 6, 7, 8, 9, 10]);
@@ -772,7 +712,6 @@ void main() {
       unawaited(controller.slideViewport(5 / 6 * -1));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
       await tester.pump(const Duration(seconds: 1));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -805,7 +744,6 @@ void main() {
 
       // 默认显示首屏的元素
       await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-      expect(controller.centerIndex, 3);
       expect(controller.anchorIndex, 3);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
@@ -814,7 +752,6 @@ void main() {
       controller.position.addListener(overscrollCheckListener);
       unawaited(controller.slideViewport(1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 9);
       expect(controller.anchorIndex, 9);
       expect(controller.position.pixels, -500.0);
       expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
@@ -822,7 +759,6 @@ void main() {
       // 逆向滚动一个屏幕的距离，列表不应该发生越界滚动
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      expect(controller.centerIndex, 0);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
