@@ -270,7 +270,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
-      index: index - _anchorIndex,
+      index: index,
       onMount: (element) {
         _elements.add(element);
         _scheduleUpdateItems();
@@ -286,7 +286,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           Axis.horizontal => newSize.width,
         };
         // 保存最新的列表项尺寸
-        _extents[index - _anchorIndex] = newExtent;
+        _extents[index] = newExtent;
       },
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
@@ -333,7 +333,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       int? anchorIndex;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
-        final index = element.widget.index! + _anchorIndex;
+        final index = element.widget.index!;
         if (index >= widget.itemKeys.length) continue;
 
         final box = element.findRenderObject() as RenderBox?;
@@ -361,14 +361,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       }
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
       if (anchorIndex != null && _anchorIndex != anchorIndex && position.pixels != 0.0) {
-        for (var i = anchorIndex - _anchorIndex; i < 0; i++) {
+        for (var i = anchorIndex; i < _anchorIndex; i++) {
           final extent = _extents[i];
           if (extent == null) {
             continue;
           }
           _scrollController.position.correctImmediate(extent);
         }
-        for (var i = 0; i < anchorIndex - _anchorIndex; i++) {
+        for (var i = _anchorIndex; i < anchorIndex; i++) {
           final extent = _extents[i];
           if (extent == null) {
             continue;
