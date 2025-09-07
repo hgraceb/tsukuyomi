@@ -115,22 +115,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     // 修正锚点列表项位置
     if (widget.itemKeys.isEmpty) {
       _centerIndex = _anchorIndex = 0;
-    } else if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
-      if (newAnchorIndex >= 0) {
-        for (var i = _anchorIndex - _centerIndex; i < 0; i++) {
-          final extent = _extents[i];
-          if (extent == null) continue;
-          _scrollController.position.correctImmediate(extent);
-        }
-        for (var i = 0; i < _anchorIndex - _centerIndex; i++) {
-          final extent = _extents[i];
-          if (extent == null) continue;
-          _scrollController.position.correctImmediate(-extent);
-        }
-        _centerIndex = _anchorIndex = newAnchorIndex;
-      } else if (_centerIndex >= widget.itemKeys.length) {
-        _centerIndex = _anchorIndex = widget.itemKeys.length - 1;
-      }
+    } else if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex >= 0) {
+      _centerIndex = _anchorIndex = newAnchorIndex;
+    } else if (_centerIndex >= widget.itemKeys.length) {
+      _centerIndex = _anchorIndex = widget.itemKeys.length - 1;
     }
     // 更新列表项标识
     _oldItemKeys = [...widget.itemKeys];
