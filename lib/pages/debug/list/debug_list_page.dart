@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'debug_list_case_anchor_add_anchor_single.dart';
+import 'debug_list_case_anchor_remove_edge_single.dart';
 
 class DebugListPage extends StatelessWidget {
   const DebugListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const DebugListCaseAnchorAddAnchorSingle();
+    return const DebugListCaseAnchorRemoveEdgeSingle();
   }
 }
 
