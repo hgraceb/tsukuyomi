@@ -15,7 +15,7 @@ class _DebugListCaseSlideRemoveState extends State<DebugListCaseSlideRemove> {
   int step = 0;
   final random = Random(2147483647);
   final itemKeys = List.generate(20, (index) => index);
-  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (7 <= index && index <= 18 ? 0.0 : random.nextInt(100)));
+  late final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (4 <= index && index <= 15 ? 0.0 : random.nextInt(100)));
   final controller = TsukuyomiListController();
 
   Widget builder() {
@@ -27,7 +27,7 @@ class _DebugListCaseSlideRemoveState extends State<DebugListCaseSlideRemove> {
         itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
         anchor: 0.5,
-        initialScrollIndex: (itemKeys.length - 1).clamp(0, 13),
+        initialScrollIndex: (itemKeys.length - 1).clamp(0, 10),
       ),
     );
   }
@@ -45,10 +45,11 @@ class _DebugListCaseSlideRemoveState extends State<DebugListCaseSlideRemove> {
       final _ = switch (++step) {
         1 => await controller.slideViewport(-1.0),
         2 => removeEdge(),
-        3 => await controller.slideViewport(1.0),
+        3 => removeEdge(),
         4 => removeEdge(),
-        5 => await controller.slideViewport(-1.0),
-        _ => null,
+        5 => removeEdge(),
+        6 => await controller.slideViewport(1.0),
+        _ => --step,
       };
       setState(() {});
     }
