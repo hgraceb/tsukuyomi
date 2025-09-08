@@ -43,12 +43,13 @@ class _DebugListCaseJumpRemoveState extends State<DebugListCaseJumpRemove> {
 
     Future<void> next() async {
       final _ = switch (++step) {
-        1 => await controller.slideViewport(-1.0),
+        1 => controller.jumpToIndex(10),
         2 => removeEdge(),
         3 => removeEdge(),
         4 => removeEdge(),
         5 => removeEdge(),
-        6 => await controller.slideViewport(1.0),
+        6 => controller.jumpToIndex(itemKeys.indexOf(10)),
+        7 => await controller.slideViewport(-1.0),
         _ => --step,
       };
       setState(() {});
