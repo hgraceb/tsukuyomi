@@ -774,6 +774,62 @@ void main() {
       expect(itemKeys.equals([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]), true);
     });
 
+    testWidgets('when remove items and jump to index', (WidgetTester tester) async {
+      final random = Random(2147483647);
+      final itemKeys = List.generate(20, (index) => index);
+      final itemHeights = List.generate(itemKeys.length, (index) => 100.0 + (4 <= index && index <= 15 ? 0.0 : random.nextInt(100)));
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 0.5,
+            initialScrollIndex: (itemKeys.length - 1).clamp(0, 10),
+          ),
+        );
+      }
+
+      // 初始化列表并让指定元素作为中心元素和锚点元素
+      await tester.pumpWidget(builder());
+      expect(controller.anchorIndex, 10);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [10, 11, 12, 13, 14, 15]);
+
+      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0));
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
+      expect(controller.anchorIndex, 6);
+      expect(controller.position.pixels, -200.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
+
+      // 在列表首尾位置同时移除单个列表项时能够锚定滚动位置
+      for (int i = 1; i <= 4; i++) {
+        itemKeys.removeAt(0);
+        itemKeys.removeAt(itemKeys.length - 1);
+        itemHeights.removeAt(0);
+        itemHeights.removeAt(itemHeights.length - 1);
+        await tester.pumpWidget(builder());
+        await tester.pumpAndSettle(const Duration(microseconds: 500));
+        expect(controller.anchorIndex, 6 - i);
+        expect(controller.position.pixels, -200.0);
+        expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
+      }
+
+      // 正向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(1.0));
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
+      expect(controller.anchorIndex, 8);
+      expect(controller.position.pixels, -200.0);
+      expectList(length: itemKeys.length, visible: [10, 11, 12, 13, 14, 15]);
+
+      // 剩余两个屏幕的元素
+      expect(itemKeys.equals([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]), true);
+    });
+
     testWidgets('when out of range with bouncing scroll physics', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final controller = TsukuyomiListController();
