@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseJumpRemove extends StatefulWidget {
-  const DebugListCaseJumpRemove({super.key});
+class DebugListCaseSlideJumpRemove extends StatefulWidget {
+  const DebugListCaseSlideJumpRemove({super.key});
 
   @override
-  State<DebugListCaseJumpRemove> createState() => _DebugListCaseJumpRemoveState();
+  State<DebugListCaseSlideJumpRemove> createState() => _DebugListCaseSlideJumpRemoveState();
 }
 
-class _DebugListCaseJumpRemoveState extends State<DebugListCaseJumpRemove> {
+class _DebugListCaseSlideJumpRemoveState extends State<DebugListCaseSlideJumpRemove> {
   int step = 0;
   final random = Random(2147483647);
   final itemKeys = List.generate(20, (index) => index);
