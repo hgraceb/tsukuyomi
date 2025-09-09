@@ -380,14 +380,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   void _jumpToIndex(int index) {
-    assert(index >= 0);
-    assert(index < widget.itemKeys.length || widget.itemKeys.isEmpty);
-    setState(() {
-      _trailingFraction = 1.0;
-      _scrollController.jumpTo(0.0);
-      _extents.clear();
-      _updateAnchor(index);
-    });
+    _trailingFraction = 1.0;
+    _scrollController.jumpTo(0.0);
+    _updateAnchor(index);
+    setState(() {});
   }
 
   Future<void> _slideViewport(double viewportFraction, {required Duration duration, required Curve curve}) async {
