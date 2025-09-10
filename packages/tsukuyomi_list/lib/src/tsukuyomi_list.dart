@@ -293,7 +293,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   void _updateAnchor(int anchorIndex) {
-    assert(_anchorIndex >= 0);
+    assert(anchorIndex >= 0);
     _anchorIndex = anchorIndex;
     _anchorKey = widget.itemKeys.isEmpty ? null : widget.itemKeys[_anchorIndex];
   }
