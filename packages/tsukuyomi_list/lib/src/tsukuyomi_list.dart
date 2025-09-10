@@ -78,8 +78,8 @@ class TsukuyomiList extends StatefulWidget {
 }
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
-  late int _centerIndex, _anchorIndex;
-  late List<Object> _oldItemKeys;
+  late int _anchorIndex;
+  late Object? _anchorKey;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
@@ -94,8 +94,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   @override
   void initState() {
     super.initState();
-    _centerIndex = _anchorIndex = widget.initialScrollIndex;
-    _oldItemKeys = [...widget.itemKeys];
+    _anchorIndex = widget.initialScrollIndex;
+    _anchorKey = widget.itemKeys[_anchorIndex];
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -108,32 +108,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       oldWidget.controller?._detach(this);
       widget.controller?._attach(this);
     }
-    // 重置列表项尺寸
-    if (widget.scrollDirection != oldWidget.scrollDirection) {
-      _extents.clear();
-    }
     // 修正锚点列表项位置
     if (widget.itemKeys.isEmpty) {
-      _centerIndex = _anchorIndex = 0;
-    } else if (widget.itemKeys.indexOf(_oldItemKeys[_anchorIndex]) case final newAnchorIndex when newAnchorIndex != _anchorIndex) {
-      if (newAnchorIndex >= 0) {
-        for (var i = _anchorIndex - _centerIndex; i < 0; i++) {
-          final extent = _extents[i];
-          if (extent == null) continue;
-          _scrollController.position.correctImmediate(extent);
-        }
-        for (var i = 0; i < _anchorIndex - _centerIndex; i++) {
-          final extent = _extents[i];
-          if (extent == null) continue;
-          _scrollController.position.correctImmediate(-extent);
-        }
-        _centerIndex = _anchorIndex = newAnchorIndex;
-      } else if (_centerIndex >= widget.itemKeys.length) {
-        _centerIndex = _anchorIndex = widget.itemKeys.length - 1;
-      }
+      _updateAnchor(0);
+    } else if (widget.itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
+      _updateAnchor(newAnchorIndex);
+    } else if (_anchorIndex >= widget.itemKeys.length) {
+      _updateAnchor(widget.itemKeys.length - 1);
     }
-    // 更新列表项标识
-    _oldItemKeys = [...widget.itemKeys];
   }
 
   @override
@@ -187,8 +169,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         _SliverLayout(
           onPerformLayout: (geometry) => _scrollExtentBeforeCenter = geometry.scrollExtent,
           sliver: SliverList.builder(
-            itemCount: _centerIndex > 0 ? _centerIndex : 0,
-            itemBuilder: (context, index) => _buildItem(context, _centerIndex - index - 1),
+            itemCount: _anchorIndex > 0 ? _anchorIndex : 0,
+            itemBuilder: (context, index) => _buildItem(context, _anchorIndex - index - 1),
           ),
         ),
         _SliverLayout(
@@ -207,8 +189,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
                   ),
                 ),
               SliverList.builder(
-                itemCount: widget.itemKeys.length - _centerIndex,
-                itemBuilder: (context, index) => _buildItem(context, _centerIndex + index),
+                itemCount: widget.itemKeys.length - _anchorIndex,
+                itemBuilder: (context, index) => _buildItem(context, _anchorIndex + index),
               ),
             ],
           ),
@@ -284,23 +266,21 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
-      index: index - _centerIndex,
+      index: index - _anchorIndex,
       onMount: (element) {
         _elements.add(element);
         _scheduleUpdateItems();
       },
       onUnmount: (element) {
+        _extents.remove(element.widget.index);
         _elements.remove(element);
         _scheduleUpdateItems();
       },
       onPerformLayout: (box, oldSize, newSize) {
-        // 获取主轴方向尺寸
-        final newExtent = switch (widget.scrollDirection) {
+        _extents[index - _anchorIndex] = switch (widget.scrollDirection) {
           Axis.vertical => newSize.height,
           Axis.horizontal => newSize.width,
         };
-        // 保存最新的列表项尺寸
-        _extents[index - _centerIndex] = newExtent;
       },
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
@@ -310,6 +290,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         ),
       ),
     );
+  }
+
+  void _updateAnchor(int anchorIndex) {
+    assert(anchorIndex >= 0);
+    _anchorIndex = anchorIndex;
+    _anchorKey = widget.itemKeys.isEmpty ? null : widget.itemKeys[_anchorIndex];
   }
 
   double _calculateAnchor(ScrollPosition position) {
@@ -341,7 +327,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       int? anchorIndex;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
-        final index = element.widget.index! + _centerIndex;
+        final index = element.widget.index! + _anchorIndex;
         if (index >= widget.itemKeys.length) continue;
 
         final box = element.findRenderObject() as RenderBox?;
@@ -359,7 +345,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 添加列表项信息
         items.add(item);
         // 根据中心列表项起始位置计算列表末尾空白部分占比
-        if (widget.trailing && item.index == _centerIndex) {
+        if (widget.trailing && item.index == _anchorIndex) {
           trailingFraction = 1.0 - item.leading;
         }
         // 选择第一个符合条件的列表项作为锚点列表项
@@ -368,22 +354,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         }
       }
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
-      if (anchorIndex != null && _anchorIndex != anchorIndex && (_anchorIndex != _centerIndex || position.pixels != 0.0)) {
-        for (var i = anchorIndex - _centerIndex; i < 0; i++) {
-          final extent = _extents[i];
-          if (extent == null) {
-            continue;
-          }
-          _scrollController.position.correctImmediate(extent);
+      if (anchorIndex != null && _anchorIndex != anchorIndex && position.pixels != 0.0) {
+        for (var i = anchorIndex - _anchorIndex; i < 0; i++) {
+          _scrollController.position.correctImmediate(_extents[i]!);
         }
-        for (var i = 0; i < anchorIndex - _centerIndex; i++) {
-          final extent = _extents[i];
-          if (extent == null) {
-            continue;
-          }
-          _scrollController.position.correctImmediate(-extent);
+        for (var i = 0; i < anchorIndex - _anchorIndex; i++) {
+          _scrollController.position.correctImmediate(-_extents[i]!);
         }
-        _centerIndex = _anchorIndex = anchorIndex;
+        _updateAnchor(anchorIndex);
         setState(() {});
       }
       // 回调根据索引顺序进行排序的所有已渲染列表项数据
@@ -392,14 +370,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   void _jumpToIndex(int index) {
-    assert(index >= 0);
-    assert(index < widget.itemKeys.length || widget.itemKeys.isEmpty);
-    setState(() {
-      _trailingFraction = 1.0;
-      _scrollController.jumpTo(0.0);
-      _centerIndex = _anchorIndex = index;
-      _extents.clear();
-    });
+    _trailingFraction = 1.0;
+    _scrollController.jumpTo(0.0);
+    _updateAnchor(index);
+    setState(() {});
   }
 
   Future<void> _slideViewport(double viewportFraction, {required Duration duration, required Curve curve}) async {
@@ -490,12 +464,6 @@ class TsukuyomiListController {
   ScrollPosition get position {
     assert(_tsukuyomiListState != null);
     return _tsukuyomiListState!._scrollController.position;
-  }
-
-  @visibleForTesting
-  int get centerIndex {
-    assert(_tsukuyomiListState != null);
-    return _tsukuyomiListState!._centerIndex;
   }
 
   @visibleForTesting
