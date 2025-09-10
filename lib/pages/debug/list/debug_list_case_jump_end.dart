@@ -14,13 +14,13 @@ class _DebugListCaseJumpEndState extends State<DebugListCaseJumpEnd> {
   final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
 
-  Widget builder({required List<double> itemHeights}) {
+  Widget builder() {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: TsukuyomiList.builder(
         debugMask: true,
         itemKeys: itemKeys,
-        itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
+        itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
         anchor: 0.5,
       ),
@@ -30,27 +30,22 @@ class _DebugListCaseJumpEndState extends State<DebugListCaseJumpEnd> {
   @override
   Widget build(BuildContext context) {
     return TsukuyomiScaffold(
-      body: GestureDetector(
-        onTap: () async {
-          if (step == 0) {
-            await controller.slideViewport(0.5);
-            setState(() => step++);
-          } else {
-            setState(() {});
-          }
-        },
-        child: Center(
-          child: SizedBox(
-            height: 600.0,
-            child: builder(
-              itemHeights: switch (step) {
-                0 => List.generate(itemKeys.length, (index) => 100.0),
-                1 => List.generate(itemKeys.length, (index) => 200.0),
-                _ => throw AssertionError(step),
-              },
-            ),
-          ),
+      body: Center(
+        child: SizedBox(
+          height: 600.0,
+          child: builder(),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final _ = switch (++step) {
+            1 => controller.jumpToIndex(9),
+            _ => --step,
+          };
+          setState(() {});
+        },
+        shape: const CircleBorder(),
+        child: Text('$step'),
       ),
     );
   }
