@@ -108,10 +108,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       oldWidget.controller?._detach(this);
       widget.controller?._attach(this);
     }
-    // 重置列表项尺寸
-    if (widget.scrollDirection != oldWidget.scrollDirection) {
-      _extents.clear();
-    }
     // 修正锚点列表项位置
     if (widget.itemKeys.isEmpty) {
       _updateAnchor(0);
@@ -276,17 +272,15 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         _scheduleUpdateItems();
       },
       onUnmount: (element) {
+        _extents.remove(element.widget.index);
         _elements.remove(element);
         _scheduleUpdateItems();
       },
       onPerformLayout: (box, oldSize, newSize) {
-        // 获取主轴方向尺寸
-        final newExtent = switch (widget.scrollDirection) {
+        _extents[index - _anchorIndex] = switch (widget.scrollDirection) {
           Axis.vertical => newSize.height,
           Axis.horizontal => newSize.width,
         };
-        // 保存最新的列表项尺寸
-        _extents[index - _anchorIndex] = newExtent;
       },
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
@@ -362,14 +356,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
       if (anchorIndex != null && _anchorIndex != anchorIndex && position.pixels != 0.0) {
         for (var i = anchorIndex - _anchorIndex; i < 0; i++) {
-          final extent = _extents[i];
-          if (extent == null) continue;
-          _scrollController.position.correctImmediate(extent);
+          _scrollController.position.correctImmediate(_extents[i]!);
         }
         for (var i = 0; i < anchorIndex - _anchorIndex; i++) {
-          final extent = _extents[i];
-          if (extent == null) continue;
-          _scrollController.position.correctImmediate(-extent);
+          _scrollController.position.correctImmediate(-_extents[i]!);
         }
         _updateAnchor(anchorIndex);
         setState(() {});
