@@ -277,7 +277,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(milliseconds: 16));
         expect(controller.anchorIndex, (itemKeys.length - 1).clamp(0, 2));
         expect(controller.position.pixels, controller.anchorIndex * -100.0);
-        expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [0, 1, 2 + i, 3 + i, 4 + i, 5 + i] : itemKeys);
+        expectList(length: itemKeys.length, visible: itemKeys.length >= 6 ? [0, 1, 2 + i, 3 + i, 4 + i, 5 + i] : itemKeys);
       }
 
       // 列表项全部被移除
