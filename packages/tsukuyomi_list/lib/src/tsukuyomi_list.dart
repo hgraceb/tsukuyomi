@@ -336,8 +336,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   void _jumpToIndex(int index) {
-    _scrollController.position.correctBy(0.0); // 触发 [ScrollPosition.correctForNewDimensions] 方法避免索引越界跳转
-    _scrollController.jumpTo(0.0);
+    _scrollController.position.correctTo(0.0);
     _updateAnchor(index);
     setState(() {});
   }
@@ -491,6 +490,12 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   });
 
   double? _correction;
+
+  /// 跳转并触发滚动偏移的修正
+  void correctTo(double value) {
+    jumpTo(value);
+    correctBy(0.0);
+  }
 
   /// 在下次布局时修正滚动偏移
   void correctImmediate(double correction) {
