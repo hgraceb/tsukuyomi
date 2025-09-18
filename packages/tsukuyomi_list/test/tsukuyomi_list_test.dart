@@ -524,8 +524,8 @@ void main() {
         controller.jumpToIndex(i);
         await tester.pump();
         expect(controller.anchorIndex, i);
-        expect(controller.position.pixels, 0.0);
-        expectList(length: itemKeys.length, visible: List.generate(min(6, itemKeys.length - i), (index) => index + i));
+        expect(controller.position.pixels, (i - 4).clamp(0, 5) * -100.0);
+        expectList(length: itemKeys.length, visible: List.generate(6, (index) => index + i.clamp(0, 4)));
       }
     });
 
