@@ -324,9 +324,9 @@ void main() {
         itemHeights.removeAt(itemHeights.length - 1);
         await tester.pumpWidget(builder());
         await tester.pumpAndSettle(const Duration(milliseconds: 16));
-        expect(controller.anchorIndex, itemKeys.length > 6 ? 9 - i : (itemKeys.length - 1).clamp(0, 2));
-        expect(controller.position.pixels, itemKeys.length > 2 ? -200.0 : itemKeys.length / 2 * -100.0);
-        expectList(length: itemKeys.length, visible: itemKeys.length > 6 ? [7, 8, 9, 10, 11, 12] : itemKeys);
+        expect(controller.anchorIndex, itemKeys.length >= 6 ? 9 - i : (itemKeys.length - 1).clamp(0, 1));
+        expect(controller.position.pixels, itemKeys.length >= 6 ? -200.0 : (itemKeys.length - 1).clamp(0, 1) * -100.0);
+        expectList(length: itemKeys.length, visible: itemKeys.length >= 6 ? [7, 8, 9, 10, 11, 12] : itemKeys);
       }
 
       // 列表项全部被移除
