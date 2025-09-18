@@ -264,6 +264,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   void _updateAnchor(int anchorIndex) {
     assert(anchorIndex >= 0);
+    if (anchorIndex != _anchorIndex) setState(() {});
     _anchorIndex = anchorIndex;
     _anchorKey = widget.itemKeys.isEmpty ? null : widget.itemKeys[_anchorIndex];
   }
@@ -328,7 +329,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           _scrollController.position.correctImmediate(-_extents[i]!);
         }
         _updateAnchor(anchorIndex);
-        setState(() {});
       }
       // 回调根据索引顺序进行排序的所有已渲染列表项数据
       widget.onItemsChanged?.call(items);
@@ -338,7 +338,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   void _jumpToIndex(int index) {
     _scrollController.position.correctTo(0.0);
     _updateAnchor(index);
-    setState(() {});
   }
 
   Future<void> _slideViewport(double viewportFraction, {required Duration duration, required Curve curve}) async {
