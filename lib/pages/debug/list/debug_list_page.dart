@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-
-import 'debug_list_case_jump_default.dart';
+import 'package:tsukuyomi/pages/debug/list/debug_list_case_jump_default2.dart';
 
 class DebugListPage extends StatelessWidget {
   const DebugListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const DebugListCaseJumpDefault();
+    return const DebugListCaseJumpDefault2();
   }
 }
 
