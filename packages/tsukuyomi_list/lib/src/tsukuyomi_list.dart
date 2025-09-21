@@ -238,13 +238,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     return _TsukuyomiListItem(
       index: index - _anchorIndex,
       onMount: (element) {
-        _elements[element.widget.index] = element;
+        _elements[element.requiredIndex] = element;
         _scheduleUpdateItems();
       },
       onUnmount: (element) {
-        if (_elements[element.widget.index] == element) {
-          _extents.remove(element.widget.index);
-          _elements.remove(element.widget.index);
+        final elementIndex = element.requiredIndex;
+        if (_elements[elementIndex] == element) {
+          _extents.remove(elementIndex);
+          _elements.remove(elementIndex);
         }
         _scheduleUpdateItems();
       },
@@ -296,11 +297,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
       final anchor = widget.anchor ?? _calculateAnchor(position);
-      final sortedElements = _elements.values.toList()..sort((a, b) => a.widget.index.compareTo(b.widget.index));
+      final sortedElements = _elements.values.toList()..sort((a, b) => a.requiredIndex.compareTo(b.requiredIndex));
       int? anchorIndex;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
-        final index = element.widget.index + _anchorIndex;
+        final index = element.requiredIndex + _anchorIndex;
         if (index >= widget.itemKeys.length) continue;
 
         final box = element.findRenderObject() as RenderBox?;
@@ -584,9 +585,9 @@ class _TsukuyomiListBallisticScrollActivity extends BallisticScrollActivity {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({this.index = -1, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
+  const _TsukuyomiListItem({this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
 
-  final int index;
+  final int? index;
 
   final ValueChanged<_TsukuyomiListItemElement>? onMount;
 
@@ -606,6 +607,8 @@ class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
 
 class _TsukuyomiListItemElement extends SingleChildRenderObjectElement {
   _TsukuyomiListItemElement(super.widget);
+
+  int get requiredIndex => widget.index!;
 
   @override
   _TsukuyomiListItem get widget => super.widget as _TsukuyomiListItem;
