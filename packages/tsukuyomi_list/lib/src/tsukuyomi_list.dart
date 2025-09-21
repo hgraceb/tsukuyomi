@@ -76,8 +76,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _anchorIndex;
   late Object? _anchorKey;
   final _centerKey = UniqueKey();
-  final _elements = <_TsukuyomiListItemElement>{};
   final _extents = <int, double>{};
+  final _elements = <int, _TsukuyomiListItemElement>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -238,12 +238,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     return _TsukuyomiListItem(
       index: index - _anchorIndex,
       onMount: (element) {
-        _elements.add(element);
+        _elements[element.widget.index] = element;
         _scheduleUpdateItems();
       },
       onUnmount: (element) {
-        _extents.remove(element.widget.index);
-        _elements.remove(element);
+        if (_elements[element.widget.index] == element) {
+          _extents.remove(element.widget.index);
+          _elements.remove(element.widget.index);
+        }
         _scheduleUpdateItems();
       },
       onPerformLayout: (box, oldSize, newSize) {
@@ -294,11 +296,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
       final anchor = widget.anchor ?? _calculateAnchor(position);
-      final sortedElements = _elements.toList()..sort((a, b) => a.widget.index!.compareTo(b.widget.index!));
+      final sortedElements = _elements.values.toList()..sort((a, b) => a.widget.index.compareTo(b.widget.index));
       int? anchorIndex;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
-        final index = element.widget.index! + _anchorIndex;
+        final index = element.widget.index + _anchorIndex;
         if (index >= widget.itemKeys.length) continue;
 
         final box = element.findRenderObject() as RenderBox?;
@@ -323,9 +325,15 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
       if (anchorIndex != null && _anchorIndex != anchorIndex && (position.pixels != 0.0 && position.pixels != position.maxScrollExtent)) {
         for (var i = anchorIndex - _anchorIndex; i < 0; i++) {
-          _scrollController.position.correctImmediate(_extents[i]!);
+          final extent = _extents[i];
+          assert(extent != null);
+          if (extent == null) continue;
+          _scrollController.position.correctImmediate(extent);
         }
         for (var i = 0; i < anchorIndex - _anchorIndex; i++) {
+          final extent = _extents[i];
+          assert(extent != null);
+          if (extent == null) continue;
           _scrollController.position.correctImmediate(-_extents[i]!);
         }
         _updateAnchor(anchorIndex);
@@ -576,9 +584,9 @@ class _TsukuyomiListBallisticScrollActivity extends BallisticScrollActivity {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
+  const _TsukuyomiListItem({this.index = -1, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
 
-  final int? index;
+  final int index;
 
   final ValueChanged<_TsukuyomiListItemElement>? onMount;
 

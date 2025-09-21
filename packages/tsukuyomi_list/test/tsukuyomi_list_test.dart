@@ -916,7 +916,7 @@ void main() {
 
       // 触发索引的更新
       controller.position.jumpTo(controller.position.pixels - 100.0);
-      await tester.pumpAndSettle(const Duration(milliseconds: 16));
+      await tester.pump();
       expect(controller.anchorIndex, 4);
       expect(controller.position.pixels, -100.0);
       expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
