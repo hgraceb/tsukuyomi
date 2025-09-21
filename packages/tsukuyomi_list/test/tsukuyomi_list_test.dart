@@ -518,7 +518,7 @@ void main() {
         );
       }
 
-      // 可以跳转到指定位置的元素并越界显示
+      // 可以跳转到指定位置的元素并且没有越界显示
       await tester.pumpWidget(builder());
       for (int i = 0; i < itemKeys.length; i++) {
         controller.jumpToIndex(i);
