@@ -5,14 +5,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseJumpDefault2 extends StatefulWidget {
-  const DebugListCaseJumpDefault2({super.key});
+class DebugListCaseSpecificJumpEnd extends StatefulWidget {
+  const DebugListCaseSpecificJumpEnd({super.key});
 
   @override
-  State<DebugListCaseJumpDefault2> createState() => _DebugListCaseJumpDefault2State();
+  State<DebugListCaseSpecificJumpEnd> createState() => _DebugListCaseSpecificJumpEndState();
 }
 
-class _DebugListCaseJumpDefault2State extends State<DebugListCaseJumpDefault2> {
+class _DebugListCaseSpecificJumpEndState extends State<DebugListCaseSpecificJumpEnd> {
   int step = 0;
   final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
