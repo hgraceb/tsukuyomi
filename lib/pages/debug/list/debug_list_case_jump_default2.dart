@@ -1,4 +1,8 @@
+// ignore_for_file: invalid_use_of_internal_member
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
@@ -43,6 +47,11 @@ class _DebugListCaseJumpDefault2State extends State<DebugListCaseJumpDefault2> {
             2 => controller.jumpToIndex(9),
             _ => --step,
           };
+          if (step == 2) {
+            SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+              controller.position.jumpTo(controller.position.pixels - precisionErrorTolerance);
+            });
+          }
           setState(() {});
         },
         shape: const CircleBorder(),

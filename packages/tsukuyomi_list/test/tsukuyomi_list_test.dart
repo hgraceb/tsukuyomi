@@ -876,4 +876,32 @@ void main() {
       controller.position.removeListener(overscrollCheckListener);
     });
   });
+
+  group('TsukuyomiList respects specific situations', () {
+    testWidgets('when jumping to end and update anchor in next frame', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
+            controller: controller,
+          ),
+        );
+      }
+
+      // 可以跳转到指定位置的元素并越界显示
+      await tester.pumpWidget(builder());
+      for (int i = 0; i < itemKeys.length; i++) {
+        controller.jumpToIndex(i);
+        await tester.pump();
+        expect(controller.anchorIndex, i);
+        expect(controller.position.pixels, (i - 4).clamp(0, 5) * -100.0);
+        expectList(length: itemKeys.length, visible: List.generate(6, (index) => index + i.clamp(0, 4)));
+      }
+    });
+  });
 }
