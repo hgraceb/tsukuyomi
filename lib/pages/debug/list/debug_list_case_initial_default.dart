@@ -14,14 +14,16 @@ class _DebugListCaseInitialDefaultState extends State<DebugListCaseInitialDefaul
   final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
 
-  Widget builder() {
+  Widget builder(index) {
     return Directionality(
+      key: ValueKey(index),
       textDirection: TextDirection.ltr,
       child: TsukuyomiList.builder(
         debugMask: true,
         itemKeys: itemKeys,
         itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
+        initialScrollIndex: index,
       ),
     );
   }
@@ -32,21 +34,21 @@ class _DebugListCaseInitialDefaultState extends State<DebugListCaseInitialDefaul
       body: Center(
         child: SizedBox(
           height: 600.0,
-          child: builder(),
+          child: builder(step),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final _ = switch (++step) {
-            1 => controller.jumpToIndex(1),
-            2 => controller.jumpToIndex(2),
-            3 => controller.jumpToIndex(3),
-            4 => controller.jumpToIndex(4),
-            5 => controller.jumpToIndex(5),
-            6 => controller.jumpToIndex(6),
-            7 => controller.jumpToIndex(7),
-            8 => controller.jumpToIndex(8),
-            9 => controller.jumpToIndex(9),
+            1 => null,
+            2 => null,
+            3 => null,
+            4 => null,
+            5 => null,
+            6 => null,
+            7 => null,
+            8 => null,
+            9 => null,
             _ => --step,
           };
           setState(() {});
