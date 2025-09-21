@@ -889,19 +889,37 @@ void main() {
             itemKeys: itemKeys,
             itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
             controller: controller,
+            anchor: 2 / 6,
           ),
         );
       }
 
-      // 可以跳转到指定位置的元素并越界显示
+      // 默认显示首屏的元素
       await tester.pumpWidget(builder());
-      for (int i = 0; i < itemKeys.length; i++) {
-        controller.jumpToIndex(i);
-        await tester.pump();
-        expect(controller.anchorIndex, i);
-        expect(controller.position.pixels, (i - 4).clamp(0, 5) * -100.0);
-        expectList(length: itemKeys.length, visible: List.generate(6, (index) => index + i.clamp(0, 4)));
-      }
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 跳转到指定元素
+      controller.jumpToIndex(5);
+      await tester.pump();
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -100.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
+
+      // 跳转到末尾元素
+      controller.jumpToIndex(9);
+      await tester.pump();
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, -500.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
+
+      // 触发索引的更新
+      controller.position.jumpTo(controller.position.pixels - 100.0);
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
+      expect(controller.anchorIndex, 4);
+      expect(controller.position.pixels, -100.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
     });
   });
 }
