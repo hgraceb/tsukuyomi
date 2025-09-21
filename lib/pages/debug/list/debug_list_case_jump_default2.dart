@@ -1,6 +1,5 @@
 // ignore_for_file: invalid_use_of_internal_member
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
@@ -42,16 +41,14 @@ class _DebugListCaseJumpDefault2State extends State<DebugListCaseJumpDefault2> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          if (step == 1) {
+            SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.position.jumpTo(controller.position.pixels - 100.0));
+          }
           final _ = switch (++step) {
             1 => controller.jumpToIndex(5),
             2 => controller.jumpToIndex(9),
             _ => --step,
           };
-          if (step == 2) {
-            SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-              controller.position.jumpTo(controller.position.pixels - precisionErrorTolerance);
-            });
-          }
           setState(() {});
         },
         shape: const CircleBorder(),
