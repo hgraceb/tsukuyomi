@@ -33,7 +33,6 @@ class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
       textDirection: TextDirection.ltr,
       child: TsukuyomiList.builder(
         debugMask: true,
-        trailing: false,
         itemKeys: itemKeys,
         itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,

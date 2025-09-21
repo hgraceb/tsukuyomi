@@ -88,7 +88,6 @@ class _TsukuyomiListState extends State<_TsukuyomiList> {
   Widget build(BuildContext context) {
     return TsukuyomiList.builder(
       debugMask: true,
-      trailing: false,
       anchor: 0.5,
       itemKeys: itemKeys,
       itemBuilder: (context, index) => KeyedSubtree(
