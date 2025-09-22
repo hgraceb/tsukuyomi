@@ -1,32 +1,21 @@
+// ignore_for_file: invalid_use_of_internal_member
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseSlideDefault extends StatefulWidget {
-  const DebugListCaseSlideDefault({super.key});
+class DebugListCaseSpecificJumpEnd extends StatefulWidget {
+  const DebugListCaseSpecificJumpEnd({super.key});
 
   @override
-  State<DebugListCaseSlideDefault> createState() => _DebugListCaseSlideDefaultState();
+  State<DebugListCaseSpecificJumpEnd> createState() => _DebugListCaseSpecificJumpEndState();
 }
 
-class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
+class _DebugListCaseSpecificJumpEndState extends State<DebugListCaseSpecificJumpEnd> {
   int step = 0;
-  final itemKeys = List.generate(20, (index) => index);
+  final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
-
-  Future<void> next() async {
-    final _ = switch (++step) {
-      1 => await controller.slideViewport(0.0),
-      2 => await controller.slideViewport(0.5),
-      3 => await controller.slideViewport(1.0),
-      4 => await controller.slideViewport(1.0),
-      5 => await controller.slideViewport(-1.0),
-      6 => await controller.slideViewport(-0.5),
-      7 => await controller.slideViewport(-1.0),
-      _ => null,
-    };
-    setState(() {});
-  }
 
   Widget builder() {
     return Directionality(
@@ -36,6 +25,7 @@ class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
         itemKeys: itemKeys,
         itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
+        anchor: 2 / 6,
       ),
     );
   }
@@ -50,7 +40,17 @@ class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: next,
+        onPressed: () async {
+          if (step == 1) {
+            SchedulerBinding.instance.addPostFrameCallback((timeStamp) => controller.position.jumpTo(controller.position.pixels - 100.0));
+          }
+          final _ = switch (++step) {
+            1 => controller.jumpToIndex(5),
+            2 => controller.jumpToIndex(9),
+            _ => --step,
+          };
+          setState(() {});
+        },
         shape: const CircleBorder(),
         child: Text('$step'),
       ),

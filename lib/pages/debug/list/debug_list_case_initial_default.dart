@@ -2,40 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseSlideDefault extends StatefulWidget {
-  const DebugListCaseSlideDefault({super.key});
+class DebugListCaseInitialDefault extends StatefulWidget {
+  const DebugListCaseInitialDefault({super.key});
 
   @override
-  State<DebugListCaseSlideDefault> createState() => _DebugListCaseSlideDefaultState();
+  State<DebugListCaseInitialDefault> createState() => _DebugListCaseInitialDefaultState();
 }
 
-class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
+class _DebugListCaseInitialDefaultState extends State<DebugListCaseInitialDefault> {
   int step = 0;
-  final itemKeys = List.generate(20, (index) => index);
+  final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
 
-  Future<void> next() async {
-    final _ = switch (++step) {
-      1 => await controller.slideViewport(0.0),
-      2 => await controller.slideViewport(0.5),
-      3 => await controller.slideViewport(1.0),
-      4 => await controller.slideViewport(1.0),
-      5 => await controller.slideViewport(-1.0),
-      6 => await controller.slideViewport(-0.5),
-      7 => await controller.slideViewport(-1.0),
-      _ => null,
-    };
-    setState(() {});
-  }
-
-  Widget builder() {
+  Widget builder(index) {
     return Directionality(
+      key: ValueKey(index),
       textDirection: TextDirection.ltr,
       child: TsukuyomiList.builder(
         debugMask: true,
         itemKeys: itemKeys,
         itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
+        initialScrollIndex: index,
       ),
     );
   }
@@ -46,11 +34,25 @@ class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
       body: Center(
         child: SizedBox(
           height: 600.0,
-          child: builder(),
+          child: builder(step),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: next,
+        onPressed: () async {
+          final _ = switch (++step) {
+            1 => null,
+            2 => null,
+            3 => null,
+            4 => null,
+            5 => null,
+            6 => null,
+            7 => null,
+            8 => null,
+            9 => null,
+            _ => --step,
+          };
+          setState(() {});
+        },
         shape: const CircleBorder(),
         child: Text('$step'),
       ),

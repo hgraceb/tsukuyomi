@@ -51,7 +51,7 @@ class _DebugListCaseAnchorAddEdgeSingleState extends State<DebugListCaseAnchorAd
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final _ = switch (++step) {
-            1 => await controller.slideViewport(-1.0),
+            1 => await controller.slideViewport(-1.0 / 6),
             2 => insertItem(),
             3 => insertItem(),
             4 => insertItem(),

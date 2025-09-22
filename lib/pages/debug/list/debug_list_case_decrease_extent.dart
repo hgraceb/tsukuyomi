@@ -53,7 +53,6 @@ class _DebugListCaseDecreaseExtentState extends State<DebugListCaseDecreaseExten
           child: TsukuyomiList.builder(
             anchor: 0.5,
             debugMask: true,
-            trailing: false,
             controller: controller,
             itemKeys: itemKeys,
             itemBuilder: (context, index) => FutureBuilder(

@@ -2,31 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
-class DebugListCaseSlideDefault extends StatefulWidget {
-  const DebugListCaseSlideDefault({super.key});
+class DebugListCaseJumpEnd extends StatefulWidget {
+  const DebugListCaseJumpEnd({super.key});
 
   @override
-  State<DebugListCaseSlideDefault> createState() => _DebugListCaseSlideDefaultState();
+  State<DebugListCaseJumpEnd> createState() => _DebugListCaseJumpEndState();
 }
 
-class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
+class _DebugListCaseJumpEndState extends State<DebugListCaseJumpEnd> {
   int step = 0;
-  final itemKeys = List.generate(20, (index) => index);
+  final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
-
-  Future<void> next() async {
-    final _ = switch (++step) {
-      1 => await controller.slideViewport(0.0),
-      2 => await controller.slideViewport(0.5),
-      3 => await controller.slideViewport(1.0),
-      4 => await controller.slideViewport(1.0),
-      5 => await controller.slideViewport(-1.0),
-      6 => await controller.slideViewport(-0.5),
-      7 => await controller.slideViewport(-1.0),
-      _ => null,
-    };
-    setState(() {});
-  }
 
   Widget builder() {
     return Directionality(
@@ -36,6 +22,7 @@ class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
         itemKeys: itemKeys,
         itemBuilder: (context, index) => SizedBox(height: 100.0, child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
+        anchor: 0.5,
       ),
     );
   }
@@ -50,7 +37,21 @@ class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: next,
+        onPressed: () async {
+          final _ = switch (++step) {
+            1 => controller.jumpToIndex(1),
+            2 => controller.jumpToIndex(2),
+            3 => controller.jumpToIndex(3),
+            4 => controller.jumpToIndex(4),
+            5 => controller.jumpToIndex(5),
+            6 => controller.jumpToIndex(6),
+            7 => controller.jumpToIndex(7),
+            8 => controller.jumpToIndex(8),
+            9 => controller.jumpToIndex(9),
+            _ => --step,
+          };
+          setState(() {});
+        },
         shape: const CircleBorder(),
         child: Text('$step'),
       ),

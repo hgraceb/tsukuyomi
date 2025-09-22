@@ -33,7 +33,6 @@ class _DebugListCaseDisposedState extends State<DebugListCaseDisposed> {
             child: TsukuyomiList.builder(
               anchor: 0.5,
               debugMask: true,
-              trailing: false,
               itemKeys: itemKeys,
               itemBuilder: (context, index) => _TestWidget(
                 key: ValueKey(itemKeys[index]),

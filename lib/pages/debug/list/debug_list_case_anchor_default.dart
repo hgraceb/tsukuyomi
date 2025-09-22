@@ -19,7 +19,6 @@ class _DebugListCaseAnchorDefaultState extends State<DebugListCaseAnchorDefault>
       textDirection: TextDirection.ltr,
       child: TsukuyomiList.builder(
         debugMask: true,
-        trailing: false,
         itemKeys: itemKeys,
         itemBuilder: (context, index) => SizedBox(height: itemHeights[index], child: Placeholder(child: Text('${itemKeys[index]}'))),
         controller: controller,
