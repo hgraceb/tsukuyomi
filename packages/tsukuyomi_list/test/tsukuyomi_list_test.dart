@@ -172,11 +172,11 @@ void main() {
       // 初始化列表并让最后一个元素作为中心元素和锚点元素
       await tester.pumpWidget(builder());
       expect(controller.anchorIndex, 9);
-      expect(controller.position.pixels, 0.0);
-      expectList(length: itemKeys.length, visible: [9]);
+      expect(controller.position.pixels, -500.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
 
-      // 逆向滚动一个屏幕的距离让处于屏幕指定位置的元素作为新的锚点元素
-      unawaited(controller.slideViewport(-1.0));
+      // 逆向滚动一个元素的距离让处于屏幕指定位置的元素作为新的锚点元素
+      unawaited(controller.slideViewport(-1.0 / 6));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.anchorIndex, 5);
       expect(controller.position.pixels, -200.0);

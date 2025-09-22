@@ -531,6 +531,16 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   }
 
   @override
+  bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
+    // 修正初始索引显示偏移
+    if (!haveDimensions && pixels == 0.0 && maxScrollExtent < pixels) {
+      correctBy(maxScrollExtent);
+      return false;
+    }
+    return super.applyContentDimensions(minScrollExtent, maxScrollExtent);
+  }
+
+  @override
   void goBallistic(double velocity) {
     assert(hasPixels);
     final Simulation? simulation = physics.createBallisticSimulation(this, velocity);
