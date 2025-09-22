@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
 
@@ -30,7 +29,6 @@ class _DebugListCaseJumpEndState extends State<DebugListCaseJumpEnd> {
 
   @override
   Widget build(BuildContext context) {
-    timeDilation = 10.0;
     return TsukuyomiScaffold(
       body: Center(
         child: SizedBox(

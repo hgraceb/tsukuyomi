@@ -345,7 +345,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   void _jumpToIndex(int index) {
-    _scrollController.position.correctTo(0.0);
+    _scrollController.jumpTo(0.0);
     _updateAnchor(index);
   }
 
@@ -499,12 +499,6 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 
   double? _correction;
 
-  /// 跳转并触发滚动偏移的修正
-  void correctTo(double value) {
-    jumpTo(value);
-    correctBy(0.0);
-  }
-
   /// 在下次布局时修正滚动偏移
   void correctImmediate(double correction) {
     if (correction != 0.0) {
@@ -514,14 +508,7 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   }
 
   @override
-  @protected
   bool correctForNewDimensions(ScrollMetrics oldPosition, ScrollMetrics newPosition) {
-    // 修正索引越界跳转偏移
-    if (newPosition.pixels == 0.0 && newPosition.maxScrollExtent < newPosition.pixels) {
-      _correction = null;
-      correctBy(newPosition.maxScrollExtent);
-      return false;
-    }
     // 是否需要修正滚动偏移
     if (_correction != null) {
       _correction = null;
@@ -532,8 +519,8 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 
   @override
   bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
-    // 修正初始索引显示偏移
-    if (!haveDimensions && pixels == 0.0 && maxScrollExtent < pixels) {
+    // 修正默认索引和索引跳转的越界偏移
+    if (pixels == 0.0 && maxScrollExtent < pixels) {
       correctBy(maxScrollExtent);
       return false;
     }
