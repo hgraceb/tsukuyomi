@@ -335,7 +335,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           final extent = _extents[i];
           assert(extent != null);
           if (extent == null) continue;
-          _scrollController.position.correctImmediate(-_extents[i]!);
+          _scrollController.position.correctImmediate(-extent);
         }
         _updateAnchor(anchorIndex);
       }
