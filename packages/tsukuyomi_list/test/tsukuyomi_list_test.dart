@@ -492,12 +492,12 @@ void main() {
         );
       }
 
-      // 可以指定初始元素并越界显示
+      // 可以指定索引作为初始元素并且没有越界显示
       for (int i = 0; i < itemKeys.length; i++) {
         await tester.pumpWidget(builder(i));
         expect(controller.anchorIndex, i);
-        expect(controller.position.pixels, 0.0);
-        expectList(length: itemKeys.length, visible: List.generate(min(6, itemKeys.length - i), (index) => index + i));
+        expect(controller.position.pixels, (i - 4).clamp(0, 5) * -100.0);
+        expectList(length: itemKeys.length, visible: List.generate(6, (index) => index + i.clamp(0, 4)));
       }
     });
   });
