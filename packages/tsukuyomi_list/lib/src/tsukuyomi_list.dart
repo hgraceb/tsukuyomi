@@ -509,6 +509,12 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 
   @override
   bool correctForNewDimensions(ScrollMetrics oldPosition, ScrollMetrics newPosition) {
+    // 修正索引越界跳转偏移
+    if (pixels == 0.0 && maxScrollExtent < pixels) {
+      _correction = null;
+      correctBy(maxScrollExtent);
+      return false;
+    }
     // 是否需要修正滚动偏移
     if (_correction != null) {
       _correction = null;
@@ -519,8 +525,8 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 
   @override
   bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
-    // 修正默认索引和索引跳转的越界偏移
-    if (pixels == 0.0 && maxScrollExtent < pixels) {
+    // 修正初始索引位置偏移
+    if (!haveDimensions && pixels == 0.0 && maxScrollExtent < pixels) {
       correctBy(maxScrollExtent);
       return false;
     }
