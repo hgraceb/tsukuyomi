@@ -145,7 +145,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
               final trailing = offset - viewport.offset.pixels + newExtent;
               // 如果占位区域底部可见
               if (trailing > Tolerance.defaultTolerance.distance) {
-                _scrollController.position.correctImmediate(-delta);
+                _scrollController.position.correctByDelta(-delta);
               }
             },
             child: Container(
@@ -208,7 +208,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
               final leading = offset - viewport.offset.pixels - viewportDimension;
               // 如果占位区域顶部可见
               if (-leading > Tolerance.defaultTolerance.distance) {
-                _scrollController.position.correctImmediate(delta);
+                _scrollController.position.correctByDelta(delta);
               }
             },
             child: Container(
@@ -329,13 +329,13 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           final extent = _extents[i];
           assert(extent != null);
           if (extent == null) continue;
-          _scrollController.position.correctImmediate(extent);
+          _scrollController.position.correctByDelta(extent);
         }
         for (var i = 0; i < anchorIndex - _anchorIndex; i++) {
           final extent = _extents[i];
           assert(extent != null);
           if (extent == null) continue;
-          _scrollController.position.correctImmediate(-extent);
+          _scrollController.position.correctByDelta(-extent);
         }
         _updateAnchor(anchorIndex);
       }
@@ -508,10 +508,10 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   }
 
   /// 在下次布局时修正指定滚动偏移
-  void correctImmediate(double correction) {
-    if (correction != 0.0) {
-      _correction = (_correction ?? 0.0) + correction;
-      correctBy(correction);
+  void correctByDelta(double delta) {
+    if (delta != 0.0) {
+      _correction = (_correction ?? 0.0) + delta;
+      correctBy(delta);
     }
   }
 
