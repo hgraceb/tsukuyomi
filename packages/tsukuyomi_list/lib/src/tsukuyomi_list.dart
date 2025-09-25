@@ -345,7 +345,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   void _jumpToIndex(int index) {
-    _scrollController.position.correctForJump(0.0);
+    _scrollController.position.correctByJump(0.0);
     _updateAnchor(index);
   }
 
@@ -502,7 +502,7 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   double? _correction;
 
   /// 跳转到指定位置并修正越界偏移
-  void correctForJump(double value) {
+  void correctByJump(double value) {
     _origin = value;
     jumpTo(value);
   }
