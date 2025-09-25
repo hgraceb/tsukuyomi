@@ -878,6 +878,50 @@ void main() {
   });
 
   group('TsukuyomiList respects specific situations', () {
+    testWidgets('when sliding to none zero and jump to anchor', (WidgetTester tester) async {
+      final itemKeys = List.generate(10, (index) => index);
+      final controller = TsukuyomiListController();
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
+            controller: controller,
+            anchor: 2 / 6,
+          ),
+        );
+      }
+
+      // 默认显示首屏的元素
+      await tester.pumpWidget(builder());
+      expect(controller.anchorIndex, 0);
+      expect(controller.position.pixels, 0.0);
+      expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
+
+      // 跳转到指定元素
+      controller.jumpToIndex(5);
+      await tester.pump();
+      expect(controller.anchorIndex, 5);
+      expect(controller.position.pixels, -100.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
+
+      // 跳转到末尾元素
+      controller.jumpToIndex(9);
+      await tester.pump();
+      expect(controller.anchorIndex, 9);
+      expect(controller.position.pixels, -500.0);
+      expectList(length: itemKeys.length, visible: [4, 5, 6, 7, 8, 9]);
+
+      // 触发索引的更新
+      controller.position.jumpTo(controller.position.pixels - 100.0);
+      await tester.pump();
+      expect(controller.anchorIndex, 4);
+      expect(controller.position.pixels, -100.0);
+      expectList(length: itemKeys.length, visible: [3, 4, 5, 6, 7, 8]);
+    });
+
     testWidgets('when jumping to end and update anchor in next frame', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final controller = TsukuyomiListController();
