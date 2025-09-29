@@ -3,8 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:flutter/rendering.dart' show RenderProxyBox;
-import 'package:flutter/rendering.dart' show RenderProxySliver, SliverGeometry;
+import 'package:flutter/rendering.dart' show RenderProxyBox, RenderProxySliver, SliverGeometry;
 import 'package:flutter/scheduler.dart';
 import 'package:meta/meta.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/rendering/viewport.dart';
@@ -145,7 +144,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
               final trailing = offset - viewport.offset.pixels + newExtent;
               // 如果占位区域底部可见
               if (trailing > Tolerance.defaultTolerance.distance) {
-                _scrollController.position.correctImmediate(-delta);
+                _scrollController.position.correctByDelta(-delta);
               }
             },
             child: Container(
@@ -208,7 +207,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
               final leading = offset - viewport.offset.pixels - viewportDimension;
               // 如果占位区域顶部可见
               if (-leading > Tolerance.defaultTolerance.distance) {
-                _scrollController.position.correctImmediate(delta);
+                _scrollController.position.correctByDelta(delta);
               }
             },
             child: Container(
@@ -329,13 +328,13 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           final extent = _extents[i];
           assert(extent != null);
           if (extent == null) continue;
-          _scrollController.position.correctImmediate(extent);
+          _scrollController.position.correctByDelta(extent);
         }
         for (var i = 0; i < anchorIndex - _anchorIndex; i++) {
           final extent = _extents[i];
           assert(extent != null);
           if (extent == null) continue;
-          _scrollController.position.correctImmediate(-extent);
+          _scrollController.position.correctByDelta(-extent);
         }
         _updateAnchor(anchorIndex);
       }
@@ -345,7 +344,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   void _jumpToIndex(int index) {
-    _scrollController.jumpTo(0.0);
+    _scrollController.position.correctByJump(0.0);
     _updateAnchor(index);
   }
 
@@ -497,13 +496,21 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
     super.debugLabel,
   });
 
+  double? _origin = 0.0;
+
   double? _correction;
 
-  /// 在下次布局时修正滚动偏移
-  void correctImmediate(double correction) {
-    if (correction != 0.0) {
-      _correction = (_correction ?? 0.0) + correction;
-      correctBy(correction);
+  /// 跳转到指定位置并修正越界偏移
+  void correctByJump(double value) {
+    _origin = value;
+    jumpTo(value);
+  }
+
+  /// 在下次布局时修正指定滚动偏移
+  void correctByDelta(double delta) {
+    if (delta != 0.0) {
+      _correction = (_correction ?? 0.0) + delta;
+      correctBy(delta);
     }
   }
 
@@ -519,11 +526,13 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 
   @override
   bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
-    // 修正默认索引和索引跳转的越界偏移
-    if (pixels == 0.0 && maxScrollExtent < pixels) {
+    // 是否需要修正默认索引和索引跳转的越界偏移
+    if (_origin == pixels && maxScrollExtent < pixels) {
+      _origin = _correction = null;
       correctBy(maxScrollExtent);
       return false;
     }
+    _origin = null;
     return super.applyContentDimensions(minScrollExtent, maxScrollExtent);
   }
 
