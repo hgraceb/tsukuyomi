@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:tsukuyomi/database/database.dart';
 
 class MockSource {
-  MockSource._(this.name, this.path);
+  MockSource._({required this.name, required this.path});
+
+  factory MockSource.fromJson(Map<String, dynamic> json) => MockSource._(name: json['name'], path: json['path']);
 
   final String name;
 
@@ -13,16 +15,18 @@ class MockSource {
   late final id = name.hashCode;
 
   late final nameWithPath = '$name\n$path';
-
-  static final example = MockSource._('Example Source', 'assets/source/example.dart');
 }
 
 Future<List<DatabaseSource>> getMockDatabaseSources() async {
+  final decoded = jsonDecode(await rootBundle.loadString('assets/source/index.json')) as List<dynamic>;
+  final sources = decoded.map((e) => MockSource.fromJson(e as Map<String, dynamic>));
   return [
-    DatabaseSource(
-      id: MockSource.example.id,
-      name: MockSource.example.nameWithPath,
-      source: base64.encode(utf8.encode(await rootBundle.loadString(MockSource.example.path))),
-    ),
+    for (final source in sources) ...[
+      DatabaseSource(
+        id: source.id,
+        name: source.nameWithPath,
+        source: base64.encode(utf8.encode(await rootBundle.loadString(source.path))),
+      ),
+    ],
   ];
 }
