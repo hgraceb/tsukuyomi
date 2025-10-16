@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi/extension/extension_string.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 part 'chapter.freezed.dart';
@@ -62,7 +63,7 @@ extension SourceChapterExtension on SourceChapter {
       id: Value(chapter.id),
       manga: chapter.manga,
       index: chapter.index,
-      title: name,
+      title: name.toLegalPath,
       url: url,
       date: date,
       public: public,
@@ -76,7 +77,7 @@ extension SourceChapterExtension on SourceChapter {
     return ChapterTableCompanion.insert(
       manga: manga,
       index: 0,
-      title: name,
+      title: name.toLegalPath,
       url: url,
       date: date,
       public: public,
