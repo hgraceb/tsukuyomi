@@ -213,6 +213,7 @@ List<DartClass> get $dynamic {
       'name': (($) => $.name, ($, $$) => $.name = $$),
       'namedGroup': (($) => $.namedGroup, ($, $$) => $.namedGroup = $$),
       'noSuchMethod': (($) => $.noSuchMethod, ($, $$) => $.noSuchMethod = $$),
+      'normalize': (($) => $.normalize, ($, $$) => $.normalize = $$),
       'normalizePath': (($) => $.normalizePath, ($, $$) => $.normalizePath = $$),
       'offset': (($) => $.offset, ($, $$) => $.offset = $$),
       'offsetInBytes': (($) => $.offsetInBytes, ($, $$) => $.offsetInBytes = $$),
