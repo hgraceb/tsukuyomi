@@ -32,6 +32,9 @@ abstract class HttpSource extends Source {
   /// 解析 List<int> 格式图片数据
   external Future<Image> resolveImageBytes(List<int> bytes);
 
+  /// 解析 List<int> 格式字符数据
+  external Future<String> resolveStringBytes(List<int> bytes, {String? charset});
+
   /// 将图片转为 JPG 格式，默认质量为 90，以 100 质量保存会使图片尺寸太大并且没有明显观感区别
   external Future<List<int>> encodeJpg({required Image image, required Picture picture});
 

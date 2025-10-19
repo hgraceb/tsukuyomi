@@ -87,6 +87,7 @@ List<DartClass> get $dynamic {
       'replaceWith': (($) => $.replaceWith, ($, $$) => $.replaceWith = $$),
       'requestOptions': (($) => $.requestOptions, ($, $$) => $.requestOptions = $$),
       'resolveImageBytes': (($) => $.resolveImageBytes, ($, $$) => $.resolveImageBytes = $$),
+      'resolveStringBytes': (($) => $.resolveStringBytes, ($, $$) => $.resolveStringBytes = $$),
       'response': (($) => $.response, ($, $$) => $.response = $$),
       'setStorage': (($) => $.setStorage, ($, $$) => $.setStorage = $$),
       'sourceSpan': (($) => $.sourceSpan, ($, $$) => $.sourceSpan = $$),

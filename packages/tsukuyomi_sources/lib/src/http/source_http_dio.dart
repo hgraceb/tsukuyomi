@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:charset/charset.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
@@ -92,6 +93,14 @@ abstract class DioHttpSource extends HttpSource {
       imageProvider.evict();
     }));
     return completer.future;
+  }
+
+  @override
+  Future<String> resolveStringBytes(List<int> bytes, {String? charset}) async {
+    // 选择编码集
+    final encoding = charset == null ? utf8 : Charset.getByName(charset)!;
+    // 根据指定编码集对内容进行解析
+    return encoding.decode(bytes);
   }
 
   @override
