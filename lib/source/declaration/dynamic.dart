@@ -12,6 +12,7 @@ List<DartClass> get $dynamic {
       'base16': (($) => $.base16, ($, $$) => $.base16 = $$),
       'base64': (($) => $.base64, ($, $$) => $.base64 = $$),
       'baseUrl': (($) => $.baseUrl, ($, $$) => $.baseUrl = $$),
+      'blockSize': (($) => $.blockSize, ($, $$) => $.blockSize = $$),
       'body': (($) => $.body, ($, $$) => $.body = $$),
       'bytes': (($) => $.bytes, ($, $$) => $.bytes = $$),
       'children': (($) => $.children, ($, $$) => $.children = $$),
