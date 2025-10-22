@@ -86,9 +86,9 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<dynamic> fetchJson(String url, {Dio? client, String? method}) {
+  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers}) {
     // 每次请求数据时都优先创建新的网络请求器，避免多次请求导致网络请求器内部包含无法通过 Isolate 传递的数据
-    return super.fetchJson(url, client: newClient(client), method: method);
+    return super.fetchJson(url, client: newClient(client), method: method, headers: headers);
   }
 
   @override

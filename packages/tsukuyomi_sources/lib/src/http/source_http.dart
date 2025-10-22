@@ -18,7 +18,7 @@ abstract class HttpSource extends Source {
   external SourceProtoMessage parseProto(List<int> buffer, SourceProtoFields fields);
 
   /// 请求 JSON 格式数据 TODO 判断是否需要限制访问权限
-  external Future<dynamic> fetchJson(String url, {String? method});
+  external Future<dynamic> fetchJson(String url, {String? method, Map<String, String>? headers});
 
   /// 请求 HTML 格式数据 TODO 判断是否需要限制访问权限
   external Future<Document> fetchHtml(String url, {String? method});

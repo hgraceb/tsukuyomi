@@ -27,10 +27,10 @@ abstract class DioHttpSource extends HttpSource {
   Dio newClient([Dio? client]);
 
   @protected
-  Options buildOptions(String? method) {
-    final headers = getRequestHeaders();
+  Options buildOptions(String? method, [Map<String, String>? headers]) {
     const timeout = Duration(seconds: 10);
-    return Options(method: method, headers: headers, sendTimeout: timeout, receiveTimeout: timeout);
+    final allHeaders = {...getRequestHeaders(), ...?headers};
+    return Options(method: method, headers: allHeaders, sendTimeout: timeout, receiveTimeout: timeout);
   }
 
   @override
@@ -49,9 +49,9 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
-  Future<dynamic> fetchJson(String url, {Dio? client, String? method}) async {
+  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers}) async {
     client ??= this.client;
-    final response = await client.request(url, options: buildOptions(method));
+    final response = await client.request(url, options: buildOptions(method, headers));
     // Dio 默认的转换器根据响应头数据可能会自动转换一次 JSON 格式数据
     return response.data is String ? parseJson(response.data) : response.data;
   }
