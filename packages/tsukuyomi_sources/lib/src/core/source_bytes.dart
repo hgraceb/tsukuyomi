@@ -9,6 +9,7 @@ sealed class SourceBytes {
     required this.data,
     required this.statusCode,
     required this.responseHeaders,
+    this.extra,
   }) : assert(!type.startsWith('.'));
 
   /// 数据类型
@@ -22,4 +23,7 @@ sealed class SourceBytes {
 
   /// 响应头
   final Headers responseHeaders;
+
+  /// 额外数据
+  final dynamic extra;
 }

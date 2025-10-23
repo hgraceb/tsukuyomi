@@ -7,6 +7,7 @@ class HttpSourceBytes extends SourceBytes {
     required super.data,
     required super.statusCode,
     required super.responseHeaders,
+    super.extra,
   });
 
   /// 创建网络字节数据副本
@@ -15,12 +16,14 @@ class HttpSourceBytes extends SourceBytes {
     List<int>? data,
     int? statusCode,
     Headers? responseHeaders,
+    dynamic extra,
   }) {
     return HttpSourceBytes(
       type: type ?? this.type,
       data: data ?? this.data,
       statusCode: statusCode ?? this.statusCode,
       responseHeaders: responseHeaders ?? this.responseHeaders,
+      extra: extra ?? this.extra,
     );
   }
 }
