@@ -33,7 +33,9 @@ class TsukuyomiDatabase extends _$TsukuyomiDatabase {
         //   await migrator.createTable(table);
         // }
         await batch((batch) async {
-          batch.insertAllOnConflictUpdate(sourceTable, await getMockDatabaseSources());
+          final mockDatabase = await getMockDatabase();
+          batch.insertAllOnConflictUpdate(sourceTable, mockDatabase.sources);
+          batch.insertAllOnConflictUpdate(mangaTable, mockDatabase.mangas);
         });
       },
     );
