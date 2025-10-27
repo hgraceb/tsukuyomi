@@ -18,7 +18,7 @@ class MockSource {
         name: json['name'],
         path: json['path'],
         enabled: json['enabled'],
-        mangas: json['mangas'],
+        mangas: json['mangas'].map((e) => MockManga.fromJson(e)).toList(),
       );
 
   final String name;
