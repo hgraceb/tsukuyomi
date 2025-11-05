@@ -16,17 +16,26 @@ abstract class HttpSource extends Source {
   // ${$.debug('parseHtml', ($, $$) => $.parseHtml)}
   external Document parseHtml(String html);
 
+  // ${$.debug('parseProto', ($, $$) => $.parseProto)}
+  external SourceProtoMessage parseProto(List<int> buffer, SourceProtoFields fields);
+
   // ${$.debug('fetchJson', ($, $$) => $.fetchJson)}
-  external Future<dynamic> fetchJson(String url);
+  external Future<dynamic> fetchJson(String url, {String? method});
 
   // ${$.debug('fetchHtml', ($, $$) => $.fetchHtml)}
-  external Future<Document> fetchHtml(String url);
+  external Future<Document> fetchHtml(String url, {String? method});
 
   // ${$.debug('fetchBytes', ($, $$) => $.fetchBytes)}
-  external Future<List<int>> fetchBytes(String url);
+  external Future<List<int>> fetchBytes(String url, {String? method});
+
+  // ${$.debug('fetchProto', ($, $$) => $.fetchProto)}
+  external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {String? method});
 
   // ${$.debug('resolveImageBytes', ($, $$) => $.resolveImageBytes)}
   external Future<Image> resolveImageBytes(List<int> bytes);
+
+  // ${$.debug('resolveStringBytes', ($, $$) => $.resolveStringBytes)}
+  external Future<String> resolveStringBytes(List<int> bytes, {String? charset});
 
   // ${$.debug('encodeJpg', ($, $$) => $.encodeJpg)}
   external Future<List<int>> encodeJpg({required Image image, required Picture picture});

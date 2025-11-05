@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:charset/charset.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
@@ -26,10 +27,10 @@ abstract class DioHttpSource extends HttpSource {
   Dio newClient([Dio? client]);
 
   @protected
-  Options buildOptions() {
-    final headers = getRequestHeaders();
+  Options buildOptions(String? method, [Map<String, String>? headers]) {
     const timeout = Duration(seconds: 10);
-    return Options(headers: headers, sendTimeout: timeout, receiveTimeout: timeout);
+    final allHeaders = {...getRequestHeaders(), ...?headers};
+    return Options(method: method, headers: allHeaders, sendTimeout: timeout, receiveTimeout: timeout);
   }
 
   @override
@@ -43,31 +44,43 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
-  Future<dynamic> fetchJson(String url, [Dio? client]) async {
+  SourceProtoMessage parseProto(List<int> buffer, SourceProtoFields fields) {
+    return SourceProtoMessage.fromBuffer(fields, buffer);
+  }
+
+  @override
+  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers}) async {
     client ??= this.client;
-    final response = await client.get(url, options: buildOptions());
+    final response = await client.request(url, options: buildOptions(method, headers));
     // Dio 默认的转换器根据响应头数据可能会自动转换一次 JSON 格式数据
     return response.data is String ? parseJson(response.data) : response.data;
   }
 
   @override
-  Future<Document> fetchHtml(String url, [Dio? client]) async {
+  Future<Document> fetchHtml(String url, {Dio? client, String? method}) async {
     client ??= this.client;
-    final response = await client.get(url, options: buildOptions());
+    final response = await client.request(url, options: buildOptions(method));
     return parseHtml(response.data);
   }
 
   @override
-  Future<HttpSourceBytes> fetchBytes(String url, [Dio? client]) async {
+  Future<HttpSourceBytes> fetchBytes(String url, {Dio? client, String? method}) async {
     client ??= this.client;
-    final options = buildOptions().copyWith(responseType: ResponseType.bytes);
-    final response = await client.get<List<int>>(url, options: options);
+    final options = buildOptions(method).copyWith(responseType: ResponseType.bytes);
+    final response = await client.request<List<int>>(url, options: options);
     final statusCode = response.statusCode ?? -1;
     final responseHeaders = response.headers;
     final contentTypeHeader = responseHeaders[Headers.contentTypeHeader]?.firstOrNull;
     final extension = contentTypeHeader == null ? '' : ContentType.parse(contentTypeHeader).fileExtension;
     final type = extension.startsWith('.') ? extension.substring(1, extension.length) : extension;
     return HttpSourceBytes(type: type, data: response.data!, statusCode: statusCode, responseHeaders: responseHeaders);
+  }
+
+  @override
+  Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {Dio? client, String? method}) async {
+    client ??= this.client;
+    final bytes = await fetchBytes(url, client: client, method: method);
+    return parseProto(bytes.data, fields);
   }
 
   @override
@@ -80,6 +93,14 @@ abstract class DioHttpSource extends HttpSource {
       imageProvider.evict();
     }));
     return completer.future;
+  }
+
+  @override
+  Future<String> resolveStringBytes(List<int> bytes, {String? charset}) async {
+    // 选择编码集
+    final encoding = charset == null ? utf8 : Charset.getByName(charset)!;
+    // 根据指定编码集对内容进行解析
+    return encoding.decode(bytes);
   }
 
   @override

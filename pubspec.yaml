@@ -92,6 +92,8 @@ dependencies:
   convert: ^3.1.1
   # 数据加解密
   encrypt: ^5.0.3
+  # 哈希计算
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

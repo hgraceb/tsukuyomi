@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
+
 /// 应用常量
 class App {
   /// 应用名称
-  static const String name = 'Tsukuyomi';
+  static const String name = 'Tsukuyomi' '${kDebugMode ? 'Debug' : ''}';
 
   /// 下载目录
   static const String downloadsPath = 'Downloads';

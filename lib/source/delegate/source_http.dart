@@ -34,12 +34,15 @@ class IsolateDioHttpSource extends DioHttpSource {
     delegate.clazz.props['id'] ??= EvalProperty.getter(($) => id);
     delegate.clazz.props['parseJson'] ??= EvalProperty.getter(($) => parseJson);
     delegate.clazz.props['parseHtml'] ??= EvalProperty.getter(($) => parseHtml);
+    delegate.clazz.props['parseProto'] ??= EvalProperty.getter(($) => parseProto);
     delegate.clazz.props['fetchJson'] ??= EvalProperty.getter(($) => fetchJson);
     delegate.clazz.props['fetchHtml'] ??= EvalProperty.getter(($) => fetchHtml);
     delegate.clazz.props['fetchBytes'] ??= EvalProperty.getter(($) => fetchBytes);
+    delegate.clazz.props['fetchProto'] ??= EvalProperty.getter(($) => fetchProto);
     delegate.clazz.props['setStorage'] ??= EvalProperty.getter(($) => setStorage);
     delegate.clazz.props['getStorage'] ??= EvalProperty.getter(($) => getStorage);
     delegate.clazz.props['resolveImageBytes'] ??= EvalProperty.getter(($) => resolveImageBytes);
+    delegate.clazz.props['resolveStringBytes'] ??= EvalProperty.getter(($) => resolveStringBytes);
     delegate.clazz.props['encodeJpg'] ??= EvalProperty.getter(($) => encodeJpg);
   }
 
@@ -83,19 +86,24 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<dynamic> fetchJson(String url, [Dio? client]) {
+  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers}) {
     // 每次请求数据时都优先创建新的网络请求器，避免多次请求导致网络请求器内部包含无法通过 Isolate 传递的数据
-    return super.fetchJson(url, newClient(client));
+    return super.fetchJson(url, client: newClient(client), method: method, headers: headers);
   }
 
   @override
-  Future<Document> fetchHtml(String url, [Dio? client]) {
-    return super.fetchHtml(url, newClient(client));
+  Future<Document> fetchHtml(String url, {Dio? client, String? method}) {
+    return super.fetchHtml(url, client: newClient(client), method: method);
   }
 
   @override
-  Future<HttpSourceBytes> fetchBytes(String url, [Dio? client]) {
-    return super.fetchBytes(url, newClient(client));
+  Future<HttpSourceBytes> fetchBytes(String url, {Dio? client, String? method}) {
+    return super.fetchBytes(url, client: newClient(client), method: method);
+  }
+
+  @override
+  Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {Dio? client, String? method}) {
+    return super.fetchProto(url, fields, client: newClient(client), method: method);
   }
 
   @override

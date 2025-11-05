@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi/extension/extension_string.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 part 'manga.freezed.dart';
@@ -44,7 +45,7 @@ extension SourceMangaExtension on SourceManga {
       id: Value(manga.id),
       source: manga.source,
       url: url,
-      title: name,
+      title: name.toLegalPath,
       cover: cover,
       favorite: manga.favorite,
     );
@@ -54,7 +55,7 @@ extension SourceMangaExtension on SourceManga {
     return MangaTableCompanion.insert(
       source: source,
       url: url,
-      title: name,
+      title: name.toLegalPath,
       cover: cover,
       favorite: false,
     );
