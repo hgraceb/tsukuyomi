@@ -55,7 +55,7 @@ class MockManga {
 
 Future<MockDatabase> getMockDatabase() async {
   final decoded = jsonDecode(await rootBundle.loadString('assets/source/index.json')) as List<dynamic>;
-  final sources = decoded.map((e) => MockSource.fromJson(e as Map<String, dynamic>)).where((e) => e.enabled);
+  final sources = decoded.map((e) => MockSource.fromJson(e as Map<String, dynamic>)).where((e) => e.enabled).toList();
   return MockDatabase._(
     sources: [
       for (final source in sources) ...[
