@@ -15,17 +15,17 @@ class TsukuyomiRouter {
   final Widget Function(Map<String, String> params) _builder;
 
   static final home = TsukuyomiRouter._('home', '/', (params) => const HomePage());
-  static final search = TsukuyomiRouter._('search', 'search', (params) => const SearchPage());
-  static final manga = TsukuyomiRouter._('manga', 'manga/:mangaId', (params) => MangaPage(mangaId: params['mangaId']!));
-  static final chapter = TsukuyomiRouter._('chapter', 'chapter/:chapterId', (params) => ChapterPage(chapterId: params['chapterId']!));
-  static final appearance = TsukuyomiRouter._('appearance', 'appearance', (params) => const AppearancePage());
-
-  static final debug = TsukuyomiRouter._('debug', 'debug', (params) => const DebugPage());
-  static final debugList = TsukuyomiRouter._('debugList', 'list', (params) => const DebugListPage());
-  static final debugScaffold = TsukuyomiRouter._('debugScaffold', 'scaffold', (params) => const DebugScaffoldPage());
-  static final debugInterpreter = TsukuyomiRouter._('debugInterpreter', 'interpreter', (params) => const DebugInterpreterPage());
-
-  static final themePreview = TsukuyomiRouter._('themePreview', 'themePreview', (params) => const ThemePreviewPage());
+  // static final search = TsukuyomiRouter._('search', 'search', (params) => const SearchPage());
+  // static final manga = TsukuyomiRouter._('manga', 'manga/:mangaId', (params) => MangaPage(mangaId: params['mangaId']!));
+  // static final chapter = TsukuyomiRouter._('chapter', 'chapter/:chapterId', (params) => ChapterPage(chapterId: params['chapterId']!));
+  // static final appearance = TsukuyomiRouter._('appearance', 'appearance', (params) => const AppearancePage());
+  //
+  // static final debug = TsukuyomiRouter._('debug', 'debug', (params) => const DebugPage());
+  // static final debugList = TsukuyomiRouter._('debugList', 'list', (params) => const DebugListPage());
+  // static final debugScaffold = TsukuyomiRouter._('debugScaffold', 'scaffold', (params) => const DebugScaffoldPage());
+  // static final debugInterpreter = TsukuyomiRouter._('debugInterpreter', 'interpreter', (params) => const DebugInterpreterPage());
+  //
+  // static final themePreview = TsukuyomiRouter._('themePreview', 'themePreview', (params) => const ThemePreviewPage());
 }
 
 /// 路由页面配置
@@ -34,17 +34,17 @@ class TsukuyomiRouterConfig extends GoRouter {
 
   static final List<RouteBase> routers = [
     buildRoute(TsukuyomiRouter.home, routes: [
-      buildRoute(TsukuyomiRouter.search),
-      buildRoute(TsukuyomiRouter.manga, routes: [
-        buildRoute(TsukuyomiRouter.chapter),
-      ]),
-      buildRoute(TsukuyomiRouter.appearance),
-      buildRoute(TsukuyomiRouter.themePreview),
-      buildRoute(TsukuyomiRouter.debug, routes: [
-        buildRoute(TsukuyomiRouter.debugList),
-        buildRoute(TsukuyomiRouter.debugScaffold),
-        buildRoute(TsukuyomiRouter.debugInterpreter),
-      ]),
+      // buildRoute(TsukuyomiRouter.search),
+      // buildRoute(TsukuyomiRouter.manga, routes: [
+      //   buildRoute(TsukuyomiRouter.chapter),
+      // ]),
+      // buildRoute(TsukuyomiRouter.appearance),
+      // buildRoute(TsukuyomiRouter.themePreview),
+      // buildRoute(TsukuyomiRouter.debug, routes: [
+      //   buildRoute(TsukuyomiRouter.debugList),
+      //   buildRoute(TsukuyomiRouter.debugScaffold),
+      //   buildRoute(TsukuyomiRouter.debugInterpreter),
+      // ]),
     ]),
   ];
 }

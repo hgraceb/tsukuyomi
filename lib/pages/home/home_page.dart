@@ -22,9 +22,9 @@ class HomePage extends ConsumerWidget {
         // TODO 启用页面嵌套滚动并处理底部导航栏动画切换
         physics: const NeverScrollableScrollPhysics(),
         children: const [
-          AlwaysKeepAlive(child: LibraryPage()),
-          AlwaysKeepAlive(child: DownloadPage()),
-          SettingsPage(),
+          // AlwaysKeepAlive(child: LibraryPage()),
+          // AlwaysKeepAlive(child: DownloadPage()),
+          // SettingsPage(),
         ],
       ),
       bottomNavigationBar: NavigationBar(

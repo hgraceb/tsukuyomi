@@ -1,10 +1,3 @@
 export 'appearance/appearance_page.dart';
-export 'chapter/chapter_page.dart';
-export 'debug/debug_page.dart';
-export 'download/download_page.dart';
 export 'home/home_page.dart';
-export 'library/library_page.dart';
-export 'manga/manga_page.dart';
-export 'search/search_page.dart';
-export 'settings/settings_page.dart';
 export 'theme/theme_preview_page.dart';

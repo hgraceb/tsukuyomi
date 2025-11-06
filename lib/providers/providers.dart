@@ -1,4 +1,3 @@
-export 'download/download_manager_provider.dart';
 export 'error/error_handler_provider.dart';
 export 'messenger/messenger_provider.dart';
 export 'platform/platform_metadata_provider.dart';
