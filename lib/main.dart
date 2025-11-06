@@ -8,6 +8,8 @@ import 'package:tsukuyomi/providers/providers.dart';
 import 'package:tsukuyomi_metadata/tsukuyomi_metadata.dart';
 
 Future<void> main() async {
+  // 平滑背景渐变色
+  Paint.enableDithering = true;
   // 引擎组件初始化
   WidgetsFlutterBinding.ensureInitialized();
   // 本地键值对储存

@@ -1,4 +1,7 @@
 export 'animated/animated_fade_switcher.dart';
+export 'animated/animated_watch_async.dart';
+export 'async/async_value_widget.dart';
+export 'async/select_async_watch.dart';
 export 'async/watch_async.dart';
 export 'async/watch_select.dart';
 export 'builder/throttle_builder.dart';

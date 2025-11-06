@@ -1,0 +1,14 @@
+import 'package:tsukuyomi/database/table/table.dart';
+
+-- 根据漫画源进行分区并查询每个分区内优先级最高的章节下载数据 TODO 新增 PARTITION 排序依据
+downloadsPartitionBySource: SELECT download.**, chapter.**, manga.**
+     FROM (SELECT *
+           FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY "source") AS "row_number"
+                 FROM download
+                 WHERE "error" IS NULL
+           ) AS partitioned
+           WHERE partitioned."row_number" = 1
+           LIMIT ?
+     ) AS download
+     INNER JOIN chapter ON chapter."id" = download."chapter"
+     INNER JOIN manga ON manga."id" = download."manga";
