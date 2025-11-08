@@ -4,7 +4,7 @@ import 'package:tsukuyomi/database/database.dart';
 part 'source.freezed.dart';
 
 @freezed
-class DatabaseSource with _$DatabaseSource, SourceTableToColumns {
+class DatabaseSource with _$DatabaseSource, $SourceTableTableToColumns {
   const DatabaseSource._();
 
   const factory DatabaseSource({

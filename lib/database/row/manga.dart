@@ -6,7 +6,7 @@ import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 part 'manga.freezed.dart';
 
 @freezed
-class DatabaseManga with _$DatabaseManga, MangaTableToColumns {
+class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
   const DatabaseManga._();
 
   const factory DatabaseManga({

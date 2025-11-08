@@ -6,7 +6,7 @@ import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 part 'chapter.freezed.dart';
 
 @freezed
-class DatabaseChapter with _$DatabaseChapter, ChapterTableToColumns {
+class DatabaseChapter with _$DatabaseChapter, $ChapterTableTableToColumns {
   const DatabaseChapter._();
 
   const factory DatabaseChapter({
