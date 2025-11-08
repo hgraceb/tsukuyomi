@@ -96,39 +96,7 @@ class _LayoutSizes {
 ///
 ///  * [Column], [Row], and [Flex], the flex widgets.
 ///  * [RenderFlex], the flex render object.
-enum MainAxisAlignment {
-  /// Place the children as close to the start of the main axis as possible.
-  ///
-  /// If this value is used in a horizontal direction, a [TextDirection] must be
-  /// available to determine if the start is the left or the right.
-  ///
-  /// If this value is used in a vertical direction, a [VerticalDirection] must be
-  /// available to determine if the start is the top or the bottom.
-  start,
-
-  /// Place the children as close to the end of the main axis as possible.
-  ///
-  /// If this value is used in a horizontal direction, a [TextDirection] must be
-  /// available to determine if the end is the left or the right.
-  ///
-  /// If this value is used in a vertical direction, a [VerticalDirection] must be
-  /// available to determine if the end is the top or the bottom.
-  end,
-
-  /// Place the children as close to the middle of the main axis as possible.
-  center,
-
-  /// Place the free space evenly between the children.
-  spaceBetween,
-
-  /// Place the free space evenly between the children as well as half of that
-  /// space before and after the first and last child.
-  spaceAround,
-
-  /// Place the free space evenly between the children as well as before and
-  /// after the first and last child.
-  spaceEvenly;
-
+extension on MainAxisAlignment {
   (double leadingSpace, double betweenSpace) _distributeSpace(
     double freeSpace,
     int itemCount,
@@ -177,81 +145,7 @@ enum MainAxisAlignment {
 ///  * [Flex.crossAxisAlignment], the property on flex widgets that
 ///    has this type.
 ///  * [RenderFlex], the flex render object.
-enum CrossAxisAlignment {
-  /// Place the children with their start edge aligned with the start side of
-  /// the cross axis.
-  ///
-  /// For example, in a column (a flex with a vertical axis) whose
-  /// [TextDirection] is [TextDirection.ltr], this aligns the left edge of the
-  /// children along the left edge of the column.
-  ///
-  /// If this value is used in a horizontal direction, a [TextDirection] must be
-  /// available to determine if the start is the left or the right.
-  ///
-  /// If this value is used in a vertical direction, a [VerticalDirection] must be
-  /// available to determine if the start is the top or the bottom.
-  start,
-
-  /// Place the children as close to the end of the cross axis as possible.
-  ///
-  /// For example, in a column (a flex with a vertical axis) whose
-  /// [TextDirection] is [TextDirection.ltr], this aligns the right edge of the
-  /// children along the right edge of the column.
-  ///
-  /// If this value is used in a horizontal direction, a [TextDirection] must be
-  /// available to determine if the end is the left or the right.
-  ///
-  /// If this value is used in a vertical direction, a [VerticalDirection] must be
-  /// available to determine if the end is the top or the bottom.
-  end,
-
-  /// Place the children so that their centers align with the middle of the
-  /// cross axis.
-  ///
-  /// This is the default cross-axis alignment.
-  center,
-
-  /// Require the children to fill the cross axis.
-  ///
-  /// This causes the constraints passed to the children to be tight in the
-  /// cross axis.
-  stretch,
-
-  /// Place the children along the cross axis such that their baselines match.
-  ///
-  /// Consider using this value for any horizontal main axis (as with [Row])
-  /// where the children primarily contain text.  If the different children
-  /// have text with different font metrics (for example because they differ
-  /// in [TextStyle.fontSize] or other [TextStyle] properties, or because
-  /// they use different fonts due to being written in different scripts),
-  /// then this typically produces better visual alignment than the other
-  /// [CrossAxisAlignment] values, which use no information about
-  /// where the text sits vertically within its bounding box.
-  ///
-  /// The baseline of a widget is typically the typographic baseline of the
-  /// first text in the first [Text] or [RichText] widget it encloses, if any.
-  /// The typographic baseline is a horizontal line used for aligning text,
-  /// which is specified by each font; for alphabetic scripts, it ordinarily
-  /// runs along the bottom of letters excluding any descenders.
-  ///
-  /// Because baselines are always horizontal, this alignment is intended for
-  /// horizontal main axes (as with [Row]). If the main axis is vertical
-  /// (as with [Column]), then this value is treated like [start].
-  ///
-  /// For horizontal main axes, if the minimum height constraint passed to the
-  /// flex layout exceeds the intrinsic height of the cross axis, children will
-  /// be aligned as close to the top as they can be while honoring the baseline
-  /// alignment. In other words, the extra space will be below all the children.
-  ///
-  /// Children who report no baseline will be top-aligned.
-  ///
-  /// See also:
-  ///
-  ///  * [RenderBox.getDistanceToBaseline], which defines the baseline of a box.
-  ///  * [IgnoreBaseline], which can be used to ignore a child for the purpose of
-  ///    baseline alignment.
-  baseline;
-
+extension on CrossAxisAlignment {
   double _getChildCrossAxisOffset(double freeSpace, bool flipped) {
     // This method should not be used to position baseline-aligned children.
     return switch (this) {
