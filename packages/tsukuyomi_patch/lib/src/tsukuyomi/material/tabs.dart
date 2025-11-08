@@ -76,44 +76,38 @@ class _PatchedTabBarState extends _TabBarState {
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterialLocalizations(context));
     assert(_debugScheduleCheckHasValidTabsCount());
-    final TabBarTheme tabBarTheme = TabBarTheme.of(context);
-    final TabAlignment effectiveTabAlignment = widget.tabAlignment ?? tabBarTheme.tabAlignment ?? _defaults.tabAlignment!;
+    final ThemeData theme = Theme.of(context);
+    final TabBarThemeData tabBarTheme = TabBarTheme.of(context);
+    final TabAlignment effectiveTabAlignment =
+        widget.tabAlignment ?? tabBarTheme.tabAlignment ?? _defaults.tabAlignment!;
     assert(_debugTabAlignmentIsValid(effectiveTabAlignment));
 
     final MaterialLocalizations localizations = MaterialLocalizations.of(context);
     if (_controller!.length == 0) {
-      return Container(
-        height: _kTabHeight + widget.indicatorWeight,
+      return LimitedBox(
+        maxWidth: 0.0,
+        child: SizedBox(width: double.infinity, height: _kTabHeight + widget.indicatorWeight),
       );
     }
 
-
     final List<Widget> wrappedTabs = List<Widget>.generate(widget.tabs.length, (int index) {
-      const double verticalAdjustment = (_kTextAndIconTabHeight - _kTabHeight)/2.0;
-      EdgeInsetsGeometry? adjustedPadding;
+      EdgeInsetsGeometry padding =
+          widget.labelPadding ?? tabBarTheme.labelPadding ?? kTabLabelPadding;
+      const double verticalAdjustment = (_kTextAndIconTabHeight - _kTabHeight) / 2.0;
 
-      if (widget.tabs[index] is PreferredSizeWidget) {
-        final PreferredSizeWidget tab = widget.tabs[index] as PreferredSizeWidget;
-        if (widget.tabHasTextAndIcon && tab.preferredSize.height == _kTabHeight) {
-          if (widget.labelPadding != null || tabBarTheme.labelPadding != null) {
-            adjustedPadding = (widget.labelPadding ?? tabBarTheme.labelPadding!).add(const EdgeInsets.symmetric(vertical: verticalAdjustment));
-          }
-          else {
-            adjustedPadding = const EdgeInsets.symmetric(vertical: verticalAdjustment, horizontal: 16.0);
-          }
-        }
+      final Widget tab = widget.tabs[index];
+      if (tab is PreferredSizeWidget &&
+          tab.preferredSize.height == _kTabHeight &&
+          widget.tabHasTextAndIcon) {
+        padding = padding.add(const EdgeInsets.symmetric(vertical: verticalAdjustment));
       }
-
-      _labelPaddings[index] = adjustedPadding ?? widget.labelPadding ?? tabBarTheme.labelPadding ?? kTabLabelPadding;
+      _labelPaddings[index] = padding;
 
       return Center(
         heightFactor: 1.0,
         child: Padding(
           padding: _labelPaddings[index],
-          child: KeyedSubtree(
-            key: _tabKeys[index],
-            child: widget.tabs[index],
-          ),
+          child: KeyedSubtree(key: _tabKeys[index], child: widget.tabs[index]),
         ),
       );
     });
@@ -128,32 +122,51 @@ class _PatchedTabBarState extends _TabBarState {
         // The user tapped on a tab, the tab controller's animation is running.
         assert(_currentIndex != previousIndex);
         final Animation<double> animation = _ChangeAnimation(_controller!);
-        wrappedTabs[_currentIndex!] = _buildStyledTab(wrappedTabs[_currentIndex!], true, animation, _defaults);
-        wrappedTabs[previousIndex] = _buildStyledTab(wrappedTabs[previousIndex], false, animation, _defaults);
+        wrappedTabs[_currentIndex!] = _buildStyledTab(
+          wrappedTabs[_currentIndex!],
+          true,
+          animation,
+          _defaults,
+        );
+        wrappedTabs[previousIndex] = _buildStyledTab(
+          wrappedTabs[previousIndex],
+          false,
+          animation,
+          _defaults,
+        );
       } else {
         // The user is dragging the TabBarView's PageView left or right.
-        // region Tsukuyomi: 修复 TabBar 与 SliverAppBar 一起使用时可能出现的崩溃: https://github.com/flutter/flutter/issues/154484
-        // ```
-        // final int tabIndex = _currentIndex!;
-        // final Animation<double> centerAnimation = _DragAnimation(_controller!, tabIndex);
-        // wrappedTabs[tabIndex] = _buildStyledTab(wrappedTabs[tabIndex], true, centerAnimation, _defaults);
-        // ```
-        // endregion Tsukuyomi
-        if (_currentIndex! < widget.tabs.length) {
-          final int tabIndex = _currentIndex!;
-          final Animation<double> centerAnimation = _DragAnimation(_controller!, tabIndex);
-          wrappedTabs[tabIndex] = _buildStyledTab(wrappedTabs[tabIndex], true, centerAnimation, _defaults);
-        }
-        // endregion Tsukuyomi
+        final int tabIndex = _currentIndex!;
+        final Animation<double> centerAnimation = _DragAnimation(_controller!, tabIndex);
+        wrappedTabs[tabIndex] = _buildStyledTab(
+          wrappedTabs[tabIndex],
+          true,
+          centerAnimation,
+          _defaults,
+        );
         if (_currentIndex! > 0) {
           final int tabIndex = _currentIndex! - 1;
-          final Animation<double> previousAnimation = ReverseAnimation(_DragAnimation(_controller!, tabIndex));
-          wrappedTabs[tabIndex] = _buildStyledTab(wrappedTabs[tabIndex], false, previousAnimation, _defaults);
+          final Animation<double> previousAnimation = ReverseAnimation(
+            _DragAnimation(_controller!, tabIndex),
+          );
+          wrappedTabs[tabIndex] = _buildStyledTab(
+            wrappedTabs[tabIndex],
+            false,
+            previousAnimation,
+            _defaults,
+          );
         }
         if (_currentIndex! < widget.tabs.length - 1) {
           final int tabIndex = _currentIndex! + 1;
-          final Animation<double> nextAnimation = ReverseAnimation(_DragAnimation(_controller!, tabIndex));
-          wrappedTabs[tabIndex] = _buildStyledTab(wrappedTabs[tabIndex], false, nextAnimation, _defaults);
+          final Animation<double> nextAnimation = ReverseAnimation(
+            _DragAnimation(_controller!, tabIndex),
+          );
+          wrappedTabs[tabIndex] = _buildStyledTab(
+            wrappedTabs[tabIndex],
+            false,
+            nextAnimation,
+            _defaults,
+          );
         }
       }
     }
@@ -167,64 +180,88 @@ class _PatchedTabBarState extends _TabBarState {
         if (index == _currentIndex) MaterialState.selected,
       };
 
-      final MouseCursor effectiveMouseCursor = MaterialStateProperty.resolveAs<MouseCursor?>(widget.mouseCursor, selectedState)
-        ?? tabBarTheme.mouseCursor?.resolve(selectedState)
-        ?? MaterialStateMouseCursor.clickable.resolve(selectedState);
+      final MouseCursor effectiveMouseCursor =
+          MaterialStateProperty.resolveAs<MouseCursor?>(widget.mouseCursor, selectedState) ??
+          tabBarTheme.mouseCursor?.resolve(selectedState) ??
+          MaterialStateMouseCursor.clickable.resolve(selectedState);
 
-      final MaterialStateProperty<Color?> defaultOverlay = MaterialStateProperty.resolveWith<Color?>(
-        (Set<MaterialState> states) {
-          final Set<MaterialState> effectiveStates = selectedState..addAll(states);
-          return _defaults.overlayColor?.resolve(effectiveStates);
-        },
-      );
+      final MaterialStateProperty<Color?> defaultOverlay =
+          MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+            final Set<MaterialState> effectiveStates = selectedState..addAll(states);
+            return _defaults.overlayColor?.resolve(effectiveStates);
+          });
       wrappedTabs[index] = InkWell(
         mouseCursor: effectiveMouseCursor,
-        onTap: () { _handleTap(index); },
+        onTap: () {
+          _handleTap(index);
+        },
+        onHover: (bool value) {
+          widget.onHover?.call(value, index);
+        },
+        onFocusChange: (bool value) {
+          widget.onFocusChange?.call(value, index);
+        },
         enableFeedback: widget.enableFeedback ?? true,
         overlayColor: widget.overlayColor ?? tabBarTheme.overlayColor ?? defaultOverlay,
         splashFactory: widget.splashFactory ?? tabBarTheme.splashFactory ?? _defaults.splashFactory,
-        borderRadius: widget.splashBorderRadius,
+        borderRadius:
+            widget.splashBorderRadius ??
+            tabBarTheme.splashBorderRadius ??
+            _defaults.splashBorderRadius,
         child: Padding(
           padding: EdgeInsets.only(bottom: widget.indicatorWeight),
           child: Stack(
             children: <Widget>[
               wrappedTabs[index],
               Semantics(
+                role: SemanticsRole.tab,
                 selected: index == _currentIndex,
-                label: localizations.tabLabel(tabIndex: index + 1, tabCount: tabCount),
+                label: kIsWeb
+                    ? null
+                    : localizations.tabLabel(tabIndex: index + 1, tabCount: tabCount),
               ),
             ],
           ),
         ),
       );
+      wrappedTabs[index] = MergeSemantics(child: wrappedTabs[index]);
       if (!widget.isScrollable && effectiveTabAlignment == TabAlignment.fill) {
         wrappedTabs[index] = Expanded(child: wrappedTabs[index]);
       }
     }
 
-    Widget tabBar = CustomPaint(
-      painter: _indicatorPainter,
-      child: _TabStyle(
-        animation: kAlwaysDismissedAnimation,
-        isSelected: false,
-        isPrimary: widget._isPrimary,
-        labelColor: widget.labelColor,
-        unselectedLabelColor: widget.unselectedLabelColor,
-        labelStyle: widget.labelStyle,
-        unselectedLabelStyle: widget.unselectedLabelStyle,
-        defaults: _defaults,
-        child: _TabLabelBar(
-          onPerformLayout: _saveTabOffsets,
-          mainAxisSize: effectiveTabAlignment == TabAlignment.fill ? MainAxisSize.max : MainAxisSize.min,
-          children: wrappedTabs,
+    Widget tabBar = Semantics(
+      role: SemanticsRole.tabBar,
+      container: true,
+      explicitChildNodes: true,
+      child: CustomPaint(
+        painter: _indicatorPainter,
+        child: _TabStyle(
+          animation: kAlwaysDismissedAnimation,
+          isSelected: false,
+          isPrimary: widget._isPrimary,
+          labelColor: widget.labelColor,
+          unselectedLabelColor: widget.unselectedLabelColor,
+          labelStyle: widget.labelStyle,
+          unselectedLabelStyle: widget.unselectedLabelStyle,
+          defaults: _defaults,
+          child: _TabLabelBar(
+            onPerformLayout: _saveTabOffsets,
+            mainAxisSize: effectiveTabAlignment == TabAlignment.fill
+                ? MainAxisSize.max
+                : MainAxisSize.min,
+            children: wrappedTabs,
+          ),
         ),
       ),
     );
 
     if (widget.isScrollable) {
       final EdgeInsetsGeometry? effectivePadding = effectiveTabAlignment == TabAlignment.startOffset
-        ? const EdgeInsetsDirectional.only(start: _kStartOffset).add(widget.padding ?? EdgeInsets.zero)
-        : widget.padding;
+          ? const EdgeInsetsDirectional.only(
+              start: _kStartOffset,
+            ).add(widget.padding ?? EdgeInsets.zero)
+          : widget.padding;
       _scrollController ??= _TabBarScrollController(this);
       tabBar = ScrollConfiguration(
         // The scrolling tabs should not show an overscroll indicator.
@@ -247,13 +284,42 @@ class _PatchedTabBarState extends _TabBarState {
           ),
         ),
       );
+      if (theme.useMaterial3) {
+        final AlignmentGeometry effectiveAlignment = switch (effectiveTabAlignment) {
+          TabAlignment.center => Alignment.center,
+          TabAlignment.start ||
+          TabAlignment.startOffset ||
+          TabAlignment.fill => AlignmentDirectional.centerStart,
+        };
+
+        final Color dividerColor =
+            widget.dividerColor ?? tabBarTheme.dividerColor ?? _defaults.dividerColor!;
+        final double dividerHeight =
+            widget.dividerHeight ?? tabBarTheme.dividerHeight ?? _defaults.dividerHeight!;
+
+        tabBar = Align(
+          heightFactor: 1.0,
+          widthFactor: dividerHeight > 0 ? null : 1.0,
+          alignment: effectiveAlignment,
+          child: tabBar,
+        );
+
+        if (dividerColor != Colors.transparent && dividerHeight > 0) {
+          tabBar = CustomPaint(
+            painter: _DividerPainter(dividerColor: dividerColor, dividerHeight: dividerHeight),
+            child: tabBar,
+          );
+        }
+      }
     } else if (widget.padding != null) {
-      tabBar = Padding(
-        padding: widget.padding!,
-        child: tabBar,
-      );
+      tabBar = Padding(padding: widget.padding!, child: tabBar);
     }
 
-    return tabBar;
+    return MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: widget.textScaler ?? tabBarTheme.textScaler),
+      child: tabBar,
+    );
   }
 }
