@@ -58,9 +58,7 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
         );
         accumulatedSize += childSize;
         // Baseline-aligned children contributes to the cross axis extent separately.
-        final double? baselineOffset = textBaseline == null
-            ? null
-            : getBaseline(child, nonFlexChildConstraints, textBaseline);
+        final double? baselineOffset = textBaseline == null ? null : getBaseline(child, nonFlexChildConstraints, textBaseline);
         accumulatedAscentDescent += _AscentDescent(
           baselineOffset: baselineOffset,
           crossSize: childSize.crossAxisExtent,
@@ -76,11 +74,7 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
     // The second pass distributes free space to flexible children.
     final double flexSpace = math.max(0.0, maxMainSize - accumulatedSize.mainAxisExtent);
     final double spacePerFlex = flexSpace / totalFlex;
-    for (
-      RenderBox? child = firstFlexChild;
-      child != null && totalFlex > 0;
-      child = childAfter(child)
-    ) {
+    for (RenderBox? child = firstFlexChild; child != null && totalFlex > 0; child = childAfter(child)) {
       final int flex = _getFlex(child);
       if (flex == 0) {
         continue;
@@ -99,9 +93,7 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
         direction: direction,
       );
       accumulatedSize += childSize;
-      final double? baselineOffset = textBaseline == null
-          ? null
-          : getBaseline(child, childConstraints, textBaseline);
+      final double? baselineOffset = textBaseline == null ? null : getBaseline(child, childConstraints, textBaseline);
       accumulatedAscentDescent += _AscentDescent(
         baselineOffset: baselineOffset,
         crossSize: childSize.crossAxisExtent,
@@ -134,7 +126,6 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
       spacePerFlex: firstFlexChild == null ? null : spacePerFlex,
     );
   }
-
 
   // @override
   // _LayoutSizes _computeSizes({required BoxConstraints constraints, required ChildLayouter layoutChild}) {
