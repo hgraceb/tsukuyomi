@@ -18,7 +18,6 @@ List<DartClass> get $dynamic {
       'children': (($) => $.children, ($, $$) => $.children = $$),
       'className': (($) => $.className, ($, $$) => $.className = $$),
       'classes': (($) => $.classes, ($, $$) => $.classes = $$),
-      'copyWith': (($) => $.copyWith, ($, $$) => $.copyWith = $$),
       'cover': (($) => $.cover, ($, $$) => $.cover = $$),
       'createDocumentFragment': (($) => $.createDocumentFragment, ($, $$) => $.createDocumentFragment = $$),
       'createElement': (($) => $.createElement, ($, $$) => $.createElement = $$),

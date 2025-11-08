@@ -1,4 +1,4 @@
-library tsukuyomi_eval;
+library;
 
 export 'src/eval.dart';
 export 'src/object.dart';

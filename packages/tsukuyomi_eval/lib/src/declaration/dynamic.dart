@@ -64,6 +64,7 @@ List<DartClass> get $dynamic {
       'contentAsString': (($) => $.contentAsString, ($, $$) => $.contentAsString = $$),
       'contentText': (($) => $.contentText, ($, $$) => $.contentText = $$),
       'convert': (($) => $.convert, ($, $$) => $.convert = $$),
+      'copyWith': (($) => $.copyWith, ($, $$) => $.copyWith = $$),
       'data': (($) => $.data, ($, $$) => $.data = $$),
       'day': (($) => $.day, ($, $$) => $.day = $$),
       'debugDisposed': (($) => $.debugDisposed, ($, $$) => $.debugDisposed = $$),
