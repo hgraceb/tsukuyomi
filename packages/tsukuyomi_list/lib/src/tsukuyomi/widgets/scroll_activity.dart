@@ -19,9 +19,7 @@ class TsukuyomiDeltaScrollActivity extends DrivenScrollActivity {
   late double _value;
 
   @override
-  ScrollPositionWithSingleContext get delegate {
-    return super.delegate as ScrollPositionWithSingleContext;
-  }
+  ScrollPositionWithSingleContext get delegate => super.delegate as ScrollPositionWithSingleContext;
 
   @override
   void _tick() {
@@ -32,7 +30,7 @@ class TsukuyomiDeltaScrollActivity extends DrivenScrollActivity {
     final minPixels = math.min(oldPixels, delegate.minScrollExtent);
     final maxPixels = math.max(oldPixels, delegate.maxScrollExtent);
     // 在指定范围内更新滚动位置
-    if (delegate.setPixels(newPixels.clamp(minPixels, maxPixels)) != 0.0) {
+    if (!applyMoveTo(newPixels.clamp(minPixels, maxPixels))) {
       delegate.goIdle();
     }
   }
