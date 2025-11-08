@@ -62,6 +62,7 @@ class TsukuyomiPixelFlex extends Flex {
       verticalDirection: renderFlex.verticalDirection,
       textBaseline: renderFlex.textBaseline,
       clipBehavior: renderFlex.clipBehavior,
+      spacing: renderFlex.spacing,
     );
   }
 

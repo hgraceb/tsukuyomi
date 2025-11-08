@@ -17,6 +17,7 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
     super.verticalDirection,
     super.textBaseline,
     super.clipBehavior,
+    super.spacing,
   });
 
   @override
