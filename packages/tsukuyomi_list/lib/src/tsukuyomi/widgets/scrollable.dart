@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 part 'package:tsukuyomi_list/src/flutter/widgets/scrollable.dart';
-
 part 'package:tsukuyomi_list/src/flutter/widgets/scrollable_helpers.dart';
 
 class TsukuyomiScrollable extends Scrollable {
@@ -26,29 +25,26 @@ class TsukuyomiScrollable extends Scrollable {
     super.restorationId,
     super.scrollBehavior,
     super.clipBehavior,
+    super.hitTestBehavior,
     this.ignorePointer = false,
   });
 
-  factory TsukuyomiScrollable.from({
-    required Scrollable scrollable,
-    bool ignorePointer = false,
-  }) {
-    return TsukuyomiScrollable(
-      key: scrollable.key,
-      axisDirection: scrollable.axisDirection,
-      controller: scrollable.controller,
-      physics: scrollable.physics,
-      viewportBuilder: scrollable.viewportBuilder,
-      incrementCalculator: scrollable.incrementCalculator,
-      excludeFromSemantics: scrollable.excludeFromSemantics,
-      semanticChildCount: scrollable.semanticChildCount,
-      dragStartBehavior: scrollable.dragStartBehavior,
-      restorationId: scrollable.restorationId,
-      scrollBehavior: scrollable.scrollBehavior,
-      clipBehavior: scrollable.clipBehavior,
-      ignorePointer: ignorePointer,
-    );
-  }
+  factory TsukuyomiScrollable.from({required Scrollable scrollable, bool ignorePointer = false}) => TsukuyomiScrollable(
+    key: scrollable.key,
+    axisDirection: scrollable.axisDirection,
+    controller: scrollable.controller,
+    physics: scrollable.physics,
+    viewportBuilder: scrollable.viewportBuilder,
+    incrementCalculator: scrollable.incrementCalculator,
+    excludeFromSemantics: scrollable.excludeFromSemantics,
+    semanticChildCount: scrollable.semanticChildCount,
+    dragStartBehavior: scrollable.dragStartBehavior,
+    restorationId: scrollable.restorationId,
+    scrollBehavior: scrollable.scrollBehavior,
+    clipBehavior: scrollable.clipBehavior,
+    hitTestBehavior: scrollable.hitTestBehavior,
+    ignorePointer: ignorePointer,
+  );
 
   final bool ignorePointer;
 
@@ -58,9 +54,7 @@ class TsukuyomiScrollable extends Scrollable {
 
 class TsukuyomiScrollableState extends ScrollableState {
   @override
-  TsukuyomiScrollable get widget {
-    return super.widget as TsukuyomiScrollable;
-  }
+  TsukuyomiScrollable get widget => super.widget as TsukuyomiScrollable;
 
   @override
   Map<Type, GestureRecognizerFactory> get _gestureRecognizers {
