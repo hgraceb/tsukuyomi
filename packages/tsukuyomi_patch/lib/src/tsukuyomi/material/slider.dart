@@ -33,6 +33,7 @@ class PatchedSlider extends Slider {
     super.focusNode,
     super.autofocus,
     super.allowedInteraction,
+    super.padding,
   });
 
   const PatchedSlider.adaptive({
