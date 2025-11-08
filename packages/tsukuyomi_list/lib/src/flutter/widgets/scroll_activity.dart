@@ -4,20 +4,24 @@
 
 part of 'package:tsukuyomi_list/src/tsukuyomi/widgets/scroll_activity.dart';
 
-/// An activity that animates a scroll view based on animation parameters.
+/// An activity that drives a scroll view through a given animation.
 ///
 /// For example, a [DrivenScrollActivity] is used to implement
 /// [ScrollController.animateTo].
 ///
+/// The scrolling will be driven by the given animation parameters
+/// or the given [Simulation].
+///
+/// Unlike a [BallisticScrollActivity], if a [DrivenScrollActivity] is
+/// in progress when the scroll metrics change, the activity will continue
+/// with its original animation.
+///
 /// See also:
 ///
-///  * [BallisticScrollActivity], which animates a scroll view based on a
-///    physics [Simulation].
+///  * [BallisticScrollActivity], which sets into motion a scroll view.
 class DrivenScrollActivity extends ScrollActivity {
-  /// Creates an activity that animates a scroll view based on animation
-  /// parameters.
-  ///
-  /// All of the parameters must be non-null.
+  /// Creates an activity that drives a scroll view through an animation
+  /// given by animation parameters.
   DrivenScrollActivity(
     super.delegate, {
     required double from,
@@ -27,16 +31,40 @@ class DrivenScrollActivity extends ScrollActivity {
     required TickerProvider vsync,
   }) : assert(duration > Duration.zero) {
     _completer = Completer<void>();
-    _controller = AnimationController.unbounded(
-      value: from,
-      debugLabel: objectRuntimeType(this, 'DrivenScrollActivity'),
-      vsync: vsync,
-    )
-      ..addListener(_tick)
-      ..animateTo(to, duration: duration, curve: curve)
-       .whenComplete(_end); // won't trigger if we dispose _controller first
+    _controller =
+        AnimationController.unbounded(
+            value: from,
+            debugLabel: objectRuntimeType(this, 'DrivenScrollActivity'),
+            vsync: vsync,
+          )
+          ..addListener(_tick)
+          ..animateTo(
+            to,
+            duration: duration,
+            curve: curve,
+          ).whenComplete(_end); // won't trigger if we dispose _controller before it completes.
   }
 
+  /// Creates an activity that drives a scroll view through an animation
+  /// given by a [Simulation].
+  DrivenScrollActivity.simulation(
+    super.delegate,
+    Simulation simulation, {
+    required TickerProvider vsync,
+  }) {
+    _completer = Completer<void>();
+    _controller =
+        AnimationController.unbounded(
+            debugLabel: objectRuntimeType(this, 'DrivenScrollActivity'),
+            vsync: vsync,
+          )
+          ..addListener(_tick)
+          ..animateWith(
+            simulation,
+          ).whenComplete(_end); // won't trigger if we dispose _controller before it completes.
+  }
+
+  bool _isDisposed = false;
   late final Completer<void> _completer;
   late final AnimationController _controller;
 
@@ -48,18 +76,43 @@ class DrivenScrollActivity extends ScrollActivity {
   Future<void> get done => _completer.future;
 
   void _tick() {
-    if (delegate.setPixels(_controller.value) != 0.0) {
+    if (!applyMoveTo(_controller.value)) {
       delegate.goIdle();
     }
   }
 
+  /// Move the position to the given location.
+  ///
+  /// If the new position was fully applied, returns true. If there was any
+  /// overflow, returns false.
+  ///
+  /// The default implementation calls [ScrollActivityDelegate.setPixels]
+  /// and returns true if the overflow was zero.
+  @protected
+  bool applyMoveTo(double value) {
+    return delegate.setPixels(value).abs() < precisionErrorTolerance;
+  }
+
   void _end() {
-    delegate.goBallistic(velocity);
+    // Check if the activity was disposed before going ballistic because _end might be called
+    // if _controller is disposed just after completion.
+    if (!_isDisposed) {
+      delegate.goBallistic(velocity);
+    }
   }
 
   @override
-  void dispatchOverscrollNotification(ScrollMetrics metrics, BuildContext context, double overscroll) {
-    OverscrollNotification(metrics: metrics, context: context, overscroll: overscroll, velocity: velocity).dispatch(context);
+  void dispatchOverscrollNotification(
+    ScrollMetrics metrics,
+    BuildContext context,
+    double overscroll,
+  ) {
+    OverscrollNotification(
+      metrics: metrics,
+      context: context,
+      overscroll: overscroll,
+      velocity: velocity,
+    ).dispatch(context);
   }
 
   @override
@@ -73,6 +126,7 @@ class DrivenScrollActivity extends ScrollActivity {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _completer.complete();
     _controller.dispose();
     super.dispose();
