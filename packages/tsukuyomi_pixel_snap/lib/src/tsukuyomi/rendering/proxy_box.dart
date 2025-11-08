@@ -34,8 +34,12 @@ class TsukuyomiPixelRenderFittedBox extends RenderFittedBox {
       switch (fit) {
         case BoxFit.scaleDown:
           final BoxConstraints sizeConstraints = constraints.loosen();
-          final Size unconstrainedSize = sizeConstraints
-              .constrainSizeAndAttemptToPreserveAspectRatio(childSize);
+          // region Tsukuyomi: 修改尺寸计算方法
+          // ```
+          // final Size unconstrainedSize = sizeConstraints.constrainSizeAndAttemptToPreserveAspectRatio(childSize);
+          // ```
+          final Size unconstrainedSize = sizeConstraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(child!.size, scale);
+          // endregion Tsukuyomi
           return constraints.constrain(unconstrainedSize);
         case BoxFit.contain:
         case BoxFit.cover:
@@ -43,7 +47,12 @@ class TsukuyomiPixelRenderFittedBox extends RenderFittedBox {
         case BoxFit.fitHeight:
         case BoxFit.fitWidth:
         case BoxFit.none:
-          return constraints.constrainSizeAndAttemptToPreserveAspectRatio(childSize);
+          // region Tsukuyomi: 修改尺寸计算方法
+          // ```
+          // return constraints.constrainSizeAndAttemptToPreserveAspectRatio(childSize);
+          // ```
+          return constraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(childSize, scale);
+          // endregion Tsukuyomi
       }
     } else {
       return constraints.smallest;
@@ -57,8 +66,12 @@ class TsukuyomiPixelRenderFittedBox extends RenderFittedBox {
       switch (fit) {
         case BoxFit.scaleDown:
           final BoxConstraints sizeConstraints = constraints.loosen();
-          final Size unconstrainedSize = sizeConstraints
-              .constrainSizeAndAttemptToPreserveAspectRatio(child!.size);
+          // region Tsukuyomi: 修改尺寸计算方法
+          // ```
+          // final Size unconstrainedSize = sizeConstraints.constrainSizeAndAttemptToPreserveAspectRatio(child!.size);
+          // ```
+          final Size unconstrainedSize = sizeConstraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(child!.size, scale);
+          // endregion Tsukuyomi
           size = constraints.constrain(unconstrainedSize);
         case BoxFit.contain:
         case BoxFit.cover:
@@ -66,83 +79,16 @@ class TsukuyomiPixelRenderFittedBox extends RenderFittedBox {
         case BoxFit.fitHeight:
         case BoxFit.fitWidth:
         case BoxFit.none:
-          size = constraints.constrainSizeAndAttemptToPreserveAspectRatio(child!.size);
+          // region Tsukuyomi: 修改尺寸计算方法
+          // ```
+          // size = constraints.constrainSizeAndAttemptToPreserveAspectRatio(child!.size);
+          // ```
+          size = constraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(child!.size, scale);
+          // endregion Tsukuyomi
       }
       _clearPaintData();
     } else {
       size = constraints.smallest;
     }
   }
-
-  // @override
-  // Size computeDryLayout(BoxConstraints constraints) {
-  //   if (child != null) {
-  //     final Size childSize = child!.getDryLayout(const BoxConstraints());
-  //
-  //     // During [RenderObject.debugCheckingIntrinsics] a child that doesn't
-  //     // support dry layout may provide us with an invalid size that triggers
-  //     // assertions if we try to work with it. Instead of throwing, we bail
-  //     // out early in that case.
-  //     bool invalidChildSize = false;
-  //     assert(() {
-  //       if (RenderObject.debugCheckingIntrinsics && childSize.width * childSize.height == 0.0) {
-  //         invalidChildSize = true;
-  //       }
-  //       return true;
-  //     }());
-  //     if (invalidChildSize) {
-  //       assert(debugCannotComputeDryLayout(
-  //         reason: 'Child provided invalid size of $childSize.',
-  //       ));
-  //       return Size.zero;
-  //     }
-  //
-  //     switch (fit) {
-  //       case BoxFit.scaleDown:
-  //         final BoxConstraints sizeConstraints = constraints.loosen();
-  //         // region Tsukuyomi: 修改尺寸计算方法
-  //         final Size unconstrainedSize = sizeConstraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(childSize, scale);
-  //         // endregion Tsukuyomi
-  //         return constraints.constrain(unconstrainedSize);
-  //       case BoxFit.contain:
-  //       case BoxFit.cover:
-  //       case BoxFit.fill:
-  //       case BoxFit.fitHeight:
-  //       case BoxFit.fitWidth:
-  //       case BoxFit.none:
-  //         // region Tsukuyomi: 修改尺寸计算方法
-  //         return constraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(childSize, scale);
-  //         // endregion Tsukuyomi
-  //     }
-  //   } else {
-  //     return constraints.smallest;
-  //   }
-  // }
-  //
-  // @override
-  // void performLayout() {
-  //   if (child != null) {
-  //     child!.layout(const BoxConstraints(), parentUsesSize: true);
-  //     switch (fit) {
-  //       case BoxFit.scaleDown:
-  //         final BoxConstraints sizeConstraints = constraints.loosen();
-  //         // region Tsukuyomi: 修改尺寸计算方法
-  //         final Size unconstrainedSize = sizeConstraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(child!.size, scale);
-  //         // endregion Tsukuyomi
-  //         size = constraints.constrain(unconstrainedSize);
-  //       case BoxFit.contain:
-  //       case BoxFit.cover:
-  //       case BoxFit.fill:
-  //       case BoxFit.fitHeight:
-  //       case BoxFit.fitWidth:
-  //       case BoxFit.none:
-  //         // region Tsukuyomi: 修改尺寸计算方法
-  //         size = constraints.pixelSnapConstrainSizeAndAttemptToPreserveAspectRatio(child!.size, scale);
-  //         // endregion Tsukuyomi
-  //     }
-  //     _clearPaintData();
-  //   } else {
-  //     size = constraints.smallest;
-  //   }
-  // }
 }
