@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
-import 'package:tsukuyomi_pixel_snap/src/pixel_snap.dart';
 
 part 'package:tsukuyomi_pixel_snap/src/flutter/rendering/flex.dart';
 
@@ -19,6 +18,10 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
     super.clipBehavior,
     super.spacing,
   });
+
+  static int _getFlex(RenderBox child) => RenderFlex._getFlex(child);
+
+  static FlexFit _getFit(RenderBox child) => RenderFlex._getFit(child);
 
   @override
   _LayoutSizes _computeSizes({
