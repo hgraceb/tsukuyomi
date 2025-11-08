@@ -4,8 +4,6 @@
 
 part of 'package:tsukuyomi_pixel_snap/src/tsukuyomi/widgets/basic.dart';
 
-// POSITIONING AND SIZING NODES
-
 /// Scales and positions its child within itself according to [fit].
 ///
 /// {@youtube 560 315 https://www.youtube.com/watch?v=T4Uehk3_wlY}
@@ -25,8 +23,6 @@ part of 'package:tsukuyomi_pixel_snap/src/tsukuyomi/widgets/basic.dart';
 /// * The [catalog of layout widgets](https://flutter.dev/widgets/layout/).
 class FittedBox extends SingleChildRenderObjectWidget {
   /// Creates a widget that scales and positions its child within itself according to [fit].
-  ///
-  /// The [fit] and [alignment] arguments must not be null.
   const FittedBox({
     super.key,
     this.fit = BoxFit.contain,
@@ -85,9 +81,6 @@ class FittedBox extends SingleChildRenderObjectWidget {
     properties.add(DiagnosticsProperty<AlignmentGeometry>('alignment', alignment));
   }
 }
-
-
-// LAYOUT NODES
 
 /// A widget that displays its children in a one-dimensional array.
 ///
@@ -165,9 +158,8 @@ class Flex extends MultiChildRenderObjectWidget {
   ///
   /// The [direction] is required.
   ///
-  /// The [direction], [mainAxisAlignment], [crossAxisAlignment], and
-  /// [verticalDirection] arguments must not be null. If [crossAxisAlignment] is
-  /// [CrossAxisAlignment.baseline], then [textBaseline] must not be null.
+  /// If [crossAxisAlignment] is [CrossAxisAlignment.baseline], then
+  /// [textBaseline] must not be null.
   ///
   /// The [textDirection] argument defaults to the ambient [Directionality], if
   /// any. If there is no ambient directionality, and a text direction is going
@@ -184,8 +176,12 @@ class Flex extends MultiChildRenderObjectWidget {
     this.verticalDirection = VerticalDirection.down,
     this.textBaseline, // NO DEFAULT: we don't know what the text's baseline should be
     this.clipBehavior = Clip.none,
+    this.spacing = 0.0,
     super.children,
-  }) : assert(!identical(crossAxisAlignment, CrossAxisAlignment.baseline) || textBaseline != null, 'textBaseline is required if you specify the crossAxisAlignment with CrossAxisAlignment.baseline');
+  }) : assert(
+         !identical(crossAxisAlignment, CrossAxisAlignment.baseline) || textBaseline != null,
+         'textBaseline is required if you specify the crossAxisAlignment with CrossAxisAlignment.baseline',
+       );
   // Cannot use == in the assert above instead of identical because of https://github.com/dart-lang/language/issues/1811.
 
   /// The direction to use as the main axis.
@@ -219,6 +215,13 @@ class Flex extends MultiChildRenderObjectWidget {
   ///
   /// For example, [CrossAxisAlignment.center], the default, centers the
   /// children in the cross axis (e.g., horizontally for a [Column]).
+  ///
+  /// When the cross axis is vertical (as for a [Row]) and the children
+  /// contain text, consider using [CrossAxisAlignment.baseline] instead.
+  /// This typically produces better visual results if the different children
+  /// have text with different font metrics, for example because they differ in
+  /// [TextStyle.fontSize] or other [TextStyle] properties, or because
+  /// they use different fonts due to being written in different scripts.
   final CrossAxisAlignment crossAxisAlignment;
 
   /// Determines the order to lay children out horizontally and how to interpret
@@ -283,13 +286,16 @@ class Flex extends MultiChildRenderObjectWidget {
   /// Defaults to [Clip.none].
   final Clip clipBehavior;
 
+  /// {@macro flutter.rendering.RenderFlex.spacing}
+  final double spacing;
+
   bool get _needTextDirection {
     switch (direction) {
       case Axis.horizontal:
         return true; // because it affects the layout order.
       case Axis.vertical:
-        return crossAxisAlignment == CrossAxisAlignment.start
-            || crossAxisAlignment == CrossAxisAlignment.end;
+        return crossAxisAlignment == CrossAxisAlignment.start ||
+            crossAxisAlignment == CrossAxisAlignment.end;
     }
   }
 
@@ -324,6 +330,7 @@ class Flex extends MultiChildRenderObjectWidget {
       verticalDirection: verticalDirection,
       textBaseline: textBaseline,
       clipBehavior: clipBehavior,
+      spacing: spacing,
     );
   }
 
@@ -337,7 +344,8 @@ class Flex extends MultiChildRenderObjectWidget {
       ..textDirection = getEffectiveTextDirection(context)
       ..verticalDirection = verticalDirection
       ..textBaseline = textBaseline
-      ..clipBehavior = clipBehavior;
+      ..clipBehavior = clipBehavior
+      ..spacing = spacing;
   }
 
   @override
@@ -345,10 +353,20 @@ class Flex extends MultiChildRenderObjectWidget {
     super.debugFillProperties(properties);
     properties.add(EnumProperty<Axis>('direction', direction));
     properties.add(EnumProperty<MainAxisAlignment>('mainAxisAlignment', mainAxisAlignment));
-    properties.add(EnumProperty<MainAxisSize>('mainAxisSize', mainAxisSize, defaultValue: MainAxisSize.max));
+    properties.add(
+      EnumProperty<MainAxisSize>('mainAxisSize', mainAxisSize, defaultValue: MainAxisSize.max),
+    );
     properties.add(EnumProperty<CrossAxisAlignment>('crossAxisAlignment', crossAxisAlignment));
     properties.add(EnumProperty<TextDirection>('textDirection', textDirection, defaultValue: null));
-    properties.add(EnumProperty<VerticalDirection>('verticalDirection', verticalDirection, defaultValue: VerticalDirection.down));
+    properties.add(
+      EnumProperty<VerticalDirection>(
+        'verticalDirection',
+        verticalDirection,
+        defaultValue: VerticalDirection.down,
+      ),
+    );
     properties.add(EnumProperty<TextBaseline>('textBaseline', textBaseline, defaultValue: null));
+    properties.add(EnumProperty<Clip>('clipBehavior', clipBehavior, defaultValue: Clip.none));
+    properties.add(DoubleProperty('spacing', spacing, defaultValue: 0.0));
   }
 }
