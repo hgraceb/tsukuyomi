@@ -47,6 +47,7 @@ class TsukuyomiPixelFlex extends Flex {
     super.verticalDirection,
     super.textBaseline, // NO DEFAULT: we don't know what the text's baseline should be
     super.clipBehavior,
+    super.spacing,
     super.children,
   });
 
@@ -72,7 +73,7 @@ class TsukuyomiPixelFlex extends Flex {
   }
 }
 
-class TsukuyomiPixelRow extends TsukuyomiPixelFlex {
+class TsukuyomiPixelRow extends Row {
   const TsukuyomiPixelRow({
     super.key,
     super.mainAxisAlignment,
@@ -81,11 +82,12 @@ class TsukuyomiPixelRow extends TsukuyomiPixelFlex {
     super.textDirection,
     super.verticalDirection,
     super.textBaseline, // NO DEFAULT: we don't know what the text's baseline should be
+    super.spacing,
     super.children,
-  }) : super(direction: Axis.horizontal);
+  });
 }
 
-class TsukuyomiPixelColumn extends TsukuyomiPixelFlex {
+class TsukuyomiPixelColumn extends Column {
   const TsukuyomiPixelColumn({
     super.key,
     super.mainAxisAlignment,
@@ -94,6 +96,7 @@ class TsukuyomiPixelColumn extends TsukuyomiPixelFlex {
     super.textDirection,
     super.verticalDirection,
     super.textBaseline,
+    super.spacing,
     super.children,
-  }) : super(direction: Axis.vertical);
+  });
 }
