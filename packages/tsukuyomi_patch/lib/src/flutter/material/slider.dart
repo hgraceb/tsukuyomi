@@ -17,36 +17,6 @@ typedef PaintValueIndicator = void Function(PaintingContext context, Offset offs
 
 enum _SliderType { material, adaptive }
 
-/// Possible ways for a user to interact with a [Slider].
-enum SliderInteraction {
-  /// Allows the user to interact with a [Slider] by tapping or sliding anywhere
-  /// on the track.
-  ///
-  /// Essentially all possible interactions are allowed.
-  ///
-  /// This is different from [SliderInteraction.slideOnly] as when you try
-  /// to slide anywhere other than the thumb, the thumb will move to the first
-  /// point of contact.
-  tapAndSlide,
-
-  /// Allows the user to interact with a [Slider] by only tapping anywhere on
-  /// the track.
-  ///
-  /// Sliding interaction is ignored.
-  tapOnly,
-
-  /// Allows the user to interact with a [Slider] only by sliding anywhere on
-  /// the track.
-  ///
-  /// Tapping interaction is ignored.
-  slideOnly,
-
-  /// Allows the user to interact with a [Slider] only by sliding the thumb.
-  ///
-  /// Tapping and sliding interactions on the track are ignored.
-  slideThumb,
-}
-
 /// A Material Design slider.
 ///
 /// Used to select from a range of values.
