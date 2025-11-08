@@ -13,7 +13,7 @@ class AES implements Algorithm {
   final String? padding;
 
   // ${$.empty('AES.new', () => AES.new)}
-  external AES(this.key, {this.mode = AESMode.sic, this.padding = 'PKCS7'});
+  AES(this.key, {this.mode = AESMode.sic, this.padding = 'PKCS7'});
 
   // ${$.debug('encrypt', ($, $$) => $.encrypt)}
   external Encrypted encrypt(Uint8List bytes, {IV? iv, Uint8List? associatedData});

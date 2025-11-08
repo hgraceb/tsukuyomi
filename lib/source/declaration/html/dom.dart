@@ -205,7 +205,7 @@ class DocumentType extends Node {
   final String? systemId;
 
   // ${$.empty('DocumentType.new', () => DocumentType.new)}
-  external DocumentType(this.name, this.publicId, this.systemId);
+  DocumentType(this.name, this.publicId, this.systemId) : super._();
 
   // ${$.debug('clone', ($, $$) => $.clone)}
   external Node clone(bool deep);
@@ -249,7 +249,7 @@ class Element extends Node with _ParentNode, _ElementAndDocument {
   FileSpan? endSourceSpan;
 
   // ${$.empty('Element.tag', () => Element.tag)}
-  external Element.tag(this.localName);
+  Element.tag(this.localName) : namespaceUri = Namespaces.html, super._();
 
   // ${$.empty('Element.html', () => Element.html)}
   external factory Element.html(String html);
@@ -307,7 +307,7 @@ class Comment extends Node {
   String? data;
 
   // ${$.empty('Comment.new', () => Comment.new)}
-  external Comment(this.data);
+  Comment(this.data) : super._();
 
   // ${$.debug('nodeType', ($, $$) => $.nodeType)}
   external int get nodeType;
