@@ -78,8 +78,7 @@ class _PatchedTabBarState extends _TabBarState {
     assert(_debugScheduleCheckHasValidTabsCount());
     final ThemeData theme = Theme.of(context);
     final TabBarThemeData tabBarTheme = TabBarTheme.of(context);
-    final TabAlignment effectiveTabAlignment =
-        widget.tabAlignment ?? tabBarTheme.tabAlignment ?? _defaults.tabAlignment!;
+    final TabAlignment effectiveTabAlignment = widget.tabAlignment ?? tabBarTheme.tabAlignment ?? _defaults.tabAlignment!;
     assert(_debugTabAlignmentIsValid(effectiveTabAlignment));
 
     final MaterialLocalizations localizations = MaterialLocalizations.of(context);
@@ -91,14 +90,11 @@ class _PatchedTabBarState extends _TabBarState {
     }
 
     final List<Widget> wrappedTabs = List<Widget>.generate(widget.tabs.length, (int index) {
-      EdgeInsetsGeometry padding =
-          widget.labelPadding ?? tabBarTheme.labelPadding ?? kTabLabelPadding;
+      EdgeInsetsGeometry padding = widget.labelPadding ?? tabBarTheme.labelPadding ?? kTabLabelPadding;
       const double verticalAdjustment = (_kTextAndIconTabHeight - _kTabHeight) / 2.0;
 
       final Widget tab = widget.tabs[index];
-      if (tab is PreferredSizeWidget &&
-          tab.preferredSize.height == _kTabHeight &&
-          widget.tabHasTextAndIcon) {
+      if (tab is PreferredSizeWidget && tab.preferredSize.height == _kTabHeight && widget.tabHasTextAndIcon) {
         padding = padding.add(const EdgeInsets.symmetric(vertical: verticalAdjustment));
       }
       _labelPaddings[index] = padding;
@@ -185,11 +181,10 @@ class _PatchedTabBarState extends _TabBarState {
           tabBarTheme.mouseCursor?.resolve(selectedState) ??
           MaterialStateMouseCursor.clickable.resolve(selectedState);
 
-      final MaterialStateProperty<Color?> defaultOverlay =
-          MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
-            final Set<MaterialState> effectiveStates = selectedState..addAll(states);
-            return _defaults.overlayColor?.resolve(effectiveStates);
-          });
+      final MaterialStateProperty<Color?> defaultOverlay = MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+        final Set<MaterialState> effectiveStates = selectedState..addAll(states);
+        return _defaults.overlayColor?.resolve(effectiveStates);
+      });
       wrappedTabs[index] = InkWell(
         mouseCursor: effectiveMouseCursor,
         onTap: () {
@@ -204,10 +199,7 @@ class _PatchedTabBarState extends _TabBarState {
         enableFeedback: widget.enableFeedback ?? true,
         overlayColor: widget.overlayColor ?? tabBarTheme.overlayColor ?? defaultOverlay,
         splashFactory: widget.splashFactory ?? tabBarTheme.splashFactory ?? _defaults.splashFactory,
-        borderRadius:
-            widget.splashBorderRadius ??
-            tabBarTheme.splashBorderRadius ??
-            _defaults.splashBorderRadius,
+        borderRadius: widget.splashBorderRadius ?? tabBarTheme.splashBorderRadius ?? _defaults.splashBorderRadius,
         child: Padding(
           padding: EdgeInsets.only(bottom: widget.indicatorWeight),
           child: Stack(
@@ -216,9 +208,7 @@ class _PatchedTabBarState extends _TabBarState {
               Semantics(
                 role: SemanticsRole.tab,
                 selected: index == _currentIndex,
-                label: kIsWeb
-                    ? null
-                    : localizations.tabLabel(tabIndex: index + 1, tabCount: tabCount),
+                label: kIsWeb ? null : localizations.tabLabel(tabIndex: index + 1, tabCount: tabCount),
               ),
             ],
           ),
@@ -247,9 +237,7 @@ class _PatchedTabBarState extends _TabBarState {
           defaults: _defaults,
           child: _TabLabelBar(
             onPerformLayout: _saveTabOffsets,
-            mainAxisSize: effectiveTabAlignment == TabAlignment.fill
-                ? MainAxisSize.max
-                : MainAxisSize.min,
+            mainAxisSize: effectiveTabAlignment == TabAlignment.fill ? MainAxisSize.max : MainAxisSize.min,
             children: wrappedTabs,
           ),
         ),
@@ -287,15 +275,11 @@ class _PatchedTabBarState extends _TabBarState {
       if (theme.useMaterial3) {
         final AlignmentGeometry effectiveAlignment = switch (effectiveTabAlignment) {
           TabAlignment.center => Alignment.center,
-          TabAlignment.start ||
-          TabAlignment.startOffset ||
-          TabAlignment.fill => AlignmentDirectional.centerStart,
+          TabAlignment.start || TabAlignment.startOffset || TabAlignment.fill => AlignmentDirectional.centerStart,
         };
 
-        final Color dividerColor =
-            widget.dividerColor ?? tabBarTheme.dividerColor ?? _defaults.dividerColor!;
-        final double dividerHeight =
-            widget.dividerHeight ?? tabBarTheme.dividerHeight ?? _defaults.dividerHeight!;
+        final Color dividerColor = widget.dividerColor ?? tabBarTheme.dividerColor ?? _defaults.dividerColor!;
+        final double dividerHeight = widget.dividerHeight ?? tabBarTheme.dividerHeight ?? _defaults.dividerHeight!;
 
         tabBar = Align(
           heightFactor: 1.0,
