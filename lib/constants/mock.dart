@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:tsukuyomi/constants/assets.dart';
 import 'package:tsukuyomi/database/database.dart';
 
 class MockDatabase {
@@ -82,6 +84,20 @@ Future<MockDatabase> getMockDatabase() async {
         ],
       ],
     );
+  } on FlutterError catch (_) {
+    final mockSource = MockSource._(name: 'Example Source', path: Assets.sourceExample, enabled: true, mangas: []);
+    final sourceCode = base64.encode(utf8.encode(await rootBundle.loadString(mockSource.path)));
+    final databaseSource = DatabaseSource(id: mockSource.id, name: mockSource.nameWithPath, source: sourceCode);
+    // TODO 使用更通用的方式获取示例漫画数据
+    final mockManga = DatabaseManga(
+      id: 0,
+      source: mockSource.id,
+      url: '16,74,176,213,218,266,381,385,404,461,477,481,516,603,609,626,640,657,715,716',
+      title: 'Example Manga',
+      cover: 'https://picsum.photos/id/384/800/1200',
+      favorite: true,
+    );
+    return MockDatabase._(sources: [databaseSource], mangas: [mockManga]);
   } catch (e) {
     // TODO 判断是否需要通过控制台日志提示可以进行本地模拟数据配置
     return MockDatabase._(sources: [], mangas: []);
