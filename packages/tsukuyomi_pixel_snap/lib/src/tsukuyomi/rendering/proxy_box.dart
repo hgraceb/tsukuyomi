@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:tsukuyomi_pixel_snap/src/pixel_snap.dart';
 
