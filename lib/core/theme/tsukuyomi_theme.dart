@@ -16,7 +16,7 @@ class TsukuyomiTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       cardColor: themeConfig.card,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: themeConfig.card,
         clipBehavior: Clip.none,
