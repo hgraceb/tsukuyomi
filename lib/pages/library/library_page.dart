@@ -55,6 +55,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
                     bottom: PatchedTabBar(
                       isScrollable: true,
                       dividerColor: Colors.transparent,
+                      tabAlignment:  TabAlignment.center,
                       // TODO 限制最大文本宽度
                       tabs: state.sources.map((source) => Tab(text: source.name)).toList(),
                     ),
