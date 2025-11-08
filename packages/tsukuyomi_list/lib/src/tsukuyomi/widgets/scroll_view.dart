@@ -20,12 +20,14 @@ class TsukuyomiScrollView extends CustomScrollView {
     super.center,
     super.anchor,
     super.cacheExtent,
+    super.paintOrder,
     super.slivers,
     super.semanticChildCount,
     super.dragStartBehavior,
     super.keyboardDismissBehavior,
     super.restorationId,
     super.clipBehavior,
+    super.hitTestBehavior,
     this.ignorePointer = false,
   });
 
@@ -46,6 +48,7 @@ class TsukuyomiScrollView extends CustomScrollView {
       cacheExtent: cacheExtent,
       center: center,
       anchor: anchor,
+      paintOrder: paintOrder,
       clipBehavior: clipBehavior,
     );
   }
