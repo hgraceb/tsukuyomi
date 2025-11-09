@@ -1,4 +1,4 @@
-library tsukuyomi_sources;
+library;
 
 export 'src/core/source.dart';
 export 'src/core/source_bytes.dart';
