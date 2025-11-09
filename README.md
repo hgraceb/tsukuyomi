@@ -35,14 +35,14 @@
 - 生成本地化语言配置
 
 ```sh
-# Flutter 3.13.9 • channel stable
+# Flutter 3.35.7 • channel stable
 flutter gen-l10n
 ```
 
 - 生成本地基础代码
 
 ```sh
-# Dart SDK version: 3.1.5 (stable)
+# Dart SDK version: 3.9.2 (stable)
 dart run build_runner build --delete-conflicting-outputs
 ```
 
