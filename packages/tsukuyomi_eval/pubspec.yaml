@@ -15,7 +15,7 @@ dependencies:
   # 集合操作
   collection: ^1.17.0
   # 网络请求
-  dio: ^5.3.2
+  dio: ^5.9.0
   # Dart 代码静态解析
   analyzer: ^6.0.0
 

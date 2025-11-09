@@ -18,7 +18,7 @@ dependencies:
   # 代码注解
   meta: any
   # 网络请求
-  dio: ^5.3.2
+  dio: ^5.9.0
   # 图像处理
   image: ^3.3.0
   # 静态 Dart 代码解析器
