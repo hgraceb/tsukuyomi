@@ -1,9 +1,7 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:tsukuyomi_patch/material.dart';
 
 class ChapterBottomNavigationBar extends StatelessWidget {
   const ChapterBottomNavigationBar({
@@ -67,7 +65,7 @@ class ChapterBottomNavigationBar extends StatelessWidget {
                     ),
                   ),
                   Flexible(
-                    child: PatchedSlider(
+                    child: Slider(
                       min: min.toDouble(),
                       max: max.toDouble(),
                       value: progress.clamp(min, max).toDouble(),
