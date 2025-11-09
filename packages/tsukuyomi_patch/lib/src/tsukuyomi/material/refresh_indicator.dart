@@ -95,7 +95,7 @@ class PatchedRefreshIndicatorState extends RefreshIndicatorState {
     // }
     // _positionController.value = clampDouble(newValue, 0.0, 1.0); // This triggers various rebuilds.
     // ```
-    _positionController.value = clampDouble(newValue, 1e-10, 1.0);
+    _positionController.value = clampDouble(newValue, 0.0, 1.0);
     // endregion Tsukuyomi
 
     if (_status == RefreshIndicatorStatus.drag && _valueColor.value!.alpha == _effectiveValueColor.alpha) {
