@@ -50,18 +50,11 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
     _AscentDescent accumulatedAscentDescent = _AscentDescent.none;
     // Initially, accumulatedSize is the sum of the spaces between children in the main axis.
     _AxisSize accumulatedSize = _AxisSize._(Size(spacing * (childCount - 1), 0.0));
-    // region Tsukuyomi: 获取尺寸计算信息
-    double allocatedSize = 0.0; // Sum of the sizes of the non-flexible children.
-    RenderBox? lastFlexChild;
-    // endregion Tsukuyomi
     for (RenderBox? child = firstChild; child != null; child = childAfter(child)) {
       final int flex;
       if (canFlex && (flex = _getFlex(child)) > 0) {
         totalFlex += flex;
         firstFlexChild ??= child;
-        // region Tsukuyomi: 获取尺寸计算信息
-        lastFlexChild = child;
-        // endregion Tsukuyomi
       } else {
         final _AxisSize childSize = _AxisSize.fromSize(
           size: layoutChild(child, nonFlexChildConstraints),
@@ -74,9 +67,6 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
           baselineOffset: baselineOffset,
           crossSize: childSize.crossAxisExtent,
         );
-        // region Tsukuyomi: 获取尺寸计算信息
-        allocatedSize += childSize.mainAxisExtent;
-        // endregion Tsukuyomi
       }
     }
 
@@ -89,7 +79,6 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
     final double flexSpace = math.max(0.0, maxMainSize - accumulatedSize.mainAxisExtent);
     final double spacePerFlex = flexSpace / totalFlex;
     // region Tsukuyomi: 获取尺寸计算信息
-    final double freeSpace = math.max(0.0, (canFlex ? maxMainSize : 0.0) - allocatedSize);
     double allocatedFlexSpace = 0.0;
     // endregion Tsukuyomi
     for (RenderBox? child = firstFlexChild; child != null && totalFlex > 0; child = childAfter(child)) {
@@ -103,7 +92,8 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
       // ```
       // final double maxChildExtent = spacePerFlex * flex;
       // ```
-      final double maxChildExtent = (child == lastFlexChild ? freeSpace - allocatedFlexSpace : spacePerFlex * flex).pixelSnap();
+      final double maxChildExtent = (totalFlex == 0 ? flexSpace - allocatedFlexSpace : spacePerFlex * flex).pixelSnap();
+      allocatedFlexSpace += maxChildExtent;
       // endregion Tsukuyomi
       assert(_getFit(child) == FlexFit.loose || maxChildExtent < double.infinity);
       final BoxConstraints childConstraints = _constraintsForFlexChild(
@@ -121,9 +111,6 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
         baselineOffset: baselineOffset,
         crossSize: childSize.crossAxisExtent,
       );
-      // region Tsukuyomi: 获取尺寸计算信息
-      allocatedFlexSpace += maxChildExtent;
-      // endregion Tsukuyomi
     }
     assert(totalFlex == 0);
 
