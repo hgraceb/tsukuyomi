@@ -47,4 +47,5 @@ app.*.map.json
 # Generated files
 *.g.dart
 *.freezed.dart
+devtools_options.yaml
 lib/l10n/gen/
