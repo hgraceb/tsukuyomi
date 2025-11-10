@@ -13,7 +13,7 @@ void main() {
         ),
       );
       for (var i = 0; i < itemCount; i++) {
-        expect(tester.getSize(find.text('$i')).width, anyOf([equals(24.0 / 3), equals(25.0 / 3)]));
+        expect(tester.getSize(find.text('$i')).width, anyOf([equals(8.0), equals(8.0 + 1.0 / 3.0)]));
       }
     });
   });
@@ -28,7 +28,7 @@ void main() {
         ),
       );
       for (var i = 0; i < itemCount; i++) {
-        expect(tester.getSize(find.text('$i')).height, anyOf([equals(18.0 / 3), equals(19.0 / 3)]));
+        expect(tester.getSize(find.text('$i')).height, anyOf([equals(6.0), equals(6.0 + 1.0 / 3.0)]));
       }
     });
   });
