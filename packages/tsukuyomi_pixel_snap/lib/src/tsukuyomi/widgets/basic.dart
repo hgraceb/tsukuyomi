@@ -6,6 +6,7 @@ import 'package:tsukuyomi_pixel_snap/src/tsukuyomi/rendering/proxy_box.dart';
 
 part 'package:tsukuyomi_pixel_snap/src/flutter/widgets/basic.dart';
 
+/// [FittedBox]
 class TsukuyomiPixelFittedBox extends FittedBox {
   final double? scale;
 
@@ -36,6 +37,7 @@ class TsukuyomiPixelFittedBox extends FittedBox {
   }
 }
 
+/// [Flex]
 class TsukuyomiPixelFlex extends Flex {
   const TsukuyomiPixelFlex({
     super.key,
