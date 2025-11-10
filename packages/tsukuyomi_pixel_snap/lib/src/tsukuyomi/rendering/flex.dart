@@ -86,14 +86,16 @@ class TsukuyomiPixelRenderFlex extends RenderFlex {
       if (flex == 0) {
         continue;
       }
-      totalFlex -= flex;
-      assert(spacePerFlex.isFinite);
       // region Tsukuyomi: 修改尺寸计算方法
       // ```
+      // totalFlex -= flex;
+      // assert(spacePerFlex.isFinite);
       // final double maxChildExtent = spacePerFlex * flex;
       // ```
-      final double maxChildExtent = (totalFlex == 0 ? remainingFlexSpace : spacePerFlex * flex).pixelSnap();
+      final double maxChildExtent = (remainingFlexSpace / totalFlex * flex).pixelSnap();
       remainingFlexSpace -= maxChildExtent;
+      totalFlex -= flex;
+      assert(spacePerFlex.isFinite);
       // endregion Tsukuyomi
       assert(_getFit(child) == FlexFit.loose || maxChildExtent < double.infinity);
       final BoxConstraints childConstraints = _constraintsForFlexChild(
