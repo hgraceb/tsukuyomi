@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
-import 'package:tsukuyomi_pixel_snap/src/pixel_snap.dart';
+import 'package:tsukuyomi_pixel_snap/src/tsukuyomi/rendering/box.dart';
 
 part 'package:tsukuyomi_pixel_snap/src/flutter/rendering/proxy_box.dart';
 
