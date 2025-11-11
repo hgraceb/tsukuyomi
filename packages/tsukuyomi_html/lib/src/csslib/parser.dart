@@ -60,8 +60,8 @@ class _TsukuyomiParser extends _Parser {
 
         _eat(TokenKind.RPAREN);
         return NegationSelector(negArg, _makeSpan(start));
-      } else if (!pseudoElement && name == 'has') {
         // region Tsukuyomi: 优化部分常用伪类选择器解析
+      } else if (!pseudoElement && name == 'has') {
         _eat(TokenKind.LPAREN);
         var selector = processSelector();
         if (selector == null) {
