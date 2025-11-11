@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_html/parser.dart';
 
 void main() {
+  // https://github.com/dart-lang/tools/issues/1029
   test(':has()', () {
     final document = parse('''
 <ul class="pagination">
