@@ -5,7 +5,7 @@ import 'dart:collection';
 
 import 'package:source_span/source_span.dart';
 
-import '../dom.dart';
+import '../../../dom.dart';
 import '../parser.dart' show getElementNameTuple;
 import 'constants.dart';
 import 'list_proxy.dart';

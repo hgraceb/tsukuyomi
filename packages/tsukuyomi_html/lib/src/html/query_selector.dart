@@ -4,6 +4,7 @@ import 'package:tsukuyomi_html/csslib/lib/visitor.dart';
 import 'package:tsukuyomi_html/dom.dart';
 import 'package:tsukuyomi_html/html/lib/src/constants.dart' show isWhitespaceCC;
 import 'package:tsukuyomi_html/src/csslib/parser.dart';
+
 part 'package:tsukuyomi_html/html/lib/src/query_selector.dart';
 
 /// [_parseSelectorList]
