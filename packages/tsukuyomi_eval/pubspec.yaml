@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.0.1
 
 environment:
-  sdk: ^3.9.2
+  sdk: ">=3.9.2 <4.0.0"
   flutter: ">=1.17.0"
 
 dependencies:
@@ -13,13 +13,13 @@ dependencies:
   # 代码注解
   meta: any
   # 集合操作
-  collection: ^1.19.1
+  collection: 1.19.1
   # 网络请求
-  dio: ^5.9.0
+  dio: 5.9.0
   # Dart 代码静态解析
-  analyzer: ^6.4.1
+  analyzer: 6.4.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: 5.0.0
