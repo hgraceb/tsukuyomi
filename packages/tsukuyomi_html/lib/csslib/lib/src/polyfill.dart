@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of '../../../src/csslib/parser.dart';
+part of 'package:tsukuyomi_html/src/csslib/parser.dart';
 
 /// CSS polyfill emits CSS to be understood by older parsers that which do not
 /// understand (var, calc, etc.).
