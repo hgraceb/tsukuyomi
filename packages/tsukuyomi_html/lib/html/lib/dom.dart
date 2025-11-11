@@ -1,5 +1,6 @@
 /// A simple tree API that results from parsing html. Intended to be compatible
 /// with dart:html, but it is missing many types and APIs.
+library;
 
 // ignore_for_file: constant_identifier_names
 
@@ -8,7 +9,20 @@
 // http://dom.spec.whatwg.org/ and http://html.spec.whatwg.org/ and just
 // implement that.
 
-part of '../../dom.dart';
+import 'dart:collection';
+
+import 'package:source_span/source_span.dart';
+
+import 'dom_parsing.dart';
+import 'parser.dart';
+import 'src/constants.dart';
+import 'src/css_class_set.dart';
+import 'src/list_proxy.dart';
+import 'src/query_selector.dart' as query;
+import 'src/token.dart';
+import 'src/tokenizer.dart';
+
+export 'src/css_class_set.dart' show CssClassSet;
 
 // TODO(jmesserly): this needs to be replaced by an AttributeMap for attributes
 // that exposes namespace info.

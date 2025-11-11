@@ -1,6 +1,11 @@
 /// Query selector implementation for our DOM.
+library;
 
-part of '../../../src/html/query_selector.dart';
+import 'package:csslib/parser.dart';
+import 'package:csslib/visitor.dart';
+
+import '../dom.dart';
+import 'constants.dart' show isWhitespaceCC;
 
 bool matches(Element node, String selector) =>
     SelectorEvaluator().matches(node, _parseSelectorList(selector));
