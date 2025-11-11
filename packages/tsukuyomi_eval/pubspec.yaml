@@ -13,11 +13,11 @@ dependencies:
   # 代码注解
   meta: any
   # 集合操作
-  collection: ^1.17.0
+  collection: ^1.19.1
   # 网络请求
   dio: ^5.9.0
   # Dart 代码静态解析
-  analyzer: ^6.0.0
+  analyzer: ^6.4.1
 
 dev_dependencies:
   flutter_test:

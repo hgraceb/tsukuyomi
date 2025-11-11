@@ -22,9 +22,9 @@ dependencies:
   # 图像处理
   image: ^3.3.0
   # 静态 Dart 代码解析器
-  analyzer: ^6.0.0
+  analyzer: ^6.4.1
   # 本地缓存文件管理
-  flutter_cache_manager: ^3.3.1
+  flutter_cache_manager: ^3.4.1
   # 处理 Protobuf 协议数据
   protobuf: ^3.1.0
   # 适配 Protobuf 数据格式
