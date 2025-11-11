@@ -4,8 +4,8 @@ publish_to: 'none'
 version: 0.0.1
 
 environment:
-  sdk: '>=3.1.5 <4.0.0'
-  flutter: ">=1.17.0"
+  sdk: ">=3.9.2 <4.0.0"
+  flutter: ">=3.35.7 <4.0.0"
 
 dependencies:
   flutter:
@@ -16,23 +16,23 @@ dependencies:
     path: ../tsukuyomi_html
 
   # 代码注解
-  meta: any
+  meta: 1.16.0
   # 网络请求
-  dio: ^5.3.2
+  dio: 5.9.0
   # 图像处理
-  image: ^3.3.0
+  image: 3.3.0
   # 静态 Dart 代码解析器
-  analyzer: ^6.0.0
+  analyzer: 6.4.1
   # 本地缓存文件管理
-  flutter_cache_manager: ^3.3.1
+  flutter_cache_manager: 3.4.1
   # 处理 Protobuf 协议数据
-  protobuf: ^3.1.0
-  # 适配 Protobuf 数据格式
-  fixnum: any
+  protobuf: 3.1.0
+  # 固定精度整数
+  fixnum: 1.1.1
   # 字符集编解码
-  charset: ^2.0.1
+  charset: 2.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: 5.0.0

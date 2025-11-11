@@ -6,6 +6,7 @@ import 'package:tsukuyomi_pixel_snap/src/tsukuyomi/rendering/proxy_box.dart';
 
 part 'package:tsukuyomi_pixel_snap/src/flutter/widgets/basic.dart';
 
+/// [FittedBox]
 class TsukuyomiPixelFittedBox extends FittedBox {
   final double? scale;
 
@@ -36,6 +37,7 @@ class TsukuyomiPixelFittedBox extends FittedBox {
   }
 }
 
+/// [Flex]
 class TsukuyomiPixelFlex extends Flex {
   const TsukuyomiPixelFlex({
     super.key,
@@ -47,6 +49,7 @@ class TsukuyomiPixelFlex extends Flex {
     super.verticalDirection,
     super.textBaseline, // NO DEFAULT: we don't know what the text's baseline should be
     super.clipBehavior,
+    super.spacing,
     super.children,
   });
 
@@ -62,6 +65,7 @@ class TsukuyomiPixelFlex extends Flex {
       verticalDirection: renderFlex.verticalDirection,
       textBaseline: renderFlex.textBaseline,
       clipBehavior: renderFlex.clipBehavior,
+      spacing: renderFlex.spacing,
     );
   }
 
@@ -71,6 +75,7 @@ class TsukuyomiPixelFlex extends Flex {
   }
 }
 
+/// [Row]
 class TsukuyomiPixelRow extends TsukuyomiPixelFlex {
   const TsukuyomiPixelRow({
     super.key,
@@ -80,10 +85,12 @@ class TsukuyomiPixelRow extends TsukuyomiPixelFlex {
     super.textDirection,
     super.verticalDirection,
     super.textBaseline, // NO DEFAULT: we don't know what the text's baseline should be
+    super.spacing,
     super.children,
   }) : super(direction: Axis.horizontal);
 }
 
+/// [Column]
 class TsukuyomiPixelColumn extends TsukuyomiPixelFlex {
   const TsukuyomiPixelColumn({
     super.key,
@@ -93,6 +100,7 @@ class TsukuyomiPixelColumn extends TsukuyomiPixelFlex {
     super.textDirection,
     super.verticalDirection,
     super.textBaseline,
+    super.spacing,
     super.children,
   }) : super(direction: Axis.vertical);
 }

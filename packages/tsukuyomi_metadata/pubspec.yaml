@@ -4,18 +4,19 @@ publish_to: 'none'
 version: 0.0.1
 
 environment:
-  sdk: '>=3.1.5 <4.0.0'
-  flutter: '>=3.3.0'
+  sdk: ">=3.9.2 <4.0.0"
+  flutter: ">=3.35.7 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  plugin_platform_interface: ^2.0.2
+  # 插件平台接口
+  plugin_platform_interface: 2.1.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: 5.0.0
 
 flutter:
   plugin:

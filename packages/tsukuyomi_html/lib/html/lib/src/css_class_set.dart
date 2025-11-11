@@ -6,7 +6,7 @@
 
 import 'dart:collection';
 
-import '../../../dom.dart';
+import 'package:tsukuyomi_html/dom.dart';
 
 class ElementCssClassSet extends _CssClassSetImpl {
   final Element _element;

@@ -1,4 +1,4 @@
-library tsukuyomi_list;
+library;
 
 export 'src/tsukuyomi_interactive_list.dart';
 export 'src/tsukuyomi_list.dart';

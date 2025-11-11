@@ -8,7 +8,7 @@
 // http://dom.spec.whatwg.org/ and http://html.spec.whatwg.org/ and just
 // implement that.
 
-part of '../../dom.dart';
+part of 'package:tsukuyomi_html/dom.dart';
 
 // TODO(jmesserly): this needs to be replaced by an AttributeMap for attributes
 // that exposes namespace info.

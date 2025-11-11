@@ -4,18 +4,22 @@ publish_to: 'none'
 version: 0.0.1
 
 environment:
-  sdk: '>=3.1.5 <4.0.0'
-  flutter: ">=1.17.0"
+  sdk: ">=3.9.2 <4.0.0"
+  flutter: ">=3.35.7 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  meta: any
-  vector_math: any
-  sliver_tools: any
-  collection: any
+  # 代码注解
+  meta: 1.16.0
+  # 向量数学计算
+  vector_math: 2.2.0
+  # Sliver 组件扩展
+  sliver_tools: 0.2.12
+  # 集合操作
+  collection: 1.19.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: 5.0.0

@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:sliver_tools/sliver_tools.dart';
-import 'package:tsukuyomi_patch/widgets.dart';
 
 class TsukuyomiAnimatedSwitcher extends StatelessWidget {
   TsukuyomiAnimatedSwitcher({
@@ -9,8 +8,8 @@ class TsukuyomiAnimatedSwitcher extends StatelessWidget {
     this.duration = const Duration(milliseconds: 300),
     this.switchInCurve = Curves.easeInOutCubic,
     this.switchOutCurve = Curves.easeInOutCubic,
-    this.transitionBuilder = PatchedAnimatedSwitcher.defaultTransitionBuilder,
-    this.layoutBuilder = PatchedAnimatedSwitcher.defaultLayoutBuilder,
+    this.transitionBuilder = AnimatedSwitcher.defaultTransitionBuilder,
+    this.layoutBuilder = AnimatedSwitcher.defaultLayoutBuilder,
   }) : assert(child.key != null);
 
   final Widget child;
@@ -26,16 +25,14 @@ class TsukuyomiAnimatedSwitcher extends StatelessWidget {
   final AnimatedSwitcherLayoutBuilder layoutBuilder;
 
   @override
-  Widget build(BuildContext context) {
-    return PatchedAnimatedSwitcher(
-      duration: duration,
-      switchInCurve: switchInCurve,
-      switchOutCurve: switchOutCurve,
-      transitionBuilder: transitionBuilder,
-      layoutBuilder: layoutBuilder,
-      child: child,
-    );
-  }
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: duration,
+    switchInCurve: switchInCurve,
+    switchOutCurve: switchOutCurve,
+    transitionBuilder: transitionBuilder,
+    layoutBuilder: layoutBuilder,
+    child: child,
+  );
 }
 
 class TsukuyomiSliverAnimatedSwitcher extends StatelessWidget {
@@ -46,18 +43,21 @@ class TsukuyomiSliverAnimatedSwitcher extends StatelessWidget {
 
   final Widget sliver;
 
+  static Widget defaultTransitionBuilder(Widget child, Animation<double> animation) => SliverFadeTransition(
+    key: ValueKey<Key?>(child.key),
+    opacity: animation,
+    sliver: child,
+  );
+
+  static Widget defaultLayoutBuilder(Widget? currentChild, List<Widget> previousChildren) => SliverStack(
+    positionedAlignment: Alignment.center,
+    children: <Widget>[...previousChildren, if (currentChild != null) currentChild],
+  );
+
   @override
-  Widget build(BuildContext context) {
-    return TsukuyomiAnimatedSwitcher(
-      transitionBuilder: PatchedAnimatedSwitcher.sliverTransitionBuilder,
-      layoutBuilder: (currentChild, previousChildren) => SliverStack(
-        positionedAlignment: Alignment.center,
-        children: <Widget>[
-          ...previousChildren,
-          if (currentChild != null) currentChild,
-        ],
-      ),
-      child: sliver,
-    );
-  }
+  Widget build(BuildContext context) => TsukuyomiAnimatedSwitcher(
+    transitionBuilder: defaultTransitionBuilder,
+    layoutBuilder: defaultLayoutBuilder,
+    child: sliver,
+  );
 }

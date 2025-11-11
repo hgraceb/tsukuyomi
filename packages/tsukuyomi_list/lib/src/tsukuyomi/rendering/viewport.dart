@@ -18,10 +18,11 @@ class RenderTsukuyomiScrollViewViewport extends RenderViewport {
     super.center,
     super.cacheExtent,
     super.cacheExtentStyle,
+    super.paintOrder,
     super.clipBehavior,
   });
 
-  static const int _maxLayoutCycles = 10;
+  static const int _maxLayoutCyclesPerChild = RenderViewport._maxLayoutCyclesPerChild;
 
   @override
   void performLayout() {
@@ -44,23 +45,22 @@ class RenderTsukuyomiScrollViewViewport extends RenderViewport {
     }
     assert(center!.parent == this);
 
-    final double mainAxisExtent;
-    final double crossAxisExtent;
-    switch (axis) {
-      case Axis.vertical:
-        mainAxisExtent = size.height;
-        crossAxisExtent = size.width;
-      case Axis.horizontal:
-        mainAxisExtent = size.width;
-        crossAxisExtent = size.height;
-    }
+    final (double mainAxisExtent, double crossAxisExtent) = switch (axis) {
+      Axis.vertical => (size.height, size.width),
+      Axis.horizontal => (size.width, size.height),
+    };
 
     final double centerOffsetAdjustment = center!.centerOffsetAdjustment;
+    final int maxLayoutCycles = _maxLayoutCyclesPerChild * childCount;
 
     double correction;
     int count = 0;
     do {
-      correction = _attemptLayout(mainAxisExtent, crossAxisExtent, offset.pixels + centerOffsetAdjustment);
+      correction = _attemptLayout(
+        mainAxisExtent,
+        crossAxisExtent,
+        offset.pixels + centerOffsetAdjustment,
+      );
       if (correction != 0.0) {
         offset.correctBy(correction);
       } else {
@@ -76,9 +76,9 @@ class RenderTsukuyomiScrollViewViewport extends RenderViewport {
         // endregion Tsukuyomi
       }
       count += 1;
-    } while (count < _maxLayoutCycles);
+    } while (count < maxLayoutCycles);
     assert(() {
-      if (count >= _maxLayoutCycles) {
+      if (count >= maxLayoutCycles) {
         assert(count != 1);
         throw FlutterError(
           'A RenderViewport exceeded its maximum number of layout cycles.\n'

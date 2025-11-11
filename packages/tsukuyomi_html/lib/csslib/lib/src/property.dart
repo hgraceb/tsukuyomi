@@ -4,7 +4,7 @@
 
 /// Representations of CSS styles.
 
-part of '../../../src/csslib/parser.dart';
+part of 'package:tsukuyomi_html/src/csslib/parser.dart';
 
 // TODO(terry): Prune down this file we do need some of the code in this file
 //              for darker, lighter, how to represent a Font, etc but alot of

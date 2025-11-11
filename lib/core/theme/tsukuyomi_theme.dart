@@ -16,7 +16,7 @@ class TsukuyomiTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       cardColor: themeConfig.card,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: themeConfig.card,
         clipBehavior: Clip.none,
@@ -25,6 +25,9 @@ class TsukuyomiTheme {
           side: BorderSide(color: colorScheme.outlineVariant),
           borderRadius: const BorderRadius.all(Radius.circular(8.0)),
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        surfaceTintColor: colorScheme.surfaceTint, // [_NavigationBarDefaultsM3.surfaceTintColor]
       ),
       sliderTheme: SliderThemeData(
         inactiveTrackColor: colorScheme.primary.withOpacity(0.24), // [_SliderDefaultsM2.inactiveTrackColor]

@@ -1,6 +1,6 @@
-import '../../dom.dart';
-import '../html/query_selector.dart';
-import '../html/query_selector.dart' as html;
+import 'package:tsukuyomi_html/dom.dart';
+import 'package:tsukuyomi_html/src/html/query_selector.dart' as html;
+import 'package:tsukuyomi_html/src/html/query_selector.dart';
 
 /// [html.matches]
 bool matches(Element node, String selector) {

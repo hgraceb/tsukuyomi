@@ -4,7 +4,7 @@
 // with the host side of a plugin implementation, unlike Dart unit tests.
 //
 // For more information about Flutter integration tests, please see
-// https://docs.flutter.dev/cookbook/testing/integration/introduction
+// https://flutter.dev/to/integration-testing
 
 
 import 'package:flutter_test/flutter_test.dart';

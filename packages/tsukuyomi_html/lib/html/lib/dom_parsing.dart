@@ -2,7 +2,7 @@
 /// when interacting with the parse tree.
 library;
 
-import '../../dom.dart';
+import 'package:tsukuyomi_html/dom.dart';
 import 'html_escape.dart';
 import 'src/constants.dart' show rcdataElements;
 

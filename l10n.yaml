@@ -1,5 +1,7 @@
-# 配置路径
+# 输入路径
 arb-dir: lib/l10n
+# 输出路径
+output-dir: lib/l10n/gen
 # 延迟加载
 use-deferred-loading: true
 # 配置模板

@@ -22,6 +22,7 @@ class PatchedRefreshIndicator extends RefreshIndicator {
     super.semanticsValue,
     super.strokeWidth,
     super.triggerMode,
+    super.elevation,
     required this.scrollController,
   });
 
@@ -38,6 +39,7 @@ class PatchedRefreshIndicator extends RefreshIndicator {
     super.semanticsValue,
     super.strokeWidth,
     super.triggerMode,
+    super.elevation,
     required this.scrollController,
   });
 
@@ -53,13 +55,15 @@ class PatchedRefreshIndicatorState extends RefreshIndicatorState {
   void _onScroll() {
     final position = widget.scrollController.position;
     // 如果正处于被拖动状态并且指示器正在显示
-    if ((_mode == _RefreshIndicatorMode.drag || _mode == _RefreshIndicatorMode.armed) && _positionController.value > 0) {
-      _handleScrollNotification(ScrollUpdateNotification(
-        context: context,
-        scrollDelta: position.pixels - _pixels,
-        dragDetails: DragUpdateDetails(globalPosition: Offset.zero), // 传递任意非空值避免命中开始刷新的条件导致上下拖动时意外开始刷新
-        metrics: position.copyWith(pixels: 0, minScrollExtent: 0, maxScrollExtent: 0), // 修改位置参数避免命中取消刷新的条件导致上下拖动时意外取消刷新
-      ));
+    if ((_status == RefreshIndicatorStatus.drag || _status == RefreshIndicatorStatus.armed) && _positionController.value > 0) {
+      _handleScrollNotification(
+        ScrollUpdateNotification(
+          context: context,
+          scrollDelta: position.pixels - _pixels,
+          dragDetails: DragUpdateDetails(globalPosition: Offset.zero), // 传递任意非空值避免命中开始刷新的条件导致上下拖动时意外开始刷新
+          metrics: position.copyWith(pixels: 0, minScrollExtent: 0, maxScrollExtent: 0), // 修改位置参数避免命中取消刷新的条件导致上下拖动时意外取消刷新
+        ),
+      );
       // 禁用其他滚动
       position.correctBy(_pixels - position.pixels);
     }
@@ -72,7 +76,7 @@ class PatchedRefreshIndicatorState extends RefreshIndicatorState {
     final position = _positionController.value;
     if (0.0 < position && position < 1.0 / _kDragSizeFactorLimit) {
       // 如果指示器在可刷新范围外
-      _dismiss(_RefreshIndicatorMode.canceled);
+      _dismiss(RefreshIndicatorStatus.canceled);
     } else {
       // 如果指示器在可刷新范围内
       super._show();
@@ -81,21 +85,22 @@ class PatchedRefreshIndicatorState extends RefreshIndicatorState {
 
   @override
   void _checkDragOffset(double containerExtent) {
-    assert(_mode == _RefreshIndicatorMode.drag || _mode == _RefreshIndicatorMode.armed);
+    assert(_status == RefreshIndicatorStatus.drag || _status == RefreshIndicatorStatus.armed);
     double newValue = _dragOffset! / (containerExtent * _kDragContainerExtentPercentage);
 
     // region Tsukuyomi: 解除复位限制并允许重复显示指示器
     // ```
-    // if (_mode == _RefreshIndicatorMode.armed) {
+    // if (_status == RefreshIndicatorStatus.armed) {
     //   newValue = math.max(newValue, 1.0 / _kDragSizeFactorLimit);
     // }
-    // _positionController.value = clampDouble(newValue, 0.0, 1.0); // this triggers various rebuilds
+    // _positionController.value = clampDouble(newValue, 0.0, 1.0); // This triggers various rebuilds.
     // ```
-    _positionController.value = clampDouble(newValue, 1e-10, 1.0);
+    _positionController.value = clampDouble(newValue, 0.0, 1.0);
     // endregion Tsukuyomi
 
-    if (_mode == _RefreshIndicatorMode.drag && _valueColor.value!.alpha == 0xFF) {
-      _mode = _RefreshIndicatorMode.armed;
+    if (_status == RefreshIndicatorStatus.drag && _valueColor.value!.alpha == _effectiveValueColor.alpha) {
+      _status = RefreshIndicatorStatus.armed;
+      widget.onStatusChange?.call(_status);
     }
   }
 

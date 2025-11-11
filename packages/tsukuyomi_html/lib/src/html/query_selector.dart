@@ -1,12 +1,11 @@
-// ignore_for_file: avoid_relative_lib_imports
 library;
 
-import '../../dom.dart';
-import '../../html/lib/src/constants.dart' show isWhitespaceCC;
-import '../csslib/parser.dart';
-import '../../csslib/lib/visitor.dart';
+import 'package:tsukuyomi_html/csslib/lib/visitor.dart';
+import 'package:tsukuyomi_html/dom.dart';
+import 'package:tsukuyomi_html/html/lib/src/constants.dart' show isWhitespaceCC;
+import 'package:tsukuyomi_html/src/csslib/parser.dart';
 
-part '../../html/lib/src/query_selector.dart';
+part 'package:tsukuyomi_html/html/lib/src/query_selector.dart';
 
 /// [_parseSelectorList]
 SelectorGroup tsukuyomiParseSelectorList(String selector) {

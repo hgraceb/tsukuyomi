@@ -1,68 +1,96 @@
 part of declaration.dart.ui;
 
 DartClass get _$Paint => DartClass<Paint>(($) => '''
-class Paint {
+final class Paint {
   // ${$.empty('Paint.new', () => Paint.new)}
-  external Paint();
+  Paint();
+
+  // ${$.empty('Paint.from', () => Paint.from)}
+  external Paint.from(Paint other);
+
+  // ${$.debug('isAntiAlias', ($, $$) => $.isAntiAlias)}
+  external bool get isAntiAlias;
 
   // ${$.debug('isAntiAlias', ($, $$) => $.isAntiAlias = $$)}
-  external bool get isAntiAlias;
   external set isAntiAlias(bool value);
 
-  // ${$.debug('color', ($, $$) => $.color = $$)}
+  // ${$.debug('color', ($, $$) => $.color)}
   external Color get color;
+
+  // ${$.debug('color', ($, $$) => $.color = $$)}
   external set color(Color value);
 
-  // ${$.debug('blendMode', ($, $$) => $.blendMode = $$)}
+  // ${$.debug('blendMode', ($, $$) => $.blendMode)}
   external BlendMode get blendMode;
+
+  // ${$.debug('blendMode', ($, $$) => $.blendMode = $$)}
   external set blendMode(BlendMode value);
 
-  // ${$.debug('style', ($, $$) => $.style = $$)}
+  // ${$.debug('style', ($, $$) => $.style)}
   external PaintingStyle get style;
+
+  // ${$.debug('style', ($, $$) => $.style = $$)}
   external set style(PaintingStyle value);
 
-  // ${$.debug('strokeWidth', ($, $$) => $.strokeWidth = $$)}
+  // ${$.debug('strokeWidth', ($, $$) => $.strokeWidth)}
   external double get strokeWidth;
+
+  // ${$.debug('strokeWidth', ($, $$) => $.strokeWidth = $$)}
   external set strokeWidth(double value);
 
-  // ${$.debug('strokeCap', ($, $$) => $.strokeCap = $$)}
+  // ${$.debug('strokeCap', ($, $$) => $.strokeCap)}
   external StrokeCap get strokeCap;
+
+  // ${$.debug('strokeCap', ($, $$) => $.strokeCap = $$)}
   external set strokeCap(StrokeCap value);
 
-  // ${$.debug('strokeJoin', ($, $$) => $.strokeJoin = $$)}
+  // ${$.debug('strokeJoin', ($, $$) => $.strokeJoin)}
   external StrokeJoin get strokeJoin;
+
+  // ${$.debug('strokeJoin', ($, $$) => $.strokeJoin = $$)}
   external set strokeJoin(StrokeJoin value);
 
-  // ${$.debug('strokeMiterLimit', ($, $$) => $.strokeMiterLimit = $$)}
+  // ${$.debug('strokeMiterLimit', ($, $$) => $.strokeMiterLimit)}
   external double get strokeMiterLimit;
+
+  // ${$.debug('strokeMiterLimit', ($, $$) => $.strokeMiterLimit = $$)}
   external set strokeMiterLimit(double value);
 
-  // ${$.debug('maskFilter', ($, $$) => $.maskFilter = $$)}
+  // ${$.debug('maskFilter', ($, $$) => $.maskFilter)}
   external MaskFilter? get maskFilter;
+
+  // ${$.debug('maskFilter', ($, $$) => $.maskFilter = $$)}
   external set maskFilter(MaskFilter? value);
 
-  // ${$.debug('filterQuality', ($, $$) => $.filterQuality = $$)}
+  // ${$.debug('filterQuality', ($, $$) => $.filterQuality)}
   external FilterQuality get filterQuality;
+
+  // ${$.debug('filterQuality', ($, $$) => $.filterQuality = $$)}
   external set filterQuality(FilterQuality value);
 
-  // ${$.debug('shader', ($, $$) => $.shader = $$)}
+  // ${$.debug('shader', ($, $$) => $.shader)}
   external Shader? get shader;
+
+  // ${$.debug('shader', ($, $$) => $.shader = $$)}
   external set shader(Shader? value);
 
-  // ${$.debug('colorFilter', ($, $$) => $.colorFilter = $$)}
+  // ${$.debug('colorFilter', ($, $$) => $.colorFilter)}
   external ColorFilter? get colorFilter;
+
+  // ${$.debug('colorFilter', ($, $$) => $.colorFilter = $$)}
   external set colorFilter(ColorFilter? value);
 
-  // ${$.debug('imageFilter', ($, $$) => $.imageFilter = $$)}
+  // ${$.debug('imageFilter', ($, $$) => $.imageFilter)}
   external ImageFilter? get imageFilter;
+
+  // ${$.debug('imageFilter', ($, $$) => $.imageFilter = $$)}
   external set imageFilter(ImageFilter? value);
 
-  // ${$.debug('invertColors', ($, $$) => $.invertColors = $$)}
+  // ${$.debug('invertColors', ($, $$) => $.invertColors)}
   external bool get invertColors;
-  external set invertColors(bool value);
 
-  // ${$.empty('Paint.enableDithering', () => Paint.enableDithering)}
-  external static bool enableDithering;
+  // ${$.debug('invertColors', ($, $$) => $.invertColors = $$)}
+  external set invertColors(bool value);
 
   // ${$.debug('toString', ($, $$) => $.toString)}
   external String toString();

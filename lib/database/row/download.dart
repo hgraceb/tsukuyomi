@@ -4,7 +4,7 @@ import 'package:tsukuyomi/database/database.dart';
 part 'download.freezed.dart';
 
 @freezed
-class DatabaseDownload with _$DatabaseDownload, DownloadTableToColumns {
+class DatabaseDownload with _$DatabaseDownload, $DownloadTableTableToColumns {
   const DatabaseDownload._();
 
   const factory DatabaseDownload({

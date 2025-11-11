@@ -18,7 +18,7 @@ import 'dart:math';
 
 import 'package:source_span/source_span.dart';
 
-import '../../dom.dart';
+import 'package:tsukuyomi_html/dom.dart';
 import 'src/constants.dart';
 import 'src/encoding_parser.dart';
 import 'src/token.dart';
@@ -2026,7 +2026,7 @@ class InBodyPhase extends Phase {
   }
 
   void endTagHeading(EndTagToken token) {
-    for (var item in headingElements) {
+    for (var item in headingElementsList) {
       if (tree.elementInScope(item)) {
         tree.generateImpliedEndTags();
         break;
@@ -2036,7 +2036,7 @@ class InBodyPhase extends Phase {
       parser.parseError(token.span, 'end-tag-too-early', {'name': token.name});
     }
 
-    for (var item in headingElements) {
+    for (var item in headingElementsList) {
       if (tree.elementInScope(item)) {
         var node = tree.openElements.removeLast();
         while (!headingElements.contains(node.localName)) {
@@ -3972,6 +3972,9 @@ class ParseError implements SourceSpanException {
 
   @override
   String toString({dynamic color}) {
+    if (span == null) {
+      return message;
+    }
     final res = span!.message(message, color: color);
     return span!.sourceUrl == null ? 'ParserError on $res' : 'On $res';
   }

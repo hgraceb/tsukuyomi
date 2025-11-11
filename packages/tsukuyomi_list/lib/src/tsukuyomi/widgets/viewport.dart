@@ -14,6 +14,7 @@ class TsukuyomiScrollViewViewport extends Viewport {
     super.center,
     super.cacheExtent,
     super.cacheExtentStyle,
+    super.paintOrder,
     super.clipBehavior,
     super.slivers,
   });
@@ -28,6 +29,7 @@ class TsukuyomiScrollViewViewport extends Viewport {
       offset: renderViewport.offset,
       cacheExtent: renderViewport.cacheExtent,
       cacheExtentStyle: renderViewport.cacheExtentStyle,
+      paintOrder: renderViewport.paintOrder,
       clipBehavior: renderViewport.clipBehavior,
     );
   }

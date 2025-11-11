@@ -34,7 +34,7 @@ void main() {
 
       // 逆向滚动一定距离让第一个元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle(const Duration(microseconds: 500));
+      await tester.pumpAndSettle(const Duration(microseconds: 100));
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);

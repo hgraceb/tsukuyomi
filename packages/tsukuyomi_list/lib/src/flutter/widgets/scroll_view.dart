@@ -25,6 +25,16 @@ part of 'package:tsukuyomi_list/src/tsukuyomi/widgets/scroll_view.dart';
 /// To control the initial scroll offset of the scroll view, provide a
 /// [controller] with its [ScrollController.initialScrollOffset] property set.
 ///
+/// {@template flutter.widgets.ScrollView.PageStorage}
+/// ## Persisting the scroll position during a session
+///
+/// Scroll views attempt to persist their scroll position using [PageStorage].
+/// This can be disabled by setting [ScrollController.keepScrollOffset] to false
+/// on the [controller]. If it is enabled, using a [PageStorageKey] for the
+/// [key] of this widget is recommended to help disambiguate different scroll
+/// views from each other.
+/// {@endtemplate}
+///
 /// See also:
 ///
 ///  * [ListView], which is a commonly used [ScrollView] that displays a
@@ -50,9 +60,7 @@ abstract class ScrollView extends StatelessWidget {
   ///
   /// If the [shrinkWrap] argument is true, the [center] argument must be null.
   ///
-  /// The [scrollDirection], [reverse], and [shrinkWrap] arguments must not be null.
-  ///
-  /// The [anchor] argument must be non-null and in the range 0.0 to 1.0.
+  /// The [anchor] argument must be in the range zero to one, inclusive.
   const ScrollView({
     super.key,
     this.scrollDirection = Axis.vertical,
@@ -66,10 +74,12 @@ abstract class ScrollView extends StatelessWidget {
     this.anchor = 0.0,
     this.cacheExtent,
     this.semanticChildCount,
+    this.paintOrder = SliverPaintOrder.firstIsTop,
     this.dragStartBehavior = DragStartBehavior.start,
-    this.keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual,
+    this.keyboardDismissBehavior,
     this.restorationId,
     this.clipBehavior = Clip.hardEdge,
+    this.hitTestBehavior = HitTestBehavior.opaque,
   }) : assert(
          !(controller != null && (primary ?? false)),
          'Primary ScrollViews obtain their ScrollController via inheritance '
@@ -79,7 +89,14 @@ abstract class ScrollView extends StatelessWidget {
        assert(!shrinkWrap || center == null),
        assert(anchor >= 0.0 && anchor <= 1.0),
        assert(semanticChildCount == null || semanticChildCount >= 0),
-       physics = physics ?? ((primary ?? false) || (primary == null && controller == null && identical(scrollDirection, Axis.vertical)) ? const AlwaysScrollableScrollPhysics() : null);
+       physics =
+           physics ??
+           ((primary ?? false) ||
+                   (primary == null &&
+                       controller == null &&
+                       identical(scrollDirection, Axis.vertical))
+               ? const AlwaysScrollableScrollPhysics()
+               : null);
 
   /// {@template flutter.widgets.scroll_view.scrollDirection}
   /// The [Axis] along which the scroll view's offset increases.
@@ -205,12 +222,7 @@ abstract class ScrollView extends StatelessWidget {
   /// [physics].
   final ScrollPhysics? physics;
 
-  /// {@macro flutter.widgets.shadow.scrollBehavior}
-  ///
-  /// [ScrollBehavior]s also provide [ScrollPhysics]. If an explicit
-  /// [ScrollPhysics] is provided in [physics], it will take precedence,
-  /// followed by [scrollBehavior], and then the inherited ancestor
-  /// [ScrollBehavior].
+  /// {@macro flutter.widgets.scrollable.scrollBehavior}
   final ScrollBehavior? scrollBehavior;
 
   /// {@template flutter.widgets.scroll_view.shrinkWrap}
@@ -316,14 +328,23 @@ abstract class ScrollView extends StatelessWidget {
   ///  * [SemanticsConfiguration.scrollChildCount], the corresponding semantics property.
   final int? semanticChildCount;
 
+  /// {@macro flutter.rendering.RenderViewportBase.paintOrder}
+  ///
+  /// Defaults to [SliverPaintOrder.firstIsTop].
+  final SliverPaintOrder paintOrder;
+
   /// {@macro flutter.widgets.scrollable.dragStartBehavior}
   final DragStartBehavior dragStartBehavior;
 
   /// {@template flutter.widgets.scroll_view.keyboardDismissBehavior}
-  /// [ScrollViewKeyboardDismissBehavior] the defines how this [ScrollView] will
+  /// The [ScrollViewKeyboardDismissBehavior] defines how this [ScrollView] will
   /// dismiss the keyboard automatically.
   /// {@endtemplate}
-  final ScrollViewKeyboardDismissBehavior keyboardDismissBehavior;
+  ///
+  /// If [keyboardDismissBehavior] is null then it will fallback to
+  /// [scrollBehavior]. If that is also null, the inherited
+  /// [ScrollBehavior.getKeyboardDismissBehavior] will be used.
+  final ScrollViewKeyboardDismissBehavior? keyboardDismissBehavior;
 
   /// {@macro flutter.widgets.scrollable.restorationId}
   final String? restorationId;
@@ -332,6 +353,11 @@ abstract class ScrollView extends StatelessWidget {
   ///
   /// Defaults to [Clip.hardEdge].
   final Clip clipBehavior;
+
+  /// {@macro flutter.widgets.scrollable.hitTestBehavior}
+  ///
+  /// Defaults to [HitTestBehavior.opaque].
+  final HitTestBehavior hitTestBehavior;
 
   /// Returns the [AxisDirection] in which the scroll view scrolls.
   ///
@@ -385,8 +411,9 @@ abstract class ScrollView extends StatelessWidget {
           return debugCheckHasDirectionality(
             context,
             why: 'to determine the cross-axis direction of the scroll view',
-            hint: 'Vertical scroll views create Viewport widgets that try to determine their cross axis direction '
-                  'from the ambient Directionality.',
+            hint:
+                'Vertical scroll views create Viewport widgets that try to determine their cross axis direction '
+                'from the ambient Directionality.',
           );
         case AxisDirection.left:
         case AxisDirection.right:
@@ -398,6 +425,7 @@ abstract class ScrollView extends StatelessWidget {
         axisDirection: axisDirection,
         offset: offset,
         slivers: slivers,
+        paintOrder: paintOrder,
         clipBehavior: clipBehavior,
       );
     }
@@ -408,6 +436,7 @@ abstract class ScrollView extends StatelessWidget {
       cacheExtent: cacheExtent,
       center: center,
       anchor: anchor,
+      paintOrder: paintOrder,
       clipBehavior: clipBehavior,
     );
   }
@@ -417,8 +446,9 @@ abstract class ScrollView extends StatelessWidget {
     final List<Widget> slivers = buildSlivers(context);
     final AxisDirection axisDirection = getDirection(context);
 
-    final bool effectivePrimary = primary
-        ?? controller == null && PrimaryScrollController.shouldInherit(context, scrollDirection);
+    final bool effectivePrimary =
+        primary ??
+        controller == null && PrimaryScrollController.shouldInherit(context, scrollDirection);
 
     final ScrollController? scrollController = effectivePrimary
         ? PrimaryScrollController.maybeOf(context)
@@ -432,6 +462,7 @@ abstract class ScrollView extends StatelessWidget {
       scrollBehavior: scrollBehavior,
       semanticChildCount: semanticChildCount,
       restorationId: restorationId,
+      hitTestBehavior: hitTestBehavior,
       viewportBuilder: (BuildContext context, ViewportOffset offset) {
         return buildViewport(context, offset, axisDirection, slivers);
       },
@@ -443,13 +474,20 @@ abstract class ScrollView extends StatelessWidget {
         ? PrimaryScrollController.none(child: scrollable)
         : scrollable;
 
-    if (keyboardDismissBehavior == ScrollViewKeyboardDismissBehavior.onDrag) {
+    final ScrollViewKeyboardDismissBehavior effectiveKeyboardDismissBehavior =
+        keyboardDismissBehavior ??
+        scrollBehavior?.getKeyboardDismissBehavior(context) ??
+        ScrollConfiguration.of(context).getKeyboardDismissBehavior(context);
+
+    if (effectiveKeyboardDismissBehavior == ScrollViewKeyboardDismissBehavior.onDrag) {
       return NotificationListener<ScrollUpdateNotification>(
         child: scrollableResult,
         onNotification: (ScrollUpdateNotification notification) {
-          final FocusScopeNode focusScope = FocusScope.of(context);
-          if (notification.dragDetails != null && focusScope.hasFocus) {
-            focusScope.unfocus();
+          final FocusScopeNode currentScope = FocusScope.of(context);
+          if (notification.dragDetails != null &&
+              !currentScope.hasPrimaryFocus &&
+              currentScope.hasFocus) {
+            FocusManager.instance.primaryFocus?.unfocus();
           }
           return false;
         },
@@ -464,10 +502,23 @@ abstract class ScrollView extends StatelessWidget {
     super.debugFillProperties(properties);
     properties.add(EnumProperty<Axis>('scrollDirection', scrollDirection));
     properties.add(FlagProperty('reverse', value: reverse, ifTrue: 'reversed', showName: true));
-    properties.add(DiagnosticsProperty<ScrollController>('controller', controller, showName: false, defaultValue: null));
-    properties.add(FlagProperty('primary', value: primary, ifTrue: 'using primary controller', showName: true));
-    properties.add(DiagnosticsProperty<ScrollPhysics>('physics', physics, showName: false, defaultValue: null));
-    properties.add(FlagProperty('shrinkWrap', value: shrinkWrap, ifTrue: 'shrink-wrapping', showName: true));
+    properties.add(
+      DiagnosticsProperty<ScrollController>(
+        'controller',
+        controller,
+        showName: false,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      FlagProperty('primary', value: primary, ifTrue: 'using primary controller', showName: true),
+    );
+    properties.add(
+      DiagnosticsProperty<ScrollPhysics>('physics', physics, showName: false, defaultValue: null),
+    );
+    properties.add(
+      FlagProperty('shrinkWrap', value: shrinkWrap, ifTrue: 'shrink-wrapping', showName: true),
+    );
   }
 }
 
@@ -583,6 +634,8 @@ abstract class ScrollView extends StatelessWidget {
 /// parameter `semanticChildCount`. This should always be the same as the
 /// number of widgets wrapped in [IndexedSemantics].
 ///
+/// {@macro flutter.widgets.ScrollView.PageStorage}
+///
 /// See also:
 ///
 ///  * [SliverList], which is a sliver that displays linear list of children.
@@ -613,12 +666,14 @@ class CustomScrollView extends ScrollView {
     super.center,
     super.anchor,
     super.cacheExtent,
+    super.paintOrder,
     this.slivers = const <Widget>[],
     super.semanticChildCount,
     super.dragStartBehavior,
     super.keyboardDismissBehavior,
     super.restorationId,
     super.clipBehavior,
+    super.hitTestBehavior,
   });
 
   /// The slivers to place inside the viewport.
@@ -698,7 +753,7 @@ class CustomScrollView extends ScrollView {
   /// be laid out in a viewport (i.e. when scrolling).
   ///
   /// Typically, the simplest way to combine boxes into a sliver environment is
-  /// to use a [SliverList] (maybe using a [ListView, which is a convenient
+  /// to use a [SliverList] (maybe using a [ListView], which is a convenient
   /// combination of a [CustomScrollView] and a [SliverList]). In rare cases,
   /// e.g. if a single [Divider] widget is needed between two [SliverGrid]s,
   /// a [SliverToBoxAdapter] can be used to wrap the box widgets.

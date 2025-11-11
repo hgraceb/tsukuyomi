@@ -2,22 +2,21 @@
 import 'dart:math' as math;
 
 import 'package:source_span/source_span.dart';
+import 'package:tsukuyomi_html/csslib/lib/src/messages.dart';
+import 'package:tsukuyomi_html/csslib/lib/src/preprocessor_options.dart';
+import 'package:tsukuyomi_html/csslib/lib/visitor.dart';
 
-import '../../csslib/lib/src/messages.dart';
-import '../../csslib/lib/src/preprocessor_options.dart';
-import '../../csslib/lib/visitor.dart';
+export 'package:tsukuyomi_html/csslib/lib/src/messages.dart' show Message, MessageLevel;
+export 'package:tsukuyomi_html/csslib/lib/src/preprocessor_options.dart';
 
-export '../../csslib/lib/src/messages.dart' show Message, MessageLevel;
-export '../../csslib/lib/src/preprocessor_options.dart';
-
-part '../../csslib/lib/parser.dart';
-part '../../csslib/lib/src/analyzer.dart';
-part '../../csslib/lib/src/polyfill.dart';
-part '../../csslib/lib/src/property.dart';
-part '../../csslib/lib/src/token.dart';
-part '../../csslib/lib/src/token_kind.dart';
-part '../../csslib/lib/src/tokenizer.dart';
-part '../../csslib/lib/src/tokenizer_base.dart';
+part 'package:tsukuyomi_html/csslib/lib/parser.dart';
+part 'package:tsukuyomi_html/csslib/lib/src/analyzer.dart';
+part 'package:tsukuyomi_html/csslib/lib/src/polyfill.dart';
+part 'package:tsukuyomi_html/csslib/lib/src/property.dart';
+part 'package:tsukuyomi_html/csslib/lib/src/token.dart';
+part 'package:tsukuyomi_html/csslib/lib/src/token_kind.dart';
+part 'package:tsukuyomi_html/csslib/lib/src/tokenizer.dart';
+part 'package:tsukuyomi_html/csslib/lib/src/tokenizer_base.dart';
 
 /// [parseSelectorGroup]
 SelectorGroup? tsukuyomiParseSelectorGroup(Object input, {List<Message>? errors}) {
@@ -61,8 +60,8 @@ class _TsukuyomiParser extends _Parser {
 
         _eat(TokenKind.RPAREN);
         return NegationSelector(negArg, _makeSpan(start));
-      } else if (!pseudoElement && name == 'has') {
         // region Tsukuyomi: 优化部分常用伪类选择器解析
+      } else if (!pseudoElement && name == 'has') {
         _eat(TokenKind.LPAREN);
         var selector = processSelector();
         if (selector == null) {
@@ -74,10 +73,7 @@ class _TsukuyomiParser extends _Parser {
         return PseudoClassFunctionSelector(pseudoName, selector, span);
         // endregion Tsukuyomi
       } else if (!pseudoElement &&
-          (name == 'host' ||
-              name == 'host-context' ||
-              name == 'global-context' ||
-              name == '-acx-global-context')) {
+          (name == 'host' || name == 'host-context' || name == 'global-context' || name == '-acx-global-context')) {
         _eat(TokenKind.LPAREN);
         var selector = processCompoundSelector();
         if (selector == null) {
@@ -119,8 +115,7 @@ class _TsukuyomiParser extends _Parser {
     // Treat CSS2.1 pseudo-elements defined with pseudo class syntax as pseudo-
     // elements for backwards compatibility.
     return pseudoElement || _legacyPseudoElements.contains(name)
-        ? PseudoElementSelector(pseudoName, _makeSpan(start),
-            isLegacy: !pseudoElement)
+        ? PseudoElementSelector(pseudoName, _makeSpan(start), isLegacy: !pseudoElement)
         : PseudoClassSelector(pseudoName, _makeSpan(start));
   }
 }

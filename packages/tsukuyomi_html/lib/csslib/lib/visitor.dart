@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:source_span/source_span.dart';
-import '../../src/csslib/parser.dart';
+import 'package:tsukuyomi_html/src/csslib/parser.dart';
 
 part 'src/css_printer.dart';
 part 'src/tree.dart';
