@@ -18,7 +18,7 @@ import 'dart:math';
 
 import 'package:source_span/source_span.dart';
 
-import '../../dom.dart';
+import 'package:tsukuyomi_html/dom.dart';
 import 'src/constants.dart';
 import 'src/encoding_parser.dart';
 import 'src/token.dart';
