@@ -2,24 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'dart:math' as math;
-
-import 'package:source_span/source_span.dart';
-
-import 'src/messages.dart';
-import 'src/preprocessor_options.dart';
-import 'visitor.dart';
-
-export 'src/messages.dart' show Message, MessageLevel;
-export 'src/preprocessor_options.dart';
-
-part 'src/analyzer.dart';
-part 'src/polyfill.dart';
-part 'src/property.dart';
-part 'src/token.dart';
-part 'src/token_kind.dart';
-part 'src/tokenizer.dart';
-part 'src/tokenizer_base.dart';
+part of 'package:tsukuyomi_html/src/csslib/parser.dart';
 
 enum ClauseType {
   none,

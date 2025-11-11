@@ -4,7 +4,7 @@
 
 // ignore_for_file: constant_identifier_names
 
-part of '../parser.dart';
+part of 'package:tsukuyomi_html/src/csslib/parser.dart';
 
 // TODO(terry): Need to be consistent with tokens either they're ASCII tokens
 //              e.g., ASTERISK or they're CSS e.g., PSEUDO, COMBINATOR_*.

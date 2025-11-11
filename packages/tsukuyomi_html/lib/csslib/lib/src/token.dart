@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of '../parser.dart';
+part of 'package:tsukuyomi_html/src/csslib/parser.dart';
 
 /// A single token in the Dart language.
 class Token {
