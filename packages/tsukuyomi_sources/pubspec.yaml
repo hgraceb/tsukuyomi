@@ -16,7 +16,7 @@ dependencies:
     path: ../tsukuyomi_html
 
   # 代码注解
-  meta: any
+  meta: ^1.16.0
   # 网络请求
   dio: ^5.9.0
   # 图像处理
@@ -27,8 +27,8 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   # 处理 Protobuf 协议数据
   protobuf: ^3.1.0
-  # 适配 Protobuf 数据格式
-  fixnum: any
+  # 固定精度整数
+  fixnum: ^1.1.1
   # 字符集编解码
   charset: ^2.0.1
 

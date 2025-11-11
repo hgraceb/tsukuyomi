@@ -10,10 +10,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  meta: any
-  vector_math: any
-  sliver_tools: any
-  collection: any
+  # 代码注解
+  meta: ^1.16.0
+  # 向量数学计算
+  vector_math: ^2.2.0
+  # Sliver 组件扩展
+  sliver_tools: ^0.2.12
+  # 集合操作
+  collection: ^1.19.1
 
 dev_dependencies:
   flutter_test:
