@@ -4,8 +4,8 @@ publish_to: 'none'
 version: 0.0.1
 
 environment:
-  sdk: ">=3.9.2 <4.0.0"
-  flutter: ">=3.35.7 <4.0.0"
+  sdk: ">=3.10.0-290.4.beta <4.0.0"
+  flutter: ">=3.38.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -16,7 +16,7 @@ dependencies:
     path: ../tsukuyomi_html
 
   # 代码注解
-  meta: 1.16.0
+  meta: 1.17.0
   # 网络请求
   dio: 5.9.0
   # 图像处理
