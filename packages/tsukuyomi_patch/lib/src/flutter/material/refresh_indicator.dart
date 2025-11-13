@@ -28,6 +28,27 @@ const Duration _kIndicatorScaleDuration = Duration(milliseconds: 200);
 /// Used by [RefreshIndicator.onRefresh].
 typedef RefreshCallback = Future<void> Function();
 
+// /// Indicates current status of Material `RefreshIndicator`.
+// enum RefreshIndicatorStatus {
+//   /// Pointer is down.
+//   drag,
+//
+//   /// Dragged far enough that an up event will run the onRefresh callback.
+//   armed,
+//
+//   /// Animating to the indicator's final "displacement".
+//   snap,
+//
+//   /// Running the refresh callback.
+//   refresh,
+//
+//   /// Animating the indicator's fade-out after refreshing.
+//   done,
+//
+//   /// Animating the indicator's fade-out after not arming.
+//   canceled,
+// }
+
 /// Used to configure how [RefreshIndicator] can be triggered.
 enum RefreshIndicatorTriggerMode {
   /// The indicator can be triggered regardless of the scroll position
