@@ -90,6 +90,91 @@ class _LayoutSizes {
   final double? spacePerFlex;
 }
 
+// /// How the child is inscribed into the available space.
+// ///
+// /// See also:
+// ///
+// ///  * [RenderFlex], the flex render object.
+// ///  * [Column], [Row], and [Flex], the flex widgets.
+// ///  * [Expanded], the widget equivalent of [tight].
+// ///  * [Flexible], the widget equivalent of [loose].
+// enum FlexFit {
+//   /// The child is forced to fill the available space.
+//   ///
+//   /// The [Expanded] widget assigns this kind of [FlexFit] to its child.
+//   tight,
+//
+//   /// The child can be at most as large as the available space (but is
+//   /// allowed to be smaller).
+//   ///
+//   /// The [Flexible] widget assigns this kind of [FlexFit] to its child.
+//   loose,
+// }
+//
+// /// Parent data for use with [RenderFlex].
+// class FlexParentData extends ContainerBoxParentData<RenderBox> {
+//   /// The flex factor to use for this child.
+//   ///
+//   /// If null or zero, the child is inflexible and determines its own size. If
+//   /// non-zero, the amount of space the child's can occupy in the main axis is
+//   /// determined by dividing the free space (after placing the inflexible
+//   /// children) according to the flex factors of the flexible children.
+//   int? flex;
+//
+//   /// How a flexible child is inscribed into the available space.
+//   ///
+//   /// If [flex] is non-zero, the [fit] determines whether the child fills the
+//   /// space the parent makes available during layout. If the fit is
+//   /// [FlexFit.tight], the child is required to fill the available space. If the
+//   /// fit is [FlexFit.loose], the child can be at most as large as the available
+//   /// space (but is allowed to be smaller).
+//   FlexFit? fit;
+//
+//   @override
+//   String toString() => '${super.toString()}; flex=$flex; fit=$fit';
+// }
+//
+// /// How much space should be occupied in the main axis.
+// ///
+// /// During a flex layout, available space along the main axis is allocated to
+// /// children. After allocating space, there might be some remaining free space.
+// /// This value controls whether to maximize or minimize the amount of free
+// /// space, subject to the incoming layout constraints.
+// ///
+// /// See also:
+// ///
+// ///  * [Column], [Row], and [Flex], the flex widgets.
+// ///  * [Expanded] and [Flexible], the widgets that controls a flex widgets'
+// ///    children's flex.
+// ///  * [RenderFlex], the flex render object.
+// ///  * [MainAxisAlignment], which controls how the free space is distributed.
+// enum MainAxisSize {
+//   /// Minimize the amount of free space along the main axis, subject to the
+//   /// incoming layout constraints.
+//   ///
+//   /// If the incoming layout constraints have a large enough
+//   /// [BoxConstraints.minWidth] or [BoxConstraints.minHeight], there might still
+//   /// be a non-zero amount of free space.
+//   ///
+//   /// If the incoming layout constraints are unbounded, and any children have a
+//   /// non-zero [FlexParentData.flex] and a [FlexFit.tight] fit (as applied by
+//   /// [Expanded]), the [RenderFlex] will assert, because there would be infinite
+//   /// remaining free space and boxes cannot be given infinite size.
+//   min,
+//
+//   /// Maximize the amount of free space along the main axis, subject to the
+//   /// incoming layout constraints.
+//   ///
+//   /// If the incoming layout constraints have a small enough
+//   /// [BoxConstraints.maxWidth] or [BoxConstraints.maxHeight], there might still
+//   /// be no free space.
+//   ///
+//   /// If the incoming layout constraints are unbounded, the [RenderFlex] will
+//   /// assert, because there would be infinite remaining free space and boxes
+//   /// cannot be given infinite size.
+//   max,
+// }
+
 /// How the children should be placed along the main axis in a flex layout.
 ///
 /// See also:
@@ -97,6 +182,38 @@ class _LayoutSizes {
 ///  * [Column], [Row], and [Flex], the flex widgets.
 ///  * [RenderFlex], the flex render object.
 extension on MainAxisAlignment {
+  // /// Place the children as close to the start of the main axis as possible.
+  // ///
+  // /// If this value is used in a horizontal direction, a [TextDirection] must be
+  // /// available to determine if the start is the left or the right.
+  // ///
+  // /// If this value is used in a vertical direction, a [VerticalDirection] must be
+  // /// available to determine if the start is the top or the bottom.
+  // start,
+  //
+  // /// Place the children as close to the end of the main axis as possible.
+  // ///
+  // /// If this value is used in a horizontal direction, a [TextDirection] must be
+  // /// available to determine if the end is the left or the right.
+  // ///
+  // /// If this value is used in a vertical direction, a [VerticalDirection] must be
+  // /// available to determine if the end is the top or the bottom.
+  // end,
+  //
+  // /// Place the children as close to the middle of the main axis as possible.
+  // center,
+  //
+  // /// Place the free space evenly between the children.
+  // spaceBetween,
+  //
+  // /// Place the free space evenly between the children as well as half of that
+  // /// space before and after the first and last child.
+  // spaceAround,
+  //
+  // /// Place the free space evenly between the children as well as before and
+  // /// after the first and last child.
+  // spaceEvenly;
+
   (double leadingSpace, double betweenSpace) _distributeSpace(
     double freeSpace,
     int itemCount,
@@ -146,6 +263,80 @@ extension on MainAxisAlignment {
 ///    has this type.
 ///  * [RenderFlex], the flex render object.
 extension on CrossAxisAlignment {
+  // /// Place the children with their start edge aligned with the start side of
+  // /// the cross axis.
+  // ///
+  // /// For example, in a column (a flex with a vertical axis) whose
+  // /// [TextDirection] is [TextDirection.ltr], this aligns the left edge of the
+  // /// children along the left edge of the column.
+  // ///
+  // /// If this value is used in a horizontal direction, a [TextDirection] must be
+  // /// available to determine if the start is the left or the right.
+  // ///
+  // /// If this value is used in a vertical direction, a [VerticalDirection] must be
+  // /// available to determine if the start is the top or the bottom.
+  // start,
+  //
+  // /// Place the children as close to the end of the cross axis as possible.
+  // ///
+  // /// For example, in a column (a flex with a vertical axis) whose
+  // /// [TextDirection] is [TextDirection.ltr], this aligns the right edge of the
+  // /// children along the right edge of the column.
+  // ///
+  // /// If this value is used in a horizontal direction, a [TextDirection] must be
+  // /// available to determine if the end is the left or the right.
+  // ///
+  // /// If this value is used in a vertical direction, a [VerticalDirection] must be
+  // /// available to determine if the end is the top or the bottom.
+  // end,
+  //
+  // /// Place the children so that their centers align with the middle of the
+  // /// cross axis.
+  // ///
+  // /// This is the default cross-axis alignment.
+  // center,
+  //
+  // /// Require the children to fill the cross axis.
+  // ///
+  // /// This causes the constraints passed to the children to be tight in the
+  // /// cross axis.
+  // stretch,
+  //
+  // /// Place the children along the cross axis such that their baselines match.
+  // ///
+  // /// Consider using this value for any horizontal main axis (as with [Row])
+  // /// where the children primarily contain text.  If the different children
+  // /// have text with different font metrics (for example because they differ
+  // /// in [TextStyle.fontSize] or other [TextStyle] properties, or because
+  // /// they use different fonts due to being written in different scripts),
+  // /// then this typically produces better visual alignment than the other
+  // /// [CrossAxisAlignment] values, which use no information about
+  // /// where the text sits vertically within its bounding box.
+  // ///
+  // /// The baseline of a widget is typically the typographic baseline of the
+  // /// first text in the first [Text] or [RichText] widget it encloses, if any.
+  // /// The typographic baseline is a horizontal line used for aligning text,
+  // /// which is specified by each font; for alphabetic scripts, it ordinarily
+  // /// runs along the bottom of letters excluding any descenders.
+  // ///
+  // /// Because baselines are always horizontal, this alignment is intended for
+  // /// horizontal main axes (as with [Row]). If the main axis is vertical
+  // /// (as with [Column]), then this value is treated like [start].
+  // ///
+  // /// For horizontal main axes, if the minimum height constraint passed to the
+  // /// flex layout exceeds the intrinsic height of the cross axis, children will
+  // /// be aligned as close to the top as they can be while honoring the baseline
+  // /// alignment. In other words, the extra space will be below all the children.
+  // ///
+  // /// Children who report no baseline will be top-aligned.
+  // ///
+  // /// See also:
+  // ///
+  // ///  * [RenderBox.getDistanceToBaseline], which defines the baseline of a box.
+  // ///  * [IgnoreBaseline], which can be used to ignore a child for the purpose of
+  // ///    baseline alignment.
+  // baseline;
+
   double _getChildCrossAxisOffset(double freeSpace, bool flipped) {
     // This method should not be used to position baseline-aligned children.
     return switch (this) {

@@ -4,14 +4,14 @@ publish_to: 'none'
 version: 0.0.1
 
 environment:
-  sdk: ">=3.9.2 <4.0.0"
-  flutter: ">=3.35.7 <4.0.0"
+  sdk: ">=3.10.0-290.4.beta <4.0.0"
+  flutter: ">=3.38.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   # 代码注解
-  meta: any
+  meta: 1.17.0
   # 集合操作
   collection: 1.19.1
   # 网络请求
@@ -22,4 +22,4 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: 5.0.0
+  flutter_lints: 6.0.0

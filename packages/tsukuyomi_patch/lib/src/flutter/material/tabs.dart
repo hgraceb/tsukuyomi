@@ -8,6 +8,76 @@ const double _kTabHeight = 46.0;
 const double _kTextAndIconTabHeight = 72.0;
 const double _kStartOffset = 52.0;
 
+// /// Defines how the bounds of the selected tab indicator are computed.
+// ///
+// /// See also:
+// ///
+// ///  * [TabBar], which displays a row of tabs.
+// ///  * [TabBarView], which displays a widget for the currently selected tab.
+// ///  * [TabBar.indicator], which defines the appearance of the selected tab
+// ///    indicator relative to the tab's bounds.
+// enum TabBarIndicatorSize {
+//   /// The tab indicator's bounds are as wide as the space occupied by the tab
+//   /// in the tab bar: from the right edge of the previous tab to the left edge
+//   /// of the next tab.
+//   tab,
+//
+//   /// The tab's bounds are only as wide as the (centered) tab widget itself.
+//   ///
+//   /// This value is used to align the tab's label, typically a [Tab]
+//   /// widget's text or icon, with the selected tab indicator.
+//   label,
+// }
+//
+// /// Defines how tabs are aligned horizontally in a [TabBar].
+// ///
+// /// See also:
+// ///
+// ///   * [TabBar], which displays a row of tabs.
+// ///   * [TabBarView], which displays a widget for the currently selected tab.
+// ///   * [TabBar.tabAlignment], which defines the horizontal alignment of the
+// ///     tabs within the [TabBar].
+// enum TabAlignment {
+//   // TODO(tahatesser): Add a link to the Material Design spec for
+//   // horizontal offset when it is available.
+//   // It's currently sourced from androidx/compose/material3/TabRow.kt.
+//   /// If [TabBar.isScrollable] is true, tabs are aligned to the
+//   /// start of the [TabBar]. Otherwise throws an exception.
+//   ///
+//   /// It is not recommended to set [TabAlignment.start] when
+//   /// [ThemeData.useMaterial3] is false.
+//   start,
+//
+//   /// If [TabBar.isScrollable] is true, tabs are aligned to the
+//   /// start of the [TabBar] with an offset of 52.0 pixels.
+//   /// Otherwise throws an exception.
+//   ///
+//   /// It is not recommended to set [TabAlignment.startOffset] when
+//   /// [ThemeData.useMaterial3] is false.
+//   startOffset,
+//
+//   /// If [TabBar.isScrollable] is false, tabs are stretched to fill the
+//   /// [TabBar]. Otherwise throws an exception.
+//   fill,
+//
+//   /// Tabs are aligned to the center of the [TabBar].
+//   center,
+// }
+//
+// /// Defines how the tab indicator animates when the selected tab changes.
+// ///
+// /// See also:
+// ///  * [TabBar], which displays a row of tabs.
+// ///  * [TabBarThemeData], which can be used to configure the appearance of the tab
+// ///    indicator.
+// enum TabIndicatorAnimation {
+//   /// The tab indicator animates linearly.
+//   linear,
+//
+//   /// The tab indicator animates with an elastic effect.
+//   elastic,
+// }
+
 /// A Material Design [TabBar] tab.
 ///
 /// If both [icon] and [text] are provided, the text is displayed below
@@ -164,7 +234,7 @@ class _TabStyle extends AnimatedWidget {
   final TabBarThemeData defaults;
   final Widget child;
 
-  MaterialStateColor _resolveWithLabelColor(BuildContext context, {IconThemeData? iconTheme}) {
+  WidgetStateColor _resolveWithLabelColor(BuildContext context, {IconThemeData? iconTheme}) {
     final ThemeData themeData = Theme.of(context);
     final TabBarThemeData tabBarTheme = TabBarTheme.of(context);
     final Animation<double> animation = listenable as Animation<double>;
@@ -181,12 +251,12 @@ class _TabStyle extends AnimatedWidget {
 
     final Color unselectedColor;
 
-    if (selectedColor is MaterialStateColor) {
-      unselectedColor = selectedColor.resolve(const <MaterialState>{});
-      selectedColor = selectedColor.resolve(const <MaterialState>{MaterialState.selected});
+    if (selectedColor is WidgetStateColor) {
+      unselectedColor = selectedColor.resolve(const <WidgetState>{});
+      selectedColor = selectedColor.resolve(const <WidgetState>{WidgetState.selected});
     } else {
       // unselectedLabelColor and tabBarTheme.unselectedLabelColor are ignored
-      // when labelColor is a MaterialStateColor.
+      // when labelColor is a WidgetStateColor.
       unselectedColor =
           unselectedLabelColor ??
           tabBarTheme.unselectedLabelColor ??
@@ -198,8 +268,8 @@ class _TabStyle extends AnimatedWidget {
               : selectedColor.withAlpha(0xB2)); // 70% alpha
     }
 
-    return MaterialStateColor.resolveWith((Set<MaterialState> states) {
-      if (states.contains(MaterialState.selected)) {
+    return WidgetStateColor.resolveWith((Set<WidgetState> states) {
+      if (states.contains(WidgetState.selected)) {
         return Color.lerp(selectedColor, unselectedColor, animation.value)!;
       }
       return Color.lerp(unselectedColor, selectedColor, animation.value)!;
@@ -212,20 +282,18 @@ class _TabStyle extends AnimatedWidget {
     final TabBarThemeData tabBarTheme = TabBarTheme.of(context);
     final Animation<double> animation = listenable as Animation<double>;
 
-    final Set<MaterialState> states = isSelected
-        ? const <MaterialState>{MaterialState.selected}
-        : const <MaterialState>{};
+    final Set<WidgetState> states = isSelected
+        ? const <WidgetState>{WidgetState.selected}
+        : const <WidgetState>{};
 
     // To enable TextStyle.lerp(style1, style2, value), both styles must have
     // the same value of inherit. Force that to be inherit=true here.
-    final TextStyle selectedStyle = (labelStyle ?? tabBarTheme.labelStyle ?? defaults.labelStyle!)
+    final TextStyle selectedStyle = defaults.labelStyle!
+        .merge(labelStyle ?? tabBarTheme.labelStyle)
         .copyWith(inherit: true);
-    final TextStyle unselectedStyle =
-        (unselectedLabelStyle ??
-                tabBarTheme.unselectedLabelStyle ??
-                labelStyle ??
-                defaults.unselectedLabelStyle!)
-            .copyWith(inherit: true);
+    final TextStyle unselectedStyle = defaults.unselectedLabelStyle!
+        .merge(unselectedLabelStyle ?? tabBarTheme.unselectedLabelStyle ?? labelStyle)
+        .copyWith(inherit: true);
     final TextStyle textStyle = isSelected
         ? TextStyle.lerp(selectedStyle, unselectedStyle, animation.value)!
         : TextStyle.lerp(unselectedStyle, selectedStyle, animation.value)!;
@@ -1134,7 +1202,7 @@ class TabBar extends StatefulWidget implements PreferredSizeWidget {
   /// * pressed - ThemeData.colorScheme.primary(0.1)
   /// * hovered - ThemeData.colorScheme.onSurface(0.08)
   /// * focused - ThemeData.colorScheme.onSurface(0.1)
-  final MaterialStateProperty<Color?>? overlayColor;
+  final WidgetStateProperty<Color?>? overlayColor;
 
   /// {@macro flutter.widgets.scrollable.dragStartBehavior}
   final DragStartBehavior dragStartBehavior;
@@ -1833,20 +1901,21 @@ class _TabBarState extends State<TabBar> {
     // the same share of the tab bar's overall width.
     final int tabCount = widget.tabs.length;
     for (int index = 0; index < tabCount; index += 1) {
-      final Set<MaterialState> selectedState = <MaterialState>{
-        if (index == _currentIndex) MaterialState.selected,
+      final Set<WidgetState> selectedState = <WidgetState>{
+        if (index == _currentIndex) WidgetState.selected,
       };
 
       final MouseCursor effectiveMouseCursor =
-          MaterialStateProperty.resolveAs<MouseCursor?>(widget.mouseCursor, selectedState) ??
+          WidgetStateProperty.resolveAs<MouseCursor?>(widget.mouseCursor, selectedState) ??
           tabBarTheme.mouseCursor?.resolve(selectedState) ??
-          MaterialStateMouseCursor.clickable.resolve(selectedState);
+          WidgetStateMouseCursor.clickable.resolve(selectedState);
 
-      final MaterialStateProperty<Color?> defaultOverlay =
-          MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
-            final Set<MaterialState> effectiveStates = selectedState..addAll(states);
-            return _defaults.overlayColor?.resolve(effectiveStates);
-          });
+      final WidgetStateProperty<Color?> defaultOverlay = WidgetStateProperty.resolveWith<Color?>((
+        Set<WidgetState> states,
+      ) {
+        final Set<WidgetState> effectiveStates = selectedState.toSet()..addAll(states);
+        return _defaults.overlayColor?.resolve(effectiveStates);
+      });
       wrappedTabs[index] = InkWell(
         mouseCursor: effectiveMouseCursor,
         onTap: () {
@@ -2601,27 +2670,27 @@ class _TabsPrimaryDefaultsM3 extends TabBarThemeData {
   TextStyle? get unselectedLabelStyle => _textTheme.titleSmall;
 
   @override
-  MaterialStateProperty<Color?> get overlayColor {
-    return MaterialStateProperty.resolveWith((Set<MaterialState> states) {
-      if (states.contains(MaterialState.selected)) {
-        if (states.contains(MaterialState.pressed)) {
+  WidgetStateProperty<Color?> get overlayColor {
+    return WidgetStateProperty.resolveWith((Set<WidgetState> states) {
+      if (states.contains(WidgetState.selected)) {
+        if (states.contains(WidgetState.pressed)) {
           return _colors.primary.withOpacity(0.1);
         }
-        if (states.contains(MaterialState.hovered)) {
+        if (states.contains(WidgetState.hovered)) {
           return _colors.primary.withOpacity(0.08);
         }
-        if (states.contains(MaterialState.focused)) {
+        if (states.contains(WidgetState.focused)) {
           return _colors.primary.withOpacity(0.1);
         }
         return null;
       }
-      if (states.contains(MaterialState.pressed)) {
+      if (states.contains(WidgetState.pressed)) {
         return _colors.primary.withOpacity(0.1);
       }
-      if (states.contains(MaterialState.hovered)) {
+      if (states.contains(WidgetState.hovered)) {
         return _colors.onSurface.withOpacity(0.08);
       }
-      if (states.contains(MaterialState.focused)) {
+      if (states.contains(WidgetState.focused)) {
         return _colors.onSurface.withOpacity(0.1);
       }
       return null;
@@ -2680,27 +2749,27 @@ class _TabsSecondaryDefaultsM3 extends TabBarThemeData {
   TextStyle? get unselectedLabelStyle => _textTheme.titleSmall;
 
   @override
-  MaterialStateProperty<Color?> get overlayColor {
-    return MaterialStateProperty.resolveWith((Set<MaterialState> states) {
-      if (states.contains(MaterialState.selected)) {
-        if (states.contains(MaterialState.pressed)) {
+  WidgetStateProperty<Color?> get overlayColor {
+    return WidgetStateProperty.resolveWith((Set<WidgetState> states) {
+      if (states.contains(WidgetState.selected)) {
+        if (states.contains(WidgetState.pressed)) {
           return _colors.onSurface.withOpacity(0.1);
         }
-        if (states.contains(MaterialState.hovered)) {
+        if (states.contains(WidgetState.hovered)) {
           return _colors.onSurface.withOpacity(0.08);
         }
-        if (states.contains(MaterialState.focused)) {
+        if (states.contains(WidgetState.focused)) {
           return _colors.onSurface.withOpacity(0.1);
         }
         return null;
       }
-      if (states.contains(MaterialState.pressed)) {
+      if (states.contains(WidgetState.pressed)) {
         return _colors.onSurface.withOpacity(0.1);
       }
-      if (states.contains(MaterialState.hovered)) {
+      if (states.contains(WidgetState.hovered)) {
         return _colors.onSurface.withOpacity(0.08);
       }
-      if (states.contains(MaterialState.focused)) {
+      if (states.contains(WidgetState.focused)) {
         return _colors.onSurface.withOpacity(0.1);
       }
       return null;
