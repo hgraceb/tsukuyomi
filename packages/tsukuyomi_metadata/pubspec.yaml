@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   # 插件平台接口
-  plugin_platform_interface: 2.1.8
+  plugin_platform_interface: 2.0.2
 
 dev_dependencies:
   flutter_test:
