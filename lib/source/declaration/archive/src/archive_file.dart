@@ -2,67 +2,98 @@ import 'package:archive/archive.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 
 DartClass get _$archiveFile => DartClass<ArchiveFile>(($) => '''
-// ${$.empty('Archive.new', () => Archive.new)}
-class Archive extends IterableBase<ArchiveFile> {
+class ArchiveFile {
+  // ${$.empty('ArchiveFile.STORE', () => ArchiveFile.STORE)}
+  static const int STORE = 0;
+
+  // ${$.empty('ArchiveFile.DEFLATE', () => ArchiveFile.DEFLATE)}
+  static const int DEFLATE = 8;
+
+  // ${$.debug('name', ($, $$) => $.name = $$)}
+  String name;
+
+  // ${$.debug('size', ($, $$) => $.size = $$)}
+  int size = 0;
+
+  // ${$.debug('mode', ($, $$) => $.mode = $$)}
+  external int mode;
+
+  // ${$.debug('ownerId', ($, $$) => $.ownerId = $$)}
+  external int ownerId;
+
+  // ${$.debug('groupId', ($, $$) => $.groupId = $$)}
+  external int groupId;
+
+  // ${$.debug('lastModTime', ($, $$) => $.lastModTime = $$)}
+  external int lastModTime;
+
+  // ${$.debug('isFile', ($, $$) => $.isFile = $$)}
+  external bool isFile;
+
+  // ${$.debug('isSymbolicLink', ($, $$) => $.isSymbolicLink = $$)}
+  external bool isSymbolicLink;
+
+  // ${$.debug('nameOfLinkedFile', ($, $$) => $.nameOfLinkedFile = $$)}
+  external String nameOfLinkedFile;
+
+  // ${$.debug('crc32', ($, $$) => $.crc32 = $$)}
+  external int? crc32;
+  
   // ${$.debug('comment', ($, $$) => $.comment = $$)}
-  String? comment;
+  external String? comment;
 
-  // ${$.debug('files', ($, $$) => $.files)}
-  external List<ArchiveFile> get files;
+  // ${$.debug('compress', ($, $$) => $.compress = $$)}
+  external bool compress;
 
-  // ${$.debug('addFile', ($, $$) => $.addFile)}
-  external void addFile(ArchiveFile file);
+  // ${$.debug('unixPermissions', ($, $$) => $.unixPermissions)}
+  external int get unixPermissions;
 
-  // ${$.debug('removeFile', ($, $$) => $.removeFile)}
-  external void removeFile(ArchiveFile file);
+  // ${$.empty('ArchiveFile.new', () => ArchiveFile.new)}
+  ArchiveFile(this.name, this.size, dynamic content, [this._compressionType = STORE]);
 
-  // ${$.debug('removeAt', ($, $$) => $.removeAt)}
-  external void removeAt(int index);
+  // ${$.empty('ArchiveFile.string', () => ArchiveFile.string)}
+  ArchiveFile.string(this.name, String content, [this._compressionType = STORE]);
+
+  // ${$.empty('ArchiveFile.noCompress', () => ArchiveFile.noCompress)}
+  ArchiveFile.noCompress(this.name, this.size, dynamic content);
+
+  // ${$.empty('ArchiveFile.stream', () => ArchiveFile.stream)}
+  ArchiveFile.stream(this.name, this.size, InputStreamBase contentStream);
+
+  // ${$.debug('writeContent', ($, $$) => $.writeContent)}
+  external void writeContent(OutputStreamBase output, {bool freeMemory = true});
+
+  // ${$.debug('content', ($, $$) => $.content)}
+  external dynamic get content;
 
   // ${$.debug('clear', ($, $$) => $.clear)}
-  external Future<void> clear();
+  external void clear();
 
-  // ${$.debug('clearSync', ($, $$) => $.clearSync)}
-  external void clearSync();
+  // ${$.debug('close', ($, $$) => $.close)}
+  external Future<void> close();
 
-  // ${$.debug('length', ($, $$) => $.length)}
-  external int get length;
+  // ${$.debug('closeSync', ($, $$) => $.closeSync)}
+  external void closeSync();
 
-  // ${$.debug('[]', ($, $$) => $[$$])}
-  external ArchiveFile operator [](int index);
+  // ${$.debug('decompress', ($, $$) => $.decompress)}
+  external void decompress([OutputStreamBase? output]);
 
-  // ${$.debug('[]=', ($, $$) => $[$$] = $$)}
-  external void operator []=(int index, ArchiveFile file);
+  // ${$.debug('isCompressed', ($, $$) => $.isCompressed)}
+  external bool get isCompressed;
 
-  // ${$.debug('findFile', ($, $$) => $.findFile)}
-  external ArchiveFile? findFile(String name);
+  // ${$.debug('compressionType', ($, $$) => $.compressionType)}
+  external int? get compressionType;
 
-  // ${$.debug('numberOfFiles', ($, $$) => $.numberOfFiles)}
-  external int numberOfFiles();
+  // ${$.debug('rawContent', ($, $$) => $.rawContent)}
+  external InputStreamBase? get rawContent;
 
-  // ${$.debug('fileName', ($, $$) => $.fileName)}
-  external String fileName(int index);
+  // ${$.debug('lastModDateTime', ($, $$) => $.lastModDateTime)}
+  external DateTime get lastModDateTime;
 
-  // ${$.debug('fileSize', ($, $$) => $.fileSize)}
-  external int fileSize(int index);
+  // ${$.debug('toString', ($, $$) => $.toString)}
+  external String toString();
 
-  // ${$.debug('fileData', ($, $$) => $.fileData)}
-  external List<int> fileData(int index);
-
-  // ${$.debug('first', ($, $$) => $.first)}
-  external ArchiveFile get first;
-
-  // ${$.debug('last', ($, $$) => $.last)}
-  external ArchiveFile get last;
-
-  // ${$.debug('isEmpty', ($, $$) => $.isEmpty)}
-  external bool get isEmpty;
-
-  // ${$.debug('isNotEmpty', ($, $$) => $.isNotEmpty)}
-  external bool get isNotEmpty;
-
-  // ${$.debug('iterator', ($, $$) => $.iterator)}
-  external Iterator<ArchiveFile> get iterator;
+  int? _compressionType;
 }
 ''');
 
