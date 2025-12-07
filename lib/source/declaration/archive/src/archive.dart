@@ -4,7 +4,7 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 DartClass get _$archive => DartClass<Archive>(($) => '''
 // ${$.empty('Archive.new', () => Archive.new)}
 class Archive extends IterableBase<ArchiveFile> {
-  // ${$.debug('comment', ($, $$) => $.comment)}
+  // ${$.debug('comment', ($, $$) => $.comment = $$)}
   String? comment;
 
   // ${$.debug('files', ($, $$) => $.files)}
