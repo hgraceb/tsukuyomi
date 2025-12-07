@@ -15,7 +15,7 @@ class ZipDecoder {
 }
 ''');
 
-List<DartDeclaration> get $zipEncoder {
+List<DartDeclaration> get $zipDecoder {
   return [
     _$ZipDecoder,
   ];
