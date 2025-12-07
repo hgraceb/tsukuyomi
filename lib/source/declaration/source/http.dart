@@ -37,6 +37,9 @@ abstract class HttpSource extends Source {
   // ${$.debug('resolveStringBytes', ($, $$) => $.resolveStringBytes)}
   external Future<String> resolveStringBytes(List<int> bytes, {String? charset});
 
+  // ${$.debug('encodeGif', ($, $$) => $.encodeGif)}
+  external Future<List<int>> encodeGif({required List<HttpSourceFrame> frames});
+
   // ${$.debug('encodeJpg', ($, $$) => $.encodeJpg)}
   external Future<List<int>> encodeJpg({required Image image, required Picture picture});
 

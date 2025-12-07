@@ -104,6 +104,16 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
+  Future<List<int>> encodeGif({required List<HttpSourceFrame> frames}) async {
+    final animation = img.Animation();
+    for (final frame in frames) {
+      final image = img.decodeImage(frame.image)!;
+      animation.addFrame(image..duration = frame.duration.inMilliseconds);
+    }
+    return img.encodeGifAnimation(animation)!;
+  }
+
+  @override
   Future<List<int>> encodeJpg({required Image image, required Picture picture}) async {
     // 获取图片数据
     final data = await picture.toImage(image.width, image.height);
@@ -113,15 +123,5 @@ abstract class DioHttpSource extends HttpSource {
     final object = img.Image.fromBytes(image.width, image.height, bytes);
     // 重新编码图片
     return await compute((_) => img.encodeJpg(object, quality: 90), null);
-  }
-
-  @override
-  Future<List<int>> encodeGif({required List<HttpSourceFrame> frames}) async {
-    final animation = img.Animation();
-    for (final frame in frames) {
-      final image = img.decodeImage(frame.image)!;
-      animation.addFrame(image..duration = frame.duration.inMilliseconds);
-    }
-    return img.encodeGifAnimation(animation)!;
   }
 }

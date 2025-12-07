@@ -39,6 +39,7 @@ List<DartClass> get $dynamic {
       'directory': (($) => $.directory, ($, $$) => $.directory = $$),
       'documentElement': (($) => $.documentElement, ($, $$) => $.documentElement = $$),
       'duration': (($) => $.duration, ($, $$) => $.duration = $$),
+      'encodeGif': (($) => $.encodeGif, ($, $$) => $.encodeGif = $$),
       'encodeJpg': (($) => $.encodeJpg, ($, $$) => $.encodeJpg = $$),
       'encrypt': (($) => $.encrypt, ($, $$) => $.encrypt = $$),
       'endSourceSpan': (($) => $.endSourceSpan, ($, $$) => $.endSourceSpan = $$),
