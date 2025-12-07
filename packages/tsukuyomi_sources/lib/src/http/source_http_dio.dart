@@ -8,7 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/src/web/mime_converter.dart'; // ignore: implementation_imports
-import 'package:image/image.dart' as img show Image, encodeJpg;
+import 'package:image/image.dart' as img;
 import 'package:tsukuyomi_html/dom.dart';
 import 'package:tsukuyomi_html/parser.dart' show parse;
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
@@ -113,5 +113,15 @@ abstract class DioHttpSource extends HttpSource {
     final object = img.Image.fromBytes(image.width, image.height, bytes);
     // 重新编码图片
     return await compute((_) => img.encodeJpg(object, quality: 90), null);
+  }
+
+  @override
+  Future<List<int>> encodeGif({required List<HttpSourceFrame> frames}) async {
+    final animation = img.Animation();
+    for (final frame in frames) {
+      final image = img.decodeImage(frame.image)!;
+      animation.addFrame(image..duration = frame.duration.inMilliseconds);
+    }
+    return img.encodeGifAnimation(animation)!;
   }
 }

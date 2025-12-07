@@ -38,6 +38,9 @@ abstract class HttpSource extends Source {
   /// 将图片转为 JPG 格式，默认质量为 90，以 100 质量保存会使图片尺寸太大并且没有明显观感区别
   external Future<List<int>> encodeJpg({required Image image, required Picture picture});
 
+  /// 将图片转为 GIF 格式
+  external Future<List<int>> encodeGif({required List<HttpSourceFrame> frames});
+
   /// 设置漫画源本地缓存值
   external String setStorage(String key, String value);
 
