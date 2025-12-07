@@ -1,6 +1,6 @@
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 
-import 'src/hex.dart';
+import 'src/zip_encoder.dart';
 
 List<DartLibrary> get $archiveLibraries {
   return [
