@@ -28,7 +28,7 @@ abstract class DioHttpSource extends HttpSource {
 
   @protected
   Options buildOptions(String? method, [Map<String, String>? headers]) {
-    const timeout = Duration(seconds: 10);
+    const timeout = Duration(seconds: 15);
     final allHeaders = {...getRequestHeaders(), ...?headers};
     return Options(method: method, headers: allHeaders, sendTimeout: timeout, receiveTimeout: timeout);
   }
