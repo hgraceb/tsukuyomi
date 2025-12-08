@@ -38,7 +38,7 @@ class ArchiveFile {
 
   // ${$.debug('crc32', ($, $$) => $.crc32 = $$)}
   external int? crc32;
-  
+
   // ${$.debug('comment', ($, $$) => $.comment = $$)}
   external String? comment;
 
