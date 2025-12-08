@@ -8,7 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/src/web/mime_converter.dart'; // ignore: implementation_imports
-import 'package:image/image.dart' as img show Image, encodeJpg;
+import 'package:image/image.dart' as img;
 import 'package:tsukuyomi_html/dom.dart';
 import 'package:tsukuyomi_html/parser.dart' show parse;
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
@@ -28,7 +28,7 @@ abstract class DioHttpSource extends HttpSource {
 
   @protected
   Options buildOptions(String? method, [Map<String, String>? headers]) {
-    const timeout = Duration(seconds: 10);
+    const timeout = Duration(seconds: 15);
     final allHeaders = {...getRequestHeaders(), ...?headers};
     return Options(method: method, headers: allHeaders, sendTimeout: timeout, receiveTimeout: timeout);
   }
@@ -101,6 +101,16 @@ abstract class DioHttpSource extends HttpSource {
     final encoding = charset == null ? utf8 : Charset.getByName(charset)!;
     // 根据指定编码集对内容进行解析
     return encoding.decode(bytes);
+  }
+
+  @override
+  Future<List<int>> encodeGif({required List<HttpSourceFrame> frames}) async {
+    final animation = img.Animation();
+    for (final frame in frames) {
+      final image = img.decodeImage(frame.image)!;
+      animation.addFrame(image..duration = frame.duration.inMilliseconds);
+    }
+    return img.encodeGifAnimation(animation)!;
   }
 
   @override

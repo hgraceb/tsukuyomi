@@ -44,6 +44,7 @@ class IsolateDioHttpSource extends DioHttpSource {
     delegate.clazz.props['resolveImageBytes'] ??= EvalProperty.getter(($) => resolveImageBytes);
     delegate.clazz.props['resolveStringBytes'] ??= EvalProperty.getter(($) => resolveStringBytes);
     delegate.clazz.props['encodeJpg'] ??= EvalProperty.getter(($) => encodeJpg);
+    delegate.clazz.props['encodeGif'] ??= EvalProperty.getter(($) => encodeGif);
   }
 
   final ObjInstance delegate;

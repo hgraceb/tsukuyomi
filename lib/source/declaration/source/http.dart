@@ -37,6 +37,9 @@ abstract class HttpSource extends Source {
   // ${$.debug('resolveStringBytes', ($, $$) => $.resolveStringBytes)}
   external Future<String> resolveStringBytes(List<int> bytes, {String? charset});
 
+  // ${$.debug('encodeGif', ($, $$) => $.encodeGif)}
+  external Future<List<int>> encodeGif({required List<HttpSourceFrame> frames});
+
   // ${$.debug('encodeJpg', ($, $$) => $.encodeJpg)}
   external Future<List<int>> encodeJpg({required Image image, required Picture picture});
 
@@ -108,6 +111,16 @@ class HttpSourceChapter extends SourceChapter {
 }
 ''');
 
+DartClass get _$HttpSourceFrame => DartClass<HttpSourceFrame>(($) => '''
+class HttpSourceFrame extends SourceFrame {
+  // ${$.empty('HttpSourceFrame.new', () => HttpSourceFrame.new)}
+  HttpSourceFrame({
+    required super.image,
+    required super.duration,
+  });
+}
+''');
+
 DartClass get _$HttpSourceImage => DartClass<HttpSourceImage>(($) => '''
 class HttpSourceImage extends SourceImage {
   // ${$.empty('HttpSourceImage.new', () => HttpSourceImage.new)}
@@ -149,6 +162,7 @@ List<DartDeclaration> get $http {
     _$HttpSourceManga,
     _$HttpSourceBytes,
     _$HttpSourceChapter,
+    _$HttpSourceFrame,
     _$HttpSourceImage,
     _$HttpSourcePage,
     _$HttpSourceQuery,

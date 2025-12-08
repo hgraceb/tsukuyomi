@@ -92,6 +92,21 @@ sealed class SourceChapter {
 }
 ''');
 
+DartClass get _$SourceFrame => DartClass<SourceFrame>(($) => '''
+sealed class SourceFrame {
+  SourceFrame({
+    required this.image,
+    required this.duration,
+  });
+
+  // ${$.debug('image', ($, $$) => $.image)}
+  final List<int> image;
+
+  // ${$.debug('duration', ($, $$) => $.duration)}
+  final Duration duration;
+}
+''');
+
 DartClass get _$SourceImage => DartClass<SourceImage>(($) => '''
 sealed class SourceImage {
   const SourceImage({
@@ -285,6 +300,7 @@ List<DartDeclaration> get $core {
     _$SourceManga,
     _$SourceBytes,
     _$SourceChapter,
+    _$SourceFrame,
     _$SourceImage,
     _$SourcePage,
     _$SourceProtoFields,
