@@ -95,6 +95,8 @@ dependencies:
   encrypt: 5.0.3
   # 哈希计算
   crypto: 3.0.7
+  # 压缩解压
+  archive: 3.6.1
 
 dev_dependencies:
   flutter_test:
