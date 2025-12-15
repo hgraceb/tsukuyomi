@@ -7,5 +7,5 @@ extension StringExtension on String {
   String get toSafeTrailing => replaceAllMapped(RegExp(r'[. ]+$'), (m) => m[0]!.replaceAll('.', '\u2024').replaceAll(' ', ''));
 
   /// 去除首尾空白字符并转换为合法的文件路径名
-  String get toLegalPath => trim().toFullWidthIllegalChars.toSafeTrailing;
+  String get toValidPath => trim().toFullWidthIllegalChars.toSafeTrailing;
 }
