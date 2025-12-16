@@ -8,5 +8,27 @@ extension StringExtension on String {
     final validFullWidth = trimmed.replaceAllMapped(RegExp(r'[\\/:*?"<>|]'), (m) => String.fromCharCode(m[0]!.codeUnits[0] + 0xfee0));
     // 将末尾单独或连续的 "." 全部替换为 "․" (One Dot Leader U+2024) 并去除空格
     return validFullWidth.replaceAllMapped(RegExp(r'[. ]+$'), (m) => m[0]!.replaceAll('.', '\u2024').replaceAll(' ', ''));
+
+    //                                                                                                                                    "\"
+
+    //                                                                                                                                    "/"
+
+    //                                                                                                                                    ":"
+    //                                                                                                                                    "∶"
+
+    //                                                                                                                                    "*"
+
+    //                                                                                                                                    "?"
+
+    //                                                                                                                                    """
+
+    //                                                                                                                                    "<"
+
+    //                                                                                                                                    ">"
+
+    //                                                                                                                                    "|"
+
+    //                                                                                                                                    "."
+    //                                                                                                                                    "․"
   }
 }
