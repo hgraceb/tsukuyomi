@@ -20,6 +20,10 @@ extension StringExtension on String {
 
     // >>>>> ˃˃˃˃˃ ＞＞＞＞＞ ››››› ᐳᐳᐳᐳᐳ ≻≻≻≻≻ ❯❯❯❯❯ ⟩⟩⟩⟩⟩ 〉〉〉〉〉
 
+    // ||||| ∣∣∣∣∣ ｜｜｜｜｜ ǀǀǀǀǀ │││││ ⵏⵏⵏⵏⵏ ᛁᛁᛁᛁᛁ ︱︱︱︱︱
+
+    // ..... ․․․․․ ．．．．． 。。。。。 ⋅⋅⋅⋅⋅ ・・・・・ ••••• ‧‧‧‧‧
+
     //                                                                                                                                    "\"
     //                                                                                                                                    "⧵" U+29F5 Reverse Solidus Operator
     //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
@@ -92,9 +96,9 @@ extension StringExtension on String {
     //                                                                                                                                    "〉" U+232A Right-Pointing Angle Bracket
 
     //                                                                                                                                    "|"
+    //                                                                                                                                    "ǀ" U+01C0 Latin Letter Dental Click
     //                                                                                                                                    "∣" U+2223 Divides
     //                                                                                                                                    "｜" U+FF5C Fullwidth Vertical Line
-    //                                                                                                                                    "ǀ" U+01C0 Latin Letter Dental Click
     //                                                                                                                                    "│" U+2502 Box Drawings Light Vertical
     //                                                                                                                                    "ⵏ" U+2D4F Tifinagh Letter Yan
     //                                                                                                                                    "ᛁ" U+16C1 Runic Letter Isaz Is Iss I
