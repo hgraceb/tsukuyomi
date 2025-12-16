@@ -40,10 +40,10 @@ extension StringExtension on String {
     //                                                                                                                                    "︓" U+FE13 Presentation Form For Vertical Colon
 
     //                                                                                                                                    "*"
+    //                                                                                                                                    "⁎" U+204E Low Asterisk
     //                                                                                                                                    "∗" U+2217 Asterisk Operator
     //                                                                                                                                    "＊" U+FF0A Fullwidth Asterisk
     //                                                                                                                                    "✱" U+2731 Heavy Asterisk
-    //                                                                                                                                    "⁎" U+204E Low Asterisk
     //                                                                                                                                    "⋆" U+22C6 Star Operator
     //                                                                                                                                    "✳" U+2733 Eight Spoked Asterisk
     //                                                                                                                                    "﹡" U+FE61 Small Asterisk
