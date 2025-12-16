@@ -14,6 +14,8 @@ extension StringExtension on String {
     //                                                                                                                                    "⧵" U+29F5 Reverse Solidus Operator
     //                                                                                                                                    "∖" U+2216 Set Minus
     //                                                                                                                                    "⟍" U+27CD Mathematical Falling Diagonal
+    //                                                                                                                                    "⑊" U+244A OCR Double Backslash
+    //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
 
     //                                                                                                                                    "/"
     //                                                                                                                                    "／" U+FF0F Fullwidth Solidus
@@ -21,12 +23,16 @@ extension StringExtension on String {
     //                                                                                                                                    "∕" U+2215 Division Slash
     //                                                                                                                                    "⁄" U+2044 Fraction Slash
     //                                                                                                                                    "⟋" U+27CB Mathematical Rising Diagonal
+    //                                                                                                                                    "Ⳇ" U+2CC6 Coptic Capital Letter Old Coptic Esh
+    //                                                                                                                                    "ノ" U+30CE Katakana Letter No
 
     //                                                                                                                                    ":"
     //                                                                                                                                    "：" U+FF1A Fullwidth Colon
     //                                                                                                                                    "꞉" U+A789 Modifier Letter Colon
     //                                                                                                                                    "∶" U+2236 Ratio
     //                                                                                                                                    "ː" U+02D0 Modifier Letter Triangular Colon
+    //                                                                                                                                    "ꓽ" U+A4FD Lisu Letter Tone Mya Jeu
+    //                                                                                                                                    "︓" U+FE13 Presentation Form For Vertical Colon
 
     //                                                                                                                                    "*"
     //                                                                                                                                    "＊" U+FF0A Fullwidth Asterisk
@@ -34,16 +40,26 @@ extension StringExtension on String {
     //                                                                                                                                    "✱" U+2731 Heavy Asterisk
     //                                                                                                                                    "⁎" U+204E Low Asterisk
     //                                                                                                                                    "٭" U+066D Arabic Five Pointed Star
+    //                                                                                                                                    "⋆" U+22C6 Star Operator
+    //                                                                                                                                    "✳" U+2733 Eight Spoked Asterisk
+    //                                                                                                                                    "﹡" U+FE61 Small Asterisk
 
     //                                                                                                                                    "?"
     //                                                                                                                                    "？" U+FF1F Fullwidth Question Mark
+    //                                                                                                                                    "ʔ" U+0294 Latin Letter Glottal Stop
+    //                                                                                                                                    "Ɂ" U+0241 Latin Capital Letter Glottal Stop
+    //                                                                                                                                    "ॽ" U+097D Devanagari Letter Glottal Stop
+    //                                                                                                                                    "ꛫ" U+A6EB Bamum Letter Ntuu
+    //                                                                                                                                    "﹖" U+FE56 Small Question Mark
 
     //                                                                                                                                    """
     //                                                                                                                                    "＂" U+FF02 Fullwidth Quotation Mark
     //                                                                                                                                    "″" U+2033 Double Prime
     //                                                                                                                                    "ʺ" U+02BA Modifier Letter Double Prime
     //                                                                                                                                    "˝" U+02DD Double Acute Accent
-    //                                                                                                                                    "“" U+201C Left Double Quotation Mark
+    //                                                                                                                                    "ˮ" U+02EE Modifier Letter Double Apostrophe
+    //                                                                                                                                    "‟" U+201F Double High-Reversed-9 Quotation Mark
+    //                                                                                                                                    "❝" U+275D Heavy Double Turned Comma Quotation Mark Ornament
 
     //                                                                                                                                    "<"
     //                                                                                                                                    "＜" U+FF1C Fullwidth Less-Than Sign
@@ -51,6 +67,9 @@ extension StringExtension on String {
     //                                                                                                                                    "˂" U+02C2 Modifier Letter Left Arrowhead
     //                                                                                                                                    "ᐸ" U+1438 Canadian Syllabics Pa
     //                                                                                                                                    "≺" U+227A Precedes
+    //                                                                                                                                    "❮" U+276E Heavy Left-Pointing Angle Quotation Mark Ornament
+    //                                                                                                                                    "⟨" U+27E8 Mathematical Left Angle Bracket
+    //                                                                                                                                    "〈" U+2329 Left-Pointing Angle Bracket
 
     //                                                                                                                                    ">"
     //                                                                                                                                    "＞" U+FF1E Fullwidth Greater-Than Sign
@@ -58,17 +77,26 @@ extension StringExtension on String {
     //                                                                                                                                    "˃" U+02C3 Modifier Letter Right Arrowhead
     //                                                                                                                                    "ᐳ" U+1433 Canadian Syllabics Po
     //                                                                                                                                    "≻" U+227B Succeeds
+    //                                                                                                                                    "❯" U+276F Heavy Right-Pointing Angle Quotation Mark Ornament
+    //                                                                                                                                    "⟩" U+27E9 Mathematical Right Angle Bracket
+    //                                                                                                                                    "〉" U+232A Right-Pointing Angle Bracket
 
     //                                                                                                                                    "|"
     //                                                                                                                                    "｜" U+FF5C Fullwidth Vertical Line
     //                                                                                                                                    "ǀ" U+01C0 Latin Letter Dental Click
     //                                                                                                                                    "│" U+2502 Box Drawings Light Vertical
     //                                                                                                                                    "∣" U+2223 Divides
+    //                                                                                                                                    "ⵏ" U+2D4F Tifinagh Letter Yan
+    //                                                                                                                                    "ᛁ" U+16C1 Runic Letter Isaz Is Iss I
+    //                                                                                                                                    "︱" U+FE31 Presentation Form For Vertical Em Dash
 
     //                                                                                                                                    "."
     //                                                                                                                                    "․" U+2024 One Dot Leader
     //                                                                                                                                    "．" U+FF0E Fullwidth Full Stop
     //                                                                                                                                    "。" U+3002 Ideographic Full Stop
     //                                                                                                                                    "⋅" U+22C5 Dot Operator
+    //                                                                                                                                    "・" U+30FB Katakana Middle Dot
+    //                                                                                                                                    "•" U+2022 Bullet
+    //                                                                                                                                    "‧" U+2027 Hyphenation Point
   }
 }
