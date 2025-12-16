@@ -43,7 +43,7 @@ extension StringExtension on String {
     //                                                                                                                                    "″" U+2033 Double Prime
     //                                                                                                                                    "ʺ" U+02BA Modifier Letter Double Prime
     //                                                                                                                                    "˝" U+02DD Double Acute Accent
-    //                                                                                                                                    """ U+201C Left Double Quotation Mark
+    //                                                                                                                                    "“" U+201C Left Double Quotation Mark
 
     //                                                                                                                                    "<"
     //                                                                                                                                    "＜" U+FF1C Fullwidth Less-Than Sign
