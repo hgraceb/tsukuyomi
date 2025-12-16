@@ -16,6 +16,8 @@ extension StringExtension on String {
 
     // """""" ″″″″″″ ＂＂＂＂＂＂ ʺʺʺʺʺʺ ˝˝˝˝˝˝ ˮˮˮˮˮˮ ‟‟‟‟‟‟ ❝❝❝❝❝❝
 
+    // <<<<< ˂˂˂˂˂ ＜＜＜＜＜ ‹‹‹‹‹ ᐸᐸᐸᐸᐸ ≺≺≺≺≺ ❮❮❮❮❮ ⟨⟨⟨⟨⟨ 〈〈〈〈〈
+
     //                                                                                                                                    "\"
     //                                                                                                                                    "⧵" U+29F5 Reverse Solidus Operator
     //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
