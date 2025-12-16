@@ -1,6 +1,6 @@
 extension StringExtension on String {
-  /// 去除首尾空白字符并转换为合法的文件路径名
-  String get toValidPath {
+  /// 去除首尾空白字符并转换为合法的文件夹名称
+  String get toValidDirectoryName {
     // 非法字符映射替换
     final map = {'\\': '⧵', '/': 'Ⳇ', ':': '꞉', '*': '⁎', '?': '？', '"': '″', '<': '˂', '>': '˃', '|': 'ǀ', '.': '․'};
     // 去除首尾空白字符

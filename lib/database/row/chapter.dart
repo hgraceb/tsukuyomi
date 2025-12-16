@@ -63,7 +63,7 @@ extension SourceChapterExtension on SourceChapter {
       id: Value(chapter.id),
       manga: chapter.manga,
       index: chapter.index,
-      title: name.toValidPath,
+      title: name.toValidDirectoryName,
       url: url,
       date: date,
       public: public,
@@ -77,7 +77,7 @@ extension SourceChapterExtension on SourceChapter {
     return ChapterTableCompanion.insert(
       manga: manga,
       index: 0,
-      title: name.toValidPath,
+      title: name.toValidDirectoryName,
       url: url,
       date: date,
       public: public,
