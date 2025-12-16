@@ -30,9 +30,9 @@ extension StringExtension on String {
     //                                                                                                                                    "ノ" U+30CE Katakana Letter No
 
     //                                                                                                                                    ":"
+    //                                                                                                                                    "꞉" U+A789 Modifier Letter Colon
     //                                                                                                                                    "∶" U+2236 Ratio
     //                                                                                                                                    "：" U+FF1A Fullwidth Colon
-    //                                                                                                                                    "꞉" U+A789 Modifier Letter Colon
     //                                                                                                                                    "ː" U+02D0 Modifier Letter Triangular Colon
     //                                                                                                                                    "ꓽ" U+A4FD Lisu Letter Tone Mya Jeu
     //                                                                                                                                    "︓" U+FE13 Presentation Form For Vertical Colon
