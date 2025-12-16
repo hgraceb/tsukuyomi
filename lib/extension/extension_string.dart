@@ -10,16 +10,16 @@ extension StringExtension on String {
     return validFullWidth.replaceAllMapped(RegExp(r'[. ]+$'), (m) => m[0]!.replaceAll('.', '\u2024').replaceAll(' ', ''));
 
     //                                                                                                                                    "\"
+    //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
     //                                                                                                                                    "＼" U+FF3C Fullwidth Reverse Solidus
     //                                                                                                                                    "⧵" U+29F5 Reverse Solidus Operator
     //                                                                                                                                    "∖" U+2216 Set Minus
     //                                                                                                                                    "⟍" U+27CD Mathematical Falling Diagonal
     //                                                                                                                                    "⑊" U+244A OCR Double Backslash
-    //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
 
     //                                                                                                                                    "/"
-    //                                                                                                                                    "／" U+FF0F Fullwidth Solidus
     //                                                                                                                                    "⧸" U+29F8 Big Solidus
+    //                                                                                                                                    "／" U+FF0F Fullwidth Solidus
     //                                                                                                                                    "∕" U+2215 Division Slash
     //                                                                                                                                    "⁄" U+2044 Fraction Slash
     //                                                                                                                                    "⟋" U+27CB Mathematical Rising Diagonal
@@ -27,16 +27,16 @@ extension StringExtension on String {
     //                                                                                                                                    "ノ" U+30CE Katakana Letter No
 
     //                                                                                                                                    ":"
+    //                                                                                                                                    "∶" U+2236 Ratio
     //                                                                                                                                    "：" U+FF1A Fullwidth Colon
     //                                                                                                                                    "꞉" U+A789 Modifier Letter Colon
-    //                                                                                                                                    "∶" U+2236 Ratio
     //                                                                                                                                    "ː" U+02D0 Modifier Letter Triangular Colon
     //                                                                                                                                    "ꓽ" U+A4FD Lisu Letter Tone Mya Jeu
     //                                                                                                                                    "︓" U+FE13 Presentation Form For Vertical Colon
 
     //                                                                                                                                    "*"
-    //                                                                                                                                    "＊" U+FF0A Fullwidth Asterisk
     //                                                                                                                                    "∗" U+2217 Asterisk Operator
+    //                                                                                                                                    "＊" U+FF0A Fullwidth Asterisk
     //                                                                                                                                    "✱" U+2731 Heavy Asterisk
     //                                                                                                                                    "⁎" U+204E Low Asterisk
     //                                                                                                                                    "٭" U+066D Arabic Five Pointed Star
@@ -53,8 +53,8 @@ extension StringExtension on String {
     //                                                                                                                                    "﹖" U+FE56 Small Question Mark
 
     //                                                                                                                                    """
-    //                                                                                                                                    "＂" U+FF02 Fullwidth Quotation Mark
     //                                                                                                                                    "″" U+2033 Double Prime
+    //                                                                                                                                    "＂" U+FF02 Fullwidth Quotation Mark
     //                                                                                                                                    "ʺ" U+02BA Modifier Letter Double Prime
     //                                                                                                                                    "˝" U+02DD Double Acute Accent
     //                                                                                                                                    "ˮ" U+02EE Modifier Letter Double Apostrophe
@@ -62,9 +62,9 @@ extension StringExtension on String {
     //                                                                                                                                    "❝" U+275D Heavy Double Turned Comma Quotation Mark Ornament
 
     //                                                                                                                                    "<"
+    //                                                                                                                                    "˂" U+02C2 Modifier Letter Left Arrowhead
     //                                                                                                                                    "＜" U+FF1C Fullwidth Less-Than Sign
     //                                                                                                                                    "‹" U+2039 Single Left-Pointing Angle Quotation Mark
-    //                                                                                                                                    "˂" U+02C2 Modifier Letter Left Arrowhead
     //                                                                                                                                    "ᐸ" U+1438 Canadian Syllabics Pa
     //                                                                                                                                    "≺" U+227A Precedes
     //                                                                                                                                    "❮" U+276E Heavy Left-Pointing Angle Quotation Mark Ornament
@@ -72,9 +72,9 @@ extension StringExtension on String {
     //                                                                                                                                    "〈" U+2329 Left-Pointing Angle Bracket
 
     //                                                                                                                                    ">"
+    //                                                                                                                                    "˃" U+02C3 Modifier Letter Right Arrowhead
     //                                                                                                                                    "＞" U+FF1E Fullwidth Greater-Than Sign
     //                                                                                                                                    "›" U+203A Single Right-Pointing Angle Quotation Mark
-    //                                                                                                                                    "˃" U+02C3 Modifier Letter Right Arrowhead
     //                                                                                                                                    "ᐳ" U+1433 Canadian Syllabics Po
     //                                                                                                                                    "≻" U+227B Succeeds
     //                                                                                                                                    "❯" U+276F Heavy Right-Pointing Angle Quotation Mark Ornament
@@ -82,10 +82,10 @@ extension StringExtension on String {
     //                                                                                                                                    "〉" U+232A Right-Pointing Angle Bracket
 
     //                                                                                                                                    "|"
+    //                                                                                                                                    "∣" U+2223 Divides
     //                                                                                                                                    "｜" U+FF5C Fullwidth Vertical Line
     //                                                                                                                                    "ǀ" U+01C0 Latin Letter Dental Click
     //                                                                                                                                    "│" U+2502 Box Drawings Light Vertical
-    //                                                                                                                                    "∣" U+2223 Divides
     //                                                                                                                                    "ⵏ" U+2D4F Tifinagh Letter Yan
     //                                                                                                                                    "ᛁ" U+16C1 Runic Letter Isaz Is Iss I
     //                                                                                                                                    "︱" U+FE31 Presentation Form For Vertical Em Dash
