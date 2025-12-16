@@ -13,9 +13,9 @@ extension StringExtension on String {
     // "⧹"、"⧸"、"∶"、"∗"、"？"、"″"、"˂"、"˃"、"∣"、"․"
 
     //                                                                                                                                    "\"
+    //                                                                                                                                    "⧵" U+29F5 Reverse Solidus Operator
     //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
     //                                                                                                                                    "＼" U+FF3C Fullwidth Reverse Solidus
-    //                                                                                                                                    "⧵" U+29F5 Reverse Solidus Operator
     //                                                                                                                                    "∖" U+2216 Set Minus
     //                                                                                                                                    "⟍" U+27CD Mathematical Falling Diagonal
     //                                                                                                                                    "⑊" U+244A OCR Double Backslash
