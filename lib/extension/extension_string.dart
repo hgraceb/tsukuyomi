@@ -9,6 +9,9 @@ extension StringExtension on String {
     // 将末尾单独或连续的 "." 全部替换为 "․" (One Dot Leader U+2024) 并去除空格
     return validFullWidth.replaceAllMapped(RegExp(r'[. ]+$'), (m) => m[0]!.replaceAll('.', '\u2024').replaceAll(' ', ''));
 
+    // "\"、"/"、":"、"*"、"?"、"""、"<"、">"、"|"、"."
+    // "⧹"、"⧸"、"∶"、"∗"、"？"、"″"、"˂"、"˃"、"∣"、"․"
+
     //                                                                                                                                    "\"
     //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
     //                                                                                                                                    "＼" U+FF3C Fullwidth Reverse Solidus
