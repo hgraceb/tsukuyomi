@@ -3,7 +3,7 @@ extension StringExtension on String {
   String get toValidPath {
     final map = {
       '\\': '⧵',
-      '/': '⧸',
+      '/': 'Ⳇ',
       ':': '꞉',
       '*': '⁎',
       '?': '？',
