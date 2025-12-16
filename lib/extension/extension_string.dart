@@ -19,7 +19,7 @@ extension StringExtension on String {
     // ∖
     // ⟍
     // ⑊
-
+    // @
     // /
     // ⧸
     // ／
@@ -28,7 +28,7 @@ extension StringExtension on String {
     // ⟋
     // Ⳇ
     // ノ
-
+    // @
     // :
     // ꞉
     // ∶
@@ -36,7 +36,7 @@ extension StringExtension on String {
     // ː
     // ꓽ
     // ︓
-
+    // @
     // *
     // ⁎
     // ∗
@@ -45,7 +45,7 @@ extension StringExtension on String {
     // ⋆
     // ✳
     // ﹡
-
+    // @
     // ?
     // ？
     // ʔ
@@ -53,7 +53,7 @@ extension StringExtension on String {
     // ॽ
     // ꛫ
     // ﹖
-
+    // @
     // "
     // ″
     // ＂
@@ -62,7 +62,7 @@ extension StringExtension on String {
     // ˮ
     // ‟
     // ❝
-
+    // @
     // <
     // ˂
     // ＜
@@ -72,7 +72,7 @@ extension StringExtension on String {
     // ❮
     // ⟨
     // 〈
-
+    // @
     // >
     // ˃
     // ＞
@@ -82,7 +82,7 @@ extension StringExtension on String {
     // ❯
     // ⟩
     // 〉
-
+    // @
     // |
     // ǀ
     // ∣
@@ -91,7 +91,7 @@ extension StringExtension on String {
     // ⵏ
     // ᛁ
     // ︱
-
+    // @
     // .
     // ․
     // ．
