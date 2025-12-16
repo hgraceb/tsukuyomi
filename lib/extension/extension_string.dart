@@ -12,6 +12,15 @@ extension StringExtension on String {
     // "\"、"/"、":"、"*"、"?"、"""、"<"、">"、"|"、"."
     // "⧹"、"⧸"、"∶"、"∗"、"？"、"″"、"˂"、"˃"、"∣"、"․"
 
+    // *
+    // ∗
+    // ＊
+    // ✱
+    // ⁎
+    // ⋆
+    // ✳
+    // ﹡
+
     //                                                                                                                                    "\"
     //                                                                                                                                    "⧵" U+29F5 Reverse Solidus Operator
     //                                                                                                                                    "⧹" U+29F9 Big Reverse Solidus
@@ -42,7 +51,6 @@ extension StringExtension on String {
     //                                                                                                                                    "＊" U+FF0A Fullwidth Asterisk
     //                                                                                                                                    "✱" U+2731 Heavy Asterisk
     //                                                                                                                                    "⁎" U+204E Low Asterisk
-    //                                                                                                                                    "٭" U+066D Arabic Five Pointed Star
     //                                                                                                                                    "⋆" U+22C6 Star Operator
     //                                                                                                                                    "✳" U+2733 Eight Spoked Asterisk
     //                                                                                                                                    "﹡" U+FE61 Small Asterisk
