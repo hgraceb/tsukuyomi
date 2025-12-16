@@ -45,7 +45,7 @@ extension SourceMangaExtension on SourceManga {
       id: Value(manga.id),
       source: manga.source,
       url: url,
-      title: name.toLegalPath,
+      title: name.toValidDirectoryName,
       cover: cover,
       favorite: manga.favorite,
     );
@@ -55,7 +55,7 @@ extension SourceMangaExtension on SourceManga {
     return MangaTableCompanion.insert(
       source: source,
       url: url,
-      title: name.toLegalPath,
+      title: name.toValidDirectoryName,
       cover: cover,
       favorite: false,
     );
