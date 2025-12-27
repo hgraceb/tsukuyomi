@@ -49,3 +49,6 @@ app.*.map.json
 *.freezed.dart
 devtools_options.yaml
 lib/l10n/gen/
+
+# AI related
+.claude/
