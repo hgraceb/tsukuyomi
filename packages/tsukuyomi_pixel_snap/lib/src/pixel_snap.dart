@@ -19,10 +19,14 @@
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 // IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/widgets.dart';
 
 double _pixelSnap(double value, [double? scale]) {
-  if (value.isFinite) {
+  final isFinite = value.isFinite;
+  final isImpellerDisabled = !ui.ImageFilter.isShaderFilterSupported;
+  if (isFinite && isImpellerDisabled) {
     final devicePixelRatio = WidgetsBinding.instance.window.devicePixelRatio;
     final ratio = devicePixelRatio * (scale ?? 1.0);
     // Ensure that 1.5 is rounded down. 1 logical pixel at 150% scale
