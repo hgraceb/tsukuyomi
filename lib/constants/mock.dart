@@ -79,6 +79,8 @@ Future<MockDatabase> getMockDatabase() async {
               title: manga.title,
               cover: manga.cover,
               favorite: true,
+              auto: false,
+              lastCheckAt: null,
             ),
           ],
         ],
@@ -96,6 +98,8 @@ Future<MockDatabase> getMockDatabase() async {
       title: 'Example Manga',
       cover: 'https://picsum.photos/id/384/800/1200',
       favorite: true,
+      auto: false,
+      lastCheckAt: null,
     );
     return MockDatabase._(sources: [databaseSource], mangas: [mockManga]);
   } catch (e) {

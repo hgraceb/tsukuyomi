@@ -23,4 +23,10 @@ class MangaTable extends Table {
 
   /// 是否收藏
   BoolColumn get favorite => boolean()();
+
+  /// 是否自动下载
+  BoolColumn get auto => boolean().withDefault(const Constant(false))();
+
+  /// 上次检查时间
+  DateTimeColumn get lastCheckAt => dateTime().nullable()();
 }

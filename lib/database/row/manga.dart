@@ -16,6 +16,8 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
     required String title,
     required String cover,
     required bool favorite,
+    required bool auto,
+    required DateTime? lastCheckAt,
   }) = _DatabaseManga;
 
   MangaTableCompanion toUpdatable() {
@@ -26,6 +28,7 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
       title: title,
       cover: cover,
       favorite: favorite,
+      auto: Value(auto),
     );
   }
 
@@ -48,6 +51,7 @@ extension SourceMangaExtension on SourceManga {
       title: name.toValidDirectoryName,
       cover: cover,
       favorite: manga.favorite,
+      auto: Value(manga.auto),
     );
   }
 
