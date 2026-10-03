@@ -86,7 +86,7 @@ dependencies:
   # 集合操作
   collection: 1.19.1
   # 网络请求
-  dio: 5.9.0
+  dio: 5.11.1
   # 软键盘可见性
   flutter_keyboard_visibility: 6.0.0
   # 数据编解码

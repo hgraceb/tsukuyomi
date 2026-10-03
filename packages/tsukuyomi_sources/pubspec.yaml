@@ -18,7 +18,7 @@ dependencies:
   # 代码注解
   meta: 1.17.0
   # 网络请求
-  dio: 5.9.0
+  dio: 5.11.1
   # 图像处理
   image: 3.3.0
   # 静态 Dart 代码解析器

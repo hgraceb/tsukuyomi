@@ -37,13 +37,14 @@ class MockSource {
 }
 
 class MockManga {
-  MockManga._({required this.id, required this.url, required this.title, required this.cover});
+  MockManga._({required this.id, required this.url, required this.title, required this.cover, required this.auto});
 
   factory MockManga.fromJson(Map<String, dynamic> json) => MockManga._(
     id: json['id'],
     url: json['url'],
     title: json['title'],
     cover: json['cover'],
+    auto: json['auto'] == true,
   );
 
   final int id;
@@ -53,6 +54,8 @@ class MockManga {
   final String title;
 
   final String cover;
+
+  final bool auto;
 }
 
 Future<MockDatabase> getMockDatabase() async {
@@ -79,6 +82,8 @@ Future<MockDatabase> getMockDatabase() async {
               title: manga.title,
               cover: manga.cover,
               favorite: true,
+              auto: manga.auto,
+              lastCheckAt: null,
             ),
           ],
         ],
@@ -96,6 +101,8 @@ Future<MockDatabase> getMockDatabase() async {
       title: 'Example Manga',
       cover: 'https://picsum.photos/id/384/800/1200',
       favorite: true,
+      auto: false,
+      lastCheckAt: null,
     );
     return MockDatabase._(sources: [databaseSource], mangas: [mockManga]);
   } catch (e) {
