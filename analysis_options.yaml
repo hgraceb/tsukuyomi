@@ -32,6 +32,8 @@ linter:
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 
 analyzer:
+  exclude:
+    - build/**
   plugins:
     # https://riverpod.dev/docs/introduction/getting_started#enabling-riverpod_lintcustom_lint
     - custom_lint

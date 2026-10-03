@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 import 'package:tsukuyomi/core/core.dart';
-import 'package:tsukuyomi/providers/providers.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
 
 typedef SliverDataBuilder<T> = Widget Function<R>({required R Function(T state) select, required Widget Function(R value) data});
