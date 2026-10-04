@@ -67,6 +67,7 @@ dependencies:
   riverpod_annotation: 2.6.1
   # Freezed 代码生成
   freezed_annotation: 2.4.4
+  json_annotation: 4.9.0
   # Drift 持久化库
   drift: 2.21.0
   # SQLite3 原生库
@@ -119,6 +120,7 @@ dev_dependencies:
   riverpod_lint: 2.3.8
   # Freezed 代码生成
   freezed: 2.5.2
+  json_serializable: 6.8.0
   # Drift 代码生成
   drift_dev: 2.21.2
   # Drift 代码生成
