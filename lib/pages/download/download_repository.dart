@@ -75,6 +75,13 @@ class DownloadRepository {
     query.where((tbl) => tbl.manga.equals(mangaId));
     return query.watch();
   }
+
+  /// 该漫画的全部下载行（含 error 非空的失败/取消行——级 2 去重需区分等待/进行与失败）
+  Future<List<DatabaseDownload>> queryDownloadsByManga(int mangaId) {
+    final query = database.select(database.downloadTable);
+    query.where((tbl) => tbl.manga.equals(mangaId));
+    return query.get();
+  }
 }
 
 @riverpod
