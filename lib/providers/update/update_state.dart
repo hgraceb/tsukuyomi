@@ -41,7 +41,11 @@ enum UpdateOutcome {
 
 extension UpdateOutcomeX on UpdateOutcome {
   bool get isFailure =>
-      this == UpdateOutcome.sourceUnavailable || this == UpdateOutcome.networkError || this == UpdateOutcome.parseError || this == UpdateOutcome.storageError || this == UpdateOutcome.enqueueFailed;
+      this == UpdateOutcome.sourceUnavailable ||
+      this == UpdateOutcome.networkError ||
+      this == UpdateOutcome.parseError ||
+      this == UpdateOutcome.storageError ||
+      this == UpdateOutcome.enqueueFailed;
 
   bool get isWarning => this == UpdateOutcome.emptyChapters || this == UpdateOutcome.chaptersReduced;
 }

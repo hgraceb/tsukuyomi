@@ -61,17 +61,26 @@ class DownloadService {
 
   /// 下载该漫画全部未下载章节（20261004 口径 §3.5：chapter 全部行 − 磁盘已有（级1）−
   /// 队列等待/进行行（级2，error IS NULL）；失败行（error 非空）不跳过=重排队）。
-  /// 返回入队章节数。扫描组尾与手动刷新共用本方法（三路径同语义）。
-  Future<int> enqueueUndownloaded(Source source, DatabaseManga manga) async {
+  /// 返回（实际入队数, 逐章入队失败的章节 url 列表）。扫描组尾与手动刷新共用本方法（三路径同语义）。
+  Future<(int, List<String>)> enqueueUndownloaded(Source source, DatabaseManga manga) async {
     final chapters = await ref.read(chapterRepositoryProvider).queryChaptersByMangaId(manga.id);
     final downloaded = await ref.read(downloadedByMangaProvider(source, manga).future);
     final downloads = await ref.read(downloadRepositoryProvider).queryDownloadsByManga(manga.id);
     final queuedIds = downloads.where((download) => download.error == null).map((download) => download.chapter).toSet();
-    final targets = chapters.where((chapter) => !downloaded.contains(chapter.title.toValidDirectoryName) && !queuedIds.contains(chapter.id)).toList();
+    final targets = chapters
+        .where((chapter) => !downloaded.contains(chapter.title.toValidDirectoryName) && !queuedIds.contains(chapter.id))
+        .toList();
+    var enqueued = 0;
+    final failedUrls = <String>[];
     for (final chapter in targets.reversed) {
-      await insertDownload(source.id, chapter);
+      try {
+        await insertDownload(source.id, chapter);
+        enqueued++;
+      } catch (_) {
+        failedUrls.add(chapter.url); // 逐章失败继续剩余章节（url 进扫描报告 failedChapters）
+      }
     }
-    return targets.length;
+    return (enqueued, failedUrls);
   }
 
   /// 更新漫画下载状态

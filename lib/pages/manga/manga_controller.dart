@@ -73,24 +73,32 @@ class MangaController extends _$MangaController with AsyncNotifierMixin {
   // TODO 测试数据量较多时是否需要放到 compute 中执行、节流或防抖处理
   List<MangaChapter> _getMangaChapters() {
     if (_chapters.isEmpty) return [];
-    return _chapters.map((chapter) {
-      // 等待下载的章节
-      final download = _downloads.firstWhereOrNull((download) => download.chapter == chapter.id);
-      // 正在下载的章节
-      final downloading = _downloading.firstWhereOrNull((task) => task.download.chapter == chapter.id)?.download;
-      // 章节是否已下载
-      final downloaded = _downloaded.contains(chapter.title);
-      // 章节是否可观看
-      final enabled = downloaded || chapter.public;
-      // 章节下载的进度
-      double? downloadPercent = downloading != null ? 0.0 : null;
-      if (downloaded == true) {
-        downloadPercent = 1.0;
-      } else if (downloading != null && downloading.total > 0) {
-        downloadPercent = clampDouble(downloading.progress / downloading.total, 0.0, 1.0);
-      }
-      return MangaChapter(chapter: chapter, download: download, downloaded: downloaded, enabled: enabled, downloadPercent: downloadPercent);
-    }).toList(growable: false);
+    return _chapters
+        .map((chapter) {
+          // 等待下载的章节
+          final download = _downloads.firstWhereOrNull((download) => download.chapter == chapter.id);
+          // 正在下载的章节
+          final downloading = _downloading.firstWhereOrNull((task) => task.download.chapter == chapter.id)?.download;
+          // 章节是否已下载
+          final downloaded = _downloaded.contains(chapter.title);
+          // 章节是否可观看
+          final enabled = downloaded || chapter.public;
+          // 章节下载的进度
+          double? downloadPercent = downloading != null ? 0.0 : null;
+          if (downloaded == true) {
+            downloadPercent = 1.0;
+          } else if (downloading != null && downloading.total > 0) {
+            downloadPercent = clampDouble(downloading.progress / downloading.total, 0.0, 1.0);
+          }
+          return MangaChapter(
+            chapter: chapter,
+            download: download,
+            downloaded: downloaded,
+            enabled: enabled,
+            downloadPercent: downloadPercent,
+          );
+        })
+        .toList(growable: false);
   }
 
   // TODO 判断如何在不进行多次调用的情况下刷新已下载章节数据，如：添加等待刷新的标志位、监听本地文件修改等等
@@ -99,6 +107,8 @@ class MangaController extends _$MangaController with AsyncNotifierMixin {
     try {
       await ref.read(chapterServiceProvider).syncWithSource(data!.source, data!.manga);
       await ref.read(downloadServiceProvider).refreshDownloadedByManga(data!.source, data!.manga);
+      // 20261004 口径：刷新后自动下载该漫画全部未下载章节（与扫描同语义，三路径一致）
+      await ref.read(downloadServiceProvider).enqueueUndownloaded(data!.source, data!.manga);
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);
     }

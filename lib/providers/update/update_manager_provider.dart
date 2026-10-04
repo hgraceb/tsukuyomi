@@ -113,6 +113,46 @@ class UpdateManager extends _$UpdateManager {
     state = current.copyWith(phase: UpdatePhase.cancelled);
   }
 
+  /// E7 直补：对报告条目中入队失败的章节重新入队（定向快速路径，免重新拉源；
+  /// 20261004 口径下重扫按目标重算亦可恢复失败行，直补优势为免拉源、即时）
+  Future<void> retryEnqueue(int mangaId) async {
+    final report = state;
+    if (report == null) return;
+    final index = report.items.indexWhere((item) => item.mangaId == mangaId);
+    if (index == -1) return;
+    final item = report.items[index];
+    if (item.failedChapters.isEmpty) return;
+
+    final chapters = await ref.read(chapterRepositoryProvider).queryChaptersByMangaId(mangaId);
+    final failedUrls = item.failedChapters.toSet();
+    final targets = chapters.where((chapter) => failedUrls.contains(chapter.url)).toList();
+
+    var enqueued = 0;
+    final stillFailed = <String>[];
+    for (final chapter in targets.reversed) {
+      try {
+        await ref.read(downloadServiceProvider).insertDownload(item.sourceId, chapter);
+        enqueued++;
+      } catch (_) {
+        stillFailed.add(chapter.url);
+      }
+    }
+    final unresolved = item.failedChapters.where((url) => !targets.any((chapter) => chapter.url == url));
+    final updated = report.copyWith(
+      items: [
+        ...report.items.sublist(0, index),
+        item.copyWith(
+          enqueuedCount: item.enqueuedCount + enqueued,
+          failedChapters: [...unresolved, ...stillFailed],
+          updatedAt: DateTime.now(),
+        ),
+        ...report.items.sublist(index + 1),
+      ],
+    );
+    state = updated;
+    _write(updated);
+  }
+
   /// 单个源组：组内严格串行逐部检查；组尾统一「下载全部未下载章节」并无条件触发队列调度
   Future<void> _scanGroup(List<DatabaseManga> group) async {
     Source? source;
@@ -127,7 +167,15 @@ class UpdateManager extends _$UpdateManager {
       } on _CancelledException {
         rethrow;
       } catch (error) {
-        _appendItem(_failureItem(sourceId: manga.source, sourceName: manga.source.toString(), manga: manga, outcome: classifySourceError(error), error: error));
+        _appendItem(
+          _failureItem(
+            sourceId: manga.source,
+            sourceName: manga.source.toString(),
+            manga: manga,
+            outcome: classifySourceError(error),
+            error: error,
+          ),
+        );
       }
     }
     // ── 组尾：等真实 future 落定后重算「全部未下载」并入队；结束后无条件 next() 触发半途行续传 ──
@@ -141,8 +189,35 @@ class UpdateManager extends _$UpdateManager {
       try {
         final groupSource = source ?? NoInstalledSource(manga.source);
         source = groupSource;
-        await ref.read(downloadServiceProvider).enqueueUndownloaded(groupSource, manga);
-      } catch (_) {}
+        final (enqueued, failedUrls) = await ref.read(downloadServiceProvider).enqueueUndownloaded(groupSource, manga);
+        // outcome 合成（20261004）：实际入队数 > 0 → 最终结局 updated（覆盖 diff 结局）
+        if (enqueued > 0 && _running) {
+          final report = state!;
+          final index = report.items.indexWhere((item) => item.mangaId == manga.id);
+          if (index != -1) {
+            final item = report.items[index];
+            _updateItem(
+              item.copyWith(
+                outcome: UpdateOutcome.updated,
+                enqueuedCount: item.enqueuedCount + enqueued,
+                failedChapters: [...item.failedChapters, ...failedUrls],
+                updatedAt: DateTime.now(),
+              ),
+            );
+          }
+        }
+      } on Object catch (error) {
+        // 入队段异常（写库等）：按 storageError 落条目（§4.3 禁止空 catch）
+        _appendItem(
+          _failureItem(
+            sourceId: manga.source,
+            sourceName: manga.source.toString(),
+            manga: manga,
+            outcome: UpdateOutcome.storageError,
+            error: error,
+          ),
+        );
+      }
     }
     await ref.read(downloadManagerProvider).next();
   }
@@ -157,7 +232,14 @@ class UpdateManager extends _$UpdateManager {
         final result = await real.timeout(const Duration(seconds: 60));
         item = _judge(source, manga, result);
       } on TimeoutException catch (error) {
-        item = _failureItem(sourceId: source.id, sourceName: source.name, manga: manga, outcome: UpdateOutcome.networkError, error: error, message: '同步超时（60s）');
+        item = _failureItem(
+          sourceId: source.id,
+          sourceName: source.name,
+          manga: manga,
+          outcome: UpdateOutcome.networkError,
+          error: error,
+          message: '同步超时（60s）',
+        );
       } on Object catch (error) {
         item = _failureItem(sourceId: source.id, sourceName: source.name, manga: manga, outcome: classifySourceError(error), error: error);
       }
@@ -202,7 +284,14 @@ class UpdateManager extends _$UpdateManager {
     );
   }
 
-  UpdateReportItem _failureItem({required int sourceId, required String sourceName, required DatabaseManga manga, required UpdateOutcome outcome, Object? error, String? message}) {
+  UpdateReportItem _failureItem({
+    required int sourceId,
+    required String sourceName,
+    required DatabaseManga manga,
+    required UpdateOutcome outcome,
+    Object? error,
+    String? message,
+  }) {
     return UpdateReportItem(
       mangaId: manga.id,
       mangaTitle: manga.title,
@@ -227,6 +316,18 @@ class UpdateManager extends _$UpdateManager {
     return report != null && report.sessionId == _sessionId && report.phase == UpdatePhase.running;
   }
 
+  /// 会话代际校验 + 按 mangaId 原位更新条目 + 落盘：迟到收尾（会话已切换/已结束）直接丢弃
+  void _updateItem(UpdateReportItem item) {
+    if (!_alive) return;
+    final report = state!;
+    final index = report.items.indexWhere((it) => it.mangaId == item.mangaId);
+    final updated = index == -1
+        ? report.copyWith(items: [...report.items, item])
+        : report.copyWith(items: [...report.items.sublist(0, index), item, ...report.items.sublist(index + 1)]);
+    state = updated;
+    _write(updated);
+  }
+
   /// 会话代际校验 + 追加条目 + 落盘：迟到收尾（会话已切换/已结束）直接丢弃
   void _appendItem(UpdateReportItem item) {
     if (!_alive) return;
@@ -236,4 +337,3 @@ class UpdateManager extends _$UpdateManager {
     _write(updated);
   }
 }
-
