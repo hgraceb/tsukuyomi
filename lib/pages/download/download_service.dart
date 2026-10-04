@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi/extension/extension_string.dart';
+import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/download/download_repository.dart';
 import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
 import 'package:tsukuyomi/providers/providers.dart';
@@ -55,6 +57,21 @@ class DownloadService {
   Future<void> insertDownload(int source, DatabaseChapter chapter) async {
     await ref.read(downloadRepositoryProvider).insertDownload(chapter.toDownloadable(source));
     await ref.read(downloadManagerProvider).next();
+  }
+
+  /// 下载该漫画全部未下载章节（20261004 口径 §3.5：chapter 全部行 − 磁盘已有（级1）−
+  /// 队列等待/进行行（级2，error IS NULL）；失败行（error 非空）不跳过=重排队）。
+  /// 返回入队章节数。扫描组尾与手动刷新共用本方法（三路径同语义）。
+  Future<int> enqueueUndownloaded(Source source, DatabaseManga manga) async {
+    final chapters = await ref.read(chapterRepositoryProvider).queryChaptersByMangaId(manga.id);
+    final downloaded = await ref.read(downloadedByMangaProvider(source, manga).future);
+    final downloads = await ref.read(downloadRepositoryProvider).queryDownloadsByManga(manga.id);
+    final queuedIds = downloads.where((download) => download.error == null).map((download) => download.chapter).toSet();
+    final targets = chapters.where((chapter) => !downloaded.contains(chapter.title.toValidDirectoryName) && !queuedIds.contains(chapter.id)).toList();
+    for (final chapter in targets.reversed) {
+      await insertDownload(source.id, chapter);
+    }
+    return targets.length;
   }
 
   /// 更新漫画下载状态
