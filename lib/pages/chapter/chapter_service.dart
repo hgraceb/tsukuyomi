@@ -20,8 +20,8 @@ class ChapterService {
     return ref.read(chapterRepositoryProvider).updateChapter(chapter.toUpdatable());
   }
 
-  Future<void> syncWithSource(Source source, DatabaseManga manga) async {
-    await ref.read(chapterSyncWithSourceProvider(source, manga)).sync();
+  Future<ChapterSyncResult> syncWithSource(Source source, DatabaseManga manga) {
+    return ref.read(chapterSyncWithSourceProvider(source, manga)).sync();
   }
 }
 
