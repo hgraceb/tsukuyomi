@@ -49,6 +49,9 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Run app tests
+        run: flutter test
+
   build-windows:
     name: Build Windows (debug)
     runs-on: windows-2022
