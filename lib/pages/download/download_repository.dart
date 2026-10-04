@@ -75,6 +75,12 @@ class DownloadRepository {
     query.where((tbl) => tbl.manga.equals(mangaId));
     return query.watch();
   }
+
+  Future<List<DatabaseDownload>> queryDownloadsByManga(int mangaId) {
+    final query = database.select(database.downloadTable);
+    query.where((tbl) => tbl.manga.equals(mangaId));
+    return query.get();
+  }
 }
 
 @riverpod

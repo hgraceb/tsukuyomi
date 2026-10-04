@@ -13,6 +13,13 @@ class LibraryRepository {
     query.where((row) => row.favorite.equals(true));
     return query.watch();
   }
+
+  Future<List<DatabaseManga>> queryAutoMangas({List<int>? mangaIds}) {
+    final query = database.select(database.mangaTable);
+    query.where((row) => row.favorite.equals(true) & row.auto.equals(true));
+    if (mangaIds != null) query.where((row) => row.id.isIn(mangaIds));
+    return query.get();
+  }
 }
 
 @riverpod
