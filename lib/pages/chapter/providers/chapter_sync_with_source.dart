@@ -1,9 +1,11 @@
 import 'package:collection/collection.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
+part 'chapter_sync_with_source.freezed.dart';
 part 'chapter_sync_with_source.g.dart';
 
 class ChapterSyncWithSource {
@@ -15,7 +17,7 @@ class ChapterSyncWithSource {
 
   final ChapterRepository chapterRepository;
 
-  Future<void> sync() async {
+  Future<ChapterSyncResult> sync() async {
     final sourceChapters = await source.getMangaChapters(manga.toHttpSourceManga());
     final databaseChapters = await chapterRepository.queryChaptersByMangaId(manga.id);
     final deletes = <int>[];
@@ -38,10 +40,26 @@ class ChapterSyncWithSource {
     }
 
     await chapterRepository.batch(deletes: deletes, inserts: inserts, updates: updates);
+    return ChapterSyncResult(
+      insertCount: inserts.length,
+      deleteCount: deletes.length,
+      updateCount: updates.length,
+      sourceCount: sourceChapters.length,
+    );
   }
 }
 
 @riverpod
 ChapterSyncWithSource chapterSyncWithSource(ChapterSyncWithSourceRef ref, Source source, DatabaseManga manga) {
   return ChapterSyncWithSource._(source: source, manga: manga, chapterRepository: ref.watch(chapterRepositoryProvider));
+}
+
+@freezed
+class ChapterSyncResult with _$ChapterSyncResult {
+  const factory ChapterSyncResult({
+    required int insertCount,
+    required int deleteCount,
+    required int updateCount,
+    required int sourceCount,
+  }) = _ChapterSyncResult;
 }
