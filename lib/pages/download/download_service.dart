@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/download/download_repository.dart';
 import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
 import 'package:tsukuyomi/providers/providers.dart';
@@ -10,6 +12,7 @@ import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 import 'providers/downloaded_info_provider.dart';
 
+part 'download_service.freezed.dart';
 part 'download_service.g.dart';
 
 class DownloadService {
@@ -55,6 +58,61 @@ class DownloadService {
   Future<void> insertDownload(int source, DatabaseChapter chapter) async {
     await ref.read(downloadRepositoryProvider).insertDownload(chapter.toDownloadable(source));
     await ref.read(downloadManagerProvider).next();
+  }
+
+  /// 将未下载的公开章节加入下载队列
+  Future<DownloadEnqueueResult> enqueueAutoDownloads(Source source, DatabaseManga manga) async {
+    if (!manga.favorite || !manga.auto) return const DownloadEnqueueResult();
+    final keepAlive = ref.keepAlive();
+    try {
+      final chapterRepository = ref.read(chapterRepositoryProvider);
+      final downloadRepository = ref.read(downloadRepositoryProvider);
+      final chapters = await chapterRepository.queryChaptersByMangaId(manga.id);
+      chapters.sort((a, b) => a.id.compareTo(b.id));
+      final downloads = {for (final download in await downloadRepository.queryDownloadsByManga(manga.id)) download.chapter: download};
+      var enqueuedCount = 0;
+      var skippedDownloaded = 0;
+      var skippedQueued = 0;
+      var skippedUnavailable = 0;
+      final failedChapters = <String, String>{};
+      for (final chapter in chapters) {
+        if (!chapter.public) {
+          skippedUnavailable++;
+          continue;
+        }
+        try {
+          if (await (await getChapterDir(source, manga, chapter)).exists()) {
+            skippedDownloaded++;
+            continue;
+          }
+          final download = downloads[chapter.id];
+          if (download != null && download.error == null) {
+            skippedQueued++;
+            continue;
+          }
+          if (download == null) {
+            await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
+          } else if (!await downloadRepository.updateDownload(download.copyWith(error: null))) {
+            throw StateError('Download no longer exists: ${chapter.url}');
+          }
+          enqueuedCount++;
+        } catch (error) {
+          failedChapters[chapter.url] = error.toString();
+        }
+      }
+      if (enqueuedCount > 0 || skippedQueued > 0) {
+        await ref.read(downloadManagerProvider).next();
+      }
+      return DownloadEnqueueResult(
+        enqueuedCount: enqueuedCount,
+        skippedDownloaded: skippedDownloaded,
+        skippedQueued: skippedQueued,
+        skippedUnavailable: skippedUnavailable,
+        failedChapters: failedChapters,
+      );
+    } finally {
+      keepAlive.close();
+    }
   }
 
   /// 更新漫画下载状态
@@ -112,4 +170,15 @@ Future<List<LocalSourceImage>> downloadedByChapter(AutoDisposeRef ref, Source so
   final directory = await ref.watch(downloadChapterPathProvider(source, manga, chapter).future);
   // 监听下载章节
   return ref.watch(downloadedImagesProvider(directory.path));
+}
+
+@freezed
+class DownloadEnqueueResult with _$DownloadEnqueueResult {
+  const factory DownloadEnqueueResult({
+    @Default(0) int enqueuedCount,
+    @Default(0) int skippedDownloaded,
+    @Default(0) int skippedQueued,
+    @Default(0) int skippedUnavailable,
+    @Default({}) Map<String, String> failedChapters,
+  }) = _DownloadEnqueueResult;
 }
