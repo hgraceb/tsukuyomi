@@ -67,6 +67,7 @@ class UpdateReportItem with _$UpdateReportItem {
     required int enqueueFailedCount,
     required int skippedDownloaded,
     required int skippedQueued,
+    required int skippedUnavailable,
     required List<String> failedChapters,
     DateTime? updatedAt,
     String? message,

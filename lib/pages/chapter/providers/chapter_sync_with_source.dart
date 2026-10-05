@@ -19,6 +19,10 @@ class ChapterSyncWithSource {
 
   Future<ChapterSyncResult> sync() async {
     final sourceChapters = await source.getMangaChapters(manga.toHttpSourceManga());
+    return apply(sourceChapters);
+  }
+
+  Future<ChapterSyncResult> apply(Iterable<SourceChapter> sourceChapters) async {
     final databaseChapters = await chapterRepository.queryChaptersByMangaId(manga.id);
     final deletes = <int>[];
     final inserts = <ChapterTableCompanion>[];

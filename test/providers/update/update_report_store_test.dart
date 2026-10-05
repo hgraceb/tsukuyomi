@@ -31,6 +31,7 @@ UpdateReport _report(String sessionId) => UpdateReport(
       enqueueFailedCount: 1,
       skippedDownloaded: 8,
       skippedQueued: 9,
+      skippedUnavailable: 10,
       failedChapters: const ['chapter-url'],
       updatedAt: DateTime(2020, 1, 2, 3, 5),
       message: 'message',
