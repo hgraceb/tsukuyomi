@@ -33,7 +33,11 @@ class UpdateService {
       return _result(source, manga, sync, downloads, UpdateOutcome.storageError, message: error.toString());
     }
     if (manga.favorite && manga.auto) {
-      downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, manga);
+      try {
+        downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, manga);
+      } catch (error) {
+        return _result(source, manga, sync, downloads, UpdateOutcome.enqueueFailed, message: error.toString());
+      }
     }
     var outcome = UpdateOutcome.noUpdate;
     final failedChapters = downloads.failedChapters;

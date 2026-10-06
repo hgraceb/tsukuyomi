@@ -8,8 +8,11 @@ import 'package:tsukuyomi/core/exception/tsukuyomi_exception.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
+import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
+import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
+import 'package:tsukuyomi/providers/update/update_manager.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_service.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
@@ -135,6 +138,64 @@ void main() {
     expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt.keys, [_manga.id]);
   });
 
+  test('Enqueue errors retain sync counts and save a failed report', () async {
+    final source = _Source();
+    final sync = _Sync(_unchanged);
+    final error = StateError('enqueue-error');
+    final downloads = _Downloads(const DownloadEnqueueResult(), errors: {_manga.id: error});
+    final container = await _createContainer(source, sync, downloads);
+
+    final item = await container.read(updateServiceProvider).updateAndSaveManga(source, _manga);
+
+    expect(item.outcome, UpdateOutcome.enqueueFailed);
+    expect(item.updateCount, 1);
+    expect(item.sourceCount, 1);
+    expect(item.message, error.toString());
+    expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt.keys, [_manga.id]);
+    final report = container.read(updateReportStoreProvider)!;
+    expect(report.failureCount, 1);
+    expect(report.items, [item]);
+    final preferences = container.read(sharedPreferencesProvider);
+    final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+    expect(UpdateReport.fromJson(json), report);
+  });
+
+  test('Scan continues to the next manga after an enqueue error', () async {
+    final nextManga = _manga.copyWith(id: 2, url: 'next-manga-url', title: 'next-manga-title');
+    final source = _Source();
+    final sync = _Sync(_unchanged);
+    final error = StateError('enqueue-error');
+    final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1), errors: {_manga.id: error});
+    final container = await _createContainer(
+      source,
+      sync,
+      downloads,
+      overrides: [
+        libraryRepositoryProvider.overrideWithValue(_Library([_manga, nextManga])),
+        sourceByIdProvider(_manga.source).overrideWith((ref) async => source),
+        chapterSyncWithSourceProvider(source, nextManga).overrideWithValue(sync),
+      ],
+    );
+
+    await container.read(updateManagerProvider.notifier).scan();
+
+    final report = container.read(updateReportStoreProvider)!;
+    expect(source.calls, 2);
+    expect(downloads.calls, 2);
+    expect(report.items.map((item) => item.mangaId), [_manga.id, nextManga.id]);
+    expect(report.items.map((item) => item.outcome), [UpdateOutcome.enqueueFailed, UpdateOutcome.updated]);
+    expect(report.items.first.updateCount, 1);
+    expect(report.items.first.message, error.toString());
+    expect(report.items.last.enqueuedCount, 1);
+    expect(report.failureCount, 1);
+    expect(report.phase, UpdatePhase.finished);
+    expect(report.message, isNull);
+    expect(container.read(updateManagerProvider).hasError, isFalse);
+    final preferences = container.read(sharedPreferencesProvider);
+    final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+    expect(UpdateReport.fromJson(json), report);
+  });
+
   test('Source failures are classified and saved without syncing or enqueueing', () async {
     for (final (error, outcome) in [
       (const TsukuyomiSourceException.notInstalled(1), UpdateOutcome.sourceUnavailable),
@@ -193,6 +254,7 @@ Future<ProviderContainer> _createContainer(
   _Downloads downloads, {
   DatabaseManga manga = _manga,
   _Mangas? mangas,
+  List<Override> overrides = const [],
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
@@ -202,6 +264,7 @@ Future<ProviderContainer> _createContainer(
       chapterSyncWithSourceProvider(source, manga).overrideWithValue(sync),
       downloadServiceProvider.overrideWithValue(downloads),
       mangaRepositoryProvider.overrideWithValue(mangas ?? _Mangas()),
+      ...overrides,
     ],
   );
   addTearDown(container.dispose);
@@ -242,15 +305,29 @@ class _Sync implements ChapterSyncWithSource {
 }
 
 class _Downloads implements DownloadService {
-  _Downloads(this.result);
+  _Downloads(this.result, {this.errors = const {}});
   final DownloadEnqueueResult result;
+  final Map<int, Object> errors;
   int calls = 0;
 
   @override
   Future<DownloadEnqueueResult> enqueueAutoDownloads(Source source, DatabaseManga manga) async {
     calls++;
+    final error = errors[manga.id];
+    if (error != null) throw error;
     return result;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Library implements LibraryRepository {
+  _Library(this.mangas);
+  final List<DatabaseManga> mangas;
+
+  @override
+  Future<List<DatabaseManga>> queryAutoMangas({List<int>? mangaIds}) async => mangas.toList();
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
