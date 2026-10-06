@@ -9,6 +9,7 @@ import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/library/library_repository.dart';
+import 'package:tsukuyomi/pages/manga/manga_controller.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
@@ -38,6 +39,65 @@ const _unchanged = ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('Detail refresh saves a single-manga report and only auto-downloads favorite auto manga', () async {
+    for (final manga in [_manga, _manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
+      final source = _Source();
+      final sync = _Sync(_unchanged);
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 2));
+      final manager = _Manager();
+      final container = await _createContainer(
+        source,
+        sync,
+        downloads,
+        manga: manga,
+        manager: manager,
+        overrides: [mangaControllerProvider(manga.id.toString()).overrideWith(() => _MangaController(source, manga))],
+      );
+
+      await _refreshManga(container, manga);
+
+      final autoDownload = manga.favorite && manga.auto;
+      expect(source.calls, 1);
+      expect(sync.chapters, [_chapter]);
+      expect(downloads.calls, autoDownload ? 1 : 0);
+      expect(manager.wakes, autoDownload ? 1 : 0);
+      expect(downloads._refreshed, [manga.id]);
+      expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt.keys, [manga.id]);
+      final report = container.read(updateReportStoreProvider)!;
+      expect(report.phase, UpdatePhase.finished);
+      expect(report.scanKind, UpdateScanKind.partial);
+      expect(report.totalTargets, 1);
+      expect(report.items.single.mangaId, manga.id);
+      expect(report.items.single.enqueuedCount, autoDownload ? 2 : 0);
+      final preferences = container.read(sharedPreferencesProvider);
+      final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+      expect(UpdateReport.fromJson(json), report);
+    }
+  });
+
+  test('Detail refresh records source failures without syncing or enqueueing', () async {
+    final error = TimeoutException('network-error');
+    final source = _Source(error: error);
+    final sync = _Sync(_unchanged);
+    final downloads = _Downloads(const DownloadEnqueueResult());
+    final container = await _createContainer(
+      source,
+      sync,
+      downloads,
+      overrides: [mangaControllerProvider(_manga.id.toString()).overrideWith(() => _MangaController(source, _manga))],
+    );
+
+    await _refreshManga(container, _manga);
+
+    expect(sync.chapters, isNull);
+    expect(downloads.calls, 0);
+    final report = container.read(updateReportStoreProvider)!;
+    expect(report.scanKind, UpdateScanKind.partial);
+    expect(report.failureCount, 1);
+    expect(report.items.single.outcome, UpdateOutcome.networkError);
+    expect(report.items.single.message, error.toString());
+  });
+
   test('Unchanged chapters can enqueue downloads and save the complete result', () async {
     final source = _Source();
     final sync = _Sync(_unchanged);
@@ -51,7 +111,7 @@ void main() {
     );
     final container = await _createContainer(source, sync, downloads);
 
-    final item = await container.read(updateServiceProvider).updateAndSaveManga(source, _manga);
+    final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
     expect(source.calls, 1);
     expect(sync.chapters, [_chapter]);
     expect(downloads.calls, 1);
@@ -146,7 +206,7 @@ void main() {
     final downloads = _Downloads(const DownloadEnqueueResult(), errors: {_manga.id: error});
     final container = await _createContainer(source, sync, downloads);
 
-    final item = await container.read(updateServiceProvider).updateAndSaveManga(source, _manga);
+    final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
 
     expect(item.outcome, UpdateOutcome.enqueueFailed);
     expect(item.updateCount, 1);
@@ -181,7 +241,7 @@ void main() {
       final manager = _Manager(errors: {1: error});
       final container = await _createContainer(source, sync, downloads, manager: manager);
 
-      final item = await container.read(updateServiceProvider).updateAndSaveManga(source, _manga);
+      final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
 
       expect(item.outcome, UpdateOutcome.enqueueFailed);
       expect(item.enqueuedCount, 2);
@@ -269,7 +329,7 @@ void main() {
       final downloads = _Downloads(const DownloadEnqueueResult());
       final container = await _createContainer(source, sync, downloads);
 
-      final item = await container.read(updateServiceProvider).updateAndSaveManga(source, _manga);
+      final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
       expect(item.outcome, outcome);
       expect(item.message, error.toString());
       expect(item.sourceCount, 0);
@@ -308,6 +368,14 @@ void main() {
     expect(item.message, contains('check-time-error'));
     expect(downloads.calls, 0);
   });
+}
+
+Future<void> _refreshManga(ProviderContainer container, DatabaseManga manga) async {
+  final provider = mangaControllerProvider(manga.id.toString());
+  final subscription = container.listen(provider, (_, _) {});
+  addTearDown(subscription.close);
+  await container.read(provider.future);
+  await container.read(provider.notifier).refreshChapters();
 }
 
 Future<ProviderContainer> _createContainer(
@@ -351,6 +419,15 @@ class _Source extends NoInstalledSource {
   }
 }
 
+class _MangaController extends MangaController {
+  _MangaController(this._source, this._manga);
+  final Source _source;
+  final DatabaseManga _manga;
+
+  @override
+  Future<MangaState> build(String mangaId) async => MangaState(source: _source, manga: _manga, chapters: []);
+}
+
 class _Sync implements ChapterSyncWithSource {
   _Sync(this.result, {this.error});
   final ChapterSyncResult result;
@@ -373,6 +450,10 @@ class _Downloads implements DownloadService {
   final DownloadEnqueueResult result;
   final Map<int, Object> errors;
   int calls = 0;
+  final _refreshed = <int>[];
+
+  @override
+  Future<void> refreshDownloadedByManga(Source source, DatabaseManga manga) async => _refreshed.add(manga.id);
 
   @override
   Future<DownloadEnqueueResult> enqueueAutoDownloads(Source source, DatabaseManga manga) async {
