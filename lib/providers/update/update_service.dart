@@ -3,6 +3,7 @@ import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
+import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 import 'update_error.dart';
@@ -35,18 +36,19 @@ class UpdateService {
     if (manga.favorite && manga.auto) {
       try {
         downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, manga);
+        if (downloads.enqueuedCount > 0 || downloads.skippedQueued > 0) {
+          await ref.read(downloadManagerProvider).next();
+        }
       } catch (error) {
         return _result(source, manga, sync, downloads, UpdateOutcome.enqueueFailed, message: error.toString());
       }
     }
     var outcome = UpdateOutcome.noUpdate;
-    final failedChapters = downloads.failedChapters;
     if (sync.insertCount > 0 || downloads.enqueuedCount > 0) outcome = UpdateOutcome.updated;
     if (sync.deleteCount > 0 && sync.insertCount == 0) outcome = UpdateOutcome.chaptersReduced;
     if (sync.sourceCount == 0) outcome = UpdateOutcome.chaptersEmpty;
-    if (failedChapters.isNotEmpty) outcome = UpdateOutcome.enqueueFailed;
-    final message = failedChapters.isEmpty ? null : failedChapters.entries.map((entry) => '${entry.key}: ${entry.value}').join('\n');
-    return _result(source, manga, sync, downloads, outcome, message: message);
+    if (downloads.failedChapters.isNotEmpty) outcome = UpdateOutcome.enqueueFailed;
+    return _result(source, manga, sync, downloads, outcome);
   }
 
   /// 更新单部漫画并保存检查结果
@@ -75,6 +77,10 @@ class UpdateService {
     UpdateOutcome outcome, {
     String? message,
   }) {
+    final messages = [
+      ...downloads.failedChapters.entries.map((entry) => '${entry.key}: ${entry.value}'),
+      if (message != null) message,
+    ];
     return UpdateReportItem(
       sourceId: source.id,
       sourceName: source.name,
@@ -92,7 +98,7 @@ class UpdateService {
       skippedUnavailable: downloads.skippedUnavailable,
       failedChapters: downloads.failedChapters.keys.toList(growable: false),
       updatedAt: DateTime.now(),
-      message: message,
+      message: messages.isEmpty ? null : messages.join('\n'),
     );
   }
 }

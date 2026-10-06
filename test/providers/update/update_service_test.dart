@@ -11,6 +11,7 @@ import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
+import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_manager.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
@@ -160,40 +161,101 @@ void main() {
     expect(UpdateReport.fromJson(json), report);
   });
 
-  test('Scan continues to the next manga after an enqueue error', () async {
-    final nextManga = _manga.copyWith(id: 2, url: 'next-manga-url', title: 'next-manga-title');
+  test('Start errors retain complete counts and save all error details', () async {
+    for (final failedChapters in [
+      <String, String>{},
+      {'chapter-url': 'insert-error'},
+    ]) {
+      final source = _Source();
+      final sync = _Sync(_unchanged);
+      final downloads = _Downloads(
+        DownloadEnqueueResult(
+          enqueuedCount: 2,
+          skippedDownloaded: 1,
+          skippedQueued: 1,
+          skippedUnavailable: 1,
+          failedChapters: failedChapters,
+        ),
+      );
+      final error = StateError('start-error');
+      final manager = _Manager(errors: {1: error});
+      final container = await _createContainer(source, sync, downloads, manager: manager);
+
+      final item = await container.read(updateServiceProvider).updateAndSaveManga(source, _manga);
+
+      expect(item.outcome, UpdateOutcome.enqueueFailed);
+      expect(item.enqueuedCount, 2);
+      expect(item.skippedDownloaded, 1);
+      expect(item.skippedQueued, 1);
+      expect(item.skippedUnavailable, 1);
+      expect(item.failedChapters, failedChapters.keys);
+      expect(item.enqueueFailedCount, failedChapters.length);
+      expect(item.updateCount, 1);
+      expect(item.message, failedChapters.isEmpty ? error.toString() : 'chapter-url: insert-error\n$error');
+      expect(manager.wakes, 1);
+      final report = container.read(updateReportStoreProvider)!;
+      expect(report.failureCount, 1);
+      final preferences = container.read(sharedPreferencesProvider);
+      final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+      expect(UpdateReport.fromJson(json), report);
+    }
+  });
+
+  test('Queued chapters start downloads even without new entries', () async {
     final source = _Source();
     final sync = _Sync(_unchanged);
-    final error = StateError('enqueue-error');
-    final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1), errors: {_manga.id: error});
-    final container = await _createContainer(
-      source,
-      sync,
-      downloads,
-      overrides: [
-        libraryRepositoryProvider.overrideWithValue(_Library([_manga, nextManga])),
-        sourceByIdProvider(_manga.source).overrideWith((ref) async => source),
-        chapterSyncWithSourceProvider(source, nextManga).overrideWithValue(sync),
-      ],
-    );
+    final downloads = _Downloads(const DownloadEnqueueResult(skippedQueued: 2));
+    final manager = _Manager();
+    final container = await _createContainer(source, sync, downloads, manager: manager);
 
-    await container.read(updateManagerProvider.notifier).scan();
+    final item = await container.read(updateServiceProvider).updateManga(source, _manga);
 
-    final report = container.read(updateReportStoreProvider)!;
-    expect(source.calls, 2);
-    expect(downloads.calls, 2);
-    expect(report.items.map((item) => item.mangaId), [_manga.id, nextManga.id]);
-    expect(report.items.map((item) => item.outcome), [UpdateOutcome.enqueueFailed, UpdateOutcome.updated]);
-    expect(report.items.first.updateCount, 1);
-    expect(report.items.first.message, error.toString());
-    expect(report.items.last.enqueuedCount, 1);
-    expect(report.failureCount, 1);
-    expect(report.phase, UpdatePhase.finished);
-    expect(report.message, isNull);
-    expect(container.read(updateManagerProvider).hasError, isFalse);
-    final preferences = container.read(sharedPreferencesProvider);
-    final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
-    expect(UpdateReport.fromJson(json), report);
+    expect(manager.wakes, 1);
+    expect(item.enqueuedCount, 0);
+    expect(item.skippedQueued, 2);
+    expect(item.outcome, UpdateOutcome.noUpdate);
+  });
+
+  test('Scan continues to the next manga after an enqueue or start error', () async {
+    for (final failEnqueue in [true, false]) {
+      final nextManga = _manga.copyWith(id: 2, url: 'next-manga-url', title: 'next-manga-title');
+      final source = _Source();
+      final sync = _Sync(_unchanged);
+      final error = StateError(failEnqueue ? 'enqueue-error' : 'start-error');
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1), errors: failEnqueue ? {_manga.id: error} : {});
+      final manager = _Manager(errors: failEnqueue ? {} : {1: error});
+      final container = await _createContainer(
+        source,
+        sync,
+        downloads,
+        manager: manager,
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(_Library([_manga, nextManga])),
+          sourceByIdProvider(_manga.source).overrideWith((ref) async => source),
+          chapterSyncWithSourceProvider(source, nextManga).overrideWithValue(sync),
+        ],
+      );
+
+      await container.read(updateManagerProvider.notifier).scan();
+
+      final report = container.read(updateReportStoreProvider)!;
+      expect(source.calls, 2);
+      expect(downloads.calls, 2);
+      expect(manager.wakes, failEnqueue ? 1 : 2);
+      expect(report.items.map((item) => item.mangaId), [_manga.id, nextManga.id]);
+      expect(report.items.map((item) => item.outcome), [UpdateOutcome.enqueueFailed, UpdateOutcome.updated]);
+      expect(report.items.first.updateCount, 1);
+      expect(report.items.first.enqueuedCount, failEnqueue ? 0 : 1);
+      expect(report.items.first.message, error.toString());
+      expect(report.items.last.enqueuedCount, 1);
+      expect(report.failureCount, 1);
+      expect(report.phase, UpdatePhase.finished);
+      expect(report.message, isNull);
+      expect(container.read(updateManagerProvider).hasError, isFalse);
+      final preferences = container.read(sharedPreferencesProvider);
+      final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+      expect(UpdateReport.fromJson(json), report);
+    }
   });
 
   test('Source failures are classified and saved without syncing or enqueueing', () async {
@@ -254,6 +316,7 @@ Future<ProviderContainer> _createContainer(
   _Downloads downloads, {
   DatabaseManga manga = _manga,
   _Mangas? mangas,
+  _Manager? manager,
   List<Override> overrides = const [],
 }) async {
   SharedPreferences.setMockInitialValues({});
@@ -264,6 +327,7 @@ Future<ProviderContainer> _createContainer(
       chapterSyncWithSourceProvider(source, manga).overrideWithValue(sync),
       downloadServiceProvider.overrideWithValue(downloads),
       mangaRepositoryProvider.overrideWithValue(mangas ?? _Mangas()),
+      downloadManagerProvider.overrideWithValue(manager ?? _Manager()),
       ...overrides,
     ],
   );
@@ -328,6 +392,22 @@ class _Library implements LibraryRepository {
 
   @override
   Future<List<DatabaseManga>> queryAutoMangas({List<int>? mangaIds}) async => mangas.toList();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Manager implements DownloadManager {
+  _Manager({this.errors = const {}});
+  final Map<int, Object> errors;
+  int wakes = 0;
+
+  @override
+  Future<void> next() async {
+    wakes++;
+    final error = errors[wakes];
+    if (error != null) throw error;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

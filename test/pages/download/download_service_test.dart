@@ -71,13 +71,13 @@ void main() {
     expect(result, const DownloadEnqueueResult(enqueuedCount: 2, skippedDownloaded: 1, skippedQueued: 1, skippedUnavailable: 1));
     expect(downloads.inserted, [1]);
     expect(downloads.updated, [_download(4)]);
-    expect(manager.wakes, 1);
+    expect(manager.wakes, 0);
 
     final repeated = await service.enqueueAutoDownloads(_source, _manga);
     expect(repeated, const DownloadEnqueueResult(skippedDownloaded: 1, skippedQueued: 3, skippedUnavailable: 1));
     expect(downloads.inserted, [1]);
     expect(downloads.updated, [_download(4)]);
-    expect(manager.wakes, 2);
+    expect(manager.wakes, 0);
   });
 
   test('A chapter failure does not stop others', () async {
@@ -91,7 +91,40 @@ void main() {
     expect(downloads.inserted, [2]);
     expect(result.failedChapters.keys, ['chapter-url-1']);
     expect(result.failedChapters['chapter-url-1'], contains('insert-error'));
-    expect(manager.wakes, 1);
+    expect(manager.wakes, 0);
+  });
+
+  test('Enqueue returns complete counts and chapter errors without starting downloads', () async {
+    for (final failedChapter in <int?>[null, 6]) {
+      final chapters = _Chapters([_chapter(1), _chapter(2), _chapter(3), _chapter(4), _chapter(5, public: false), _chapter(6)]);
+      final downloads = _Downloads([_download(3), _download(4, error: 'download-error')], failChapter: failedChapter);
+      final manager = _Manager();
+      final container = _createContainer(chapters, downloads, manager, completed: {2});
+
+      final result = await container.read(downloadServiceProvider).enqueueAutoDownloads(_source, _manga);
+
+      expect(result.enqueuedCount, failedChapter == null ? 3 : 2);
+      expect(result.skippedDownloaded, 1);
+      expect(result.skippedQueued, 1);
+      expect(result.skippedUnavailable, 1);
+      expect(result.failedChapters.keys, failedChapter == null ? isEmpty : ['chapter-url-6']);
+      expect(downloads.inserted, failedChapter == null ? [1, 6] : [1]);
+      expect(downloads.updated, [_download(4)]);
+      expect(manager.wakes, 0);
+    }
+  });
+
+  test('Queue query errors propagate before enqueueing and scheduling', () async {
+    final chapters = _Chapters([_chapter(1)]);
+    final error = StateError('queue-query-error');
+    final downloads = _Downloads([], queryError: error);
+    final manager = _Manager();
+    final container = _createContainer(chapters, downloads, manager);
+
+    await expectLater(container.read(downloadServiceProvider).enqueueAutoDownloads(_source, _manga), throwsA(same(error)));
+
+    expect(downloads.inserted, isEmpty);
+    expect(manager.wakes, 0);
   });
 }
 
@@ -125,14 +158,18 @@ class _Chapters implements ChapterRepository {
 }
 
 class _Downloads implements DownloadRepository {
-  _Downloads(this.rows, {this.failChapter});
+  _Downloads(this.rows, {this.failChapter, this.queryError});
   final List<DatabaseDownload> rows;
   final int? failChapter;
+  final Object? queryError;
   final List<int> inserted = [];
   final List<DatabaseDownload> updated = [];
 
   @override
-  Future<List<DatabaseDownload>> queryDownloadsByManga(int mangaId) async => rows.toList();
+  Future<List<DatabaseDownload>> queryDownloadsByManga(int mangaId) async {
+    if (queryError != null) throw queryError!;
+    return rows.toList();
+  }
 
   @override
   Future<void> insertDownload(Insertable<DatabaseDownload> row) async {

@@ -100,9 +100,6 @@ class DownloadService {
           failedChapters[chapter.url] = error.toString();
         }
       }
-      if (enqueuedCount > 0 || skippedQueued > 0) {
-        await ref.read(downloadManagerProvider).next();
-      }
       return DownloadEnqueueResult(
         enqueuedCount: enqueuedCount,
         skippedDownloaded: skippedDownloaded,
