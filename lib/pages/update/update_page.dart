@@ -18,7 +18,7 @@ class UpdatePage extends ConsumerWidget {
     final material = MaterialLocalizations.of(context);
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -29,7 +29,9 @@ class UpdatePage extends ConsumerWidget {
             UpdatePhase.finished => l10n.updateFinished,
             UpdatePhase.interrupted => l10n.updateInterrupted,
           }),
-          if (time != null) Text('${material.formatMediumDate(time)} ${material.formatTimeOfDay(TimeOfDay.fromDateTime(time))}'),
+          if (time != null) ...[
+            Text('${material.formatMediumDate(time)} ${material.formatTimeOfDay(TimeOfDay.fromDateTime(time))}'),
+          ],
           if (report != null) ...[
             Text(l10n.updateProgress(report.items.length, report.totalTargets)),
             Text(
@@ -41,11 +43,11 @@ class UpdatePage extends ConsumerWidget {
             ),
           ],
           if (running) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 8.0),
             LinearProgressIndicator(value: report == null || report.totalTargets == 0 ? null : report.items.length / report.totalTargets),
           ],
           if (message.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 8.0),
             SelectableText(message, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ],
         ],
@@ -57,7 +59,6 @@ class UpdatePage extends ConsumerWidget {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final theme = Theme.of(context);
     final outcome = item.outcome;
-    final message = item.message;
     final outcomeText = switch (outcome) {
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
       UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
@@ -80,30 +81,40 @@ class UpdatePage extends ConsumerWidget {
           Text(l10n.updateSkipped(item.skippedDownloaded, item.skippedQueued, item.skippedUnavailable)),
         ],
       ),
-      trailing: message == null
-          ? null
-          : IconButton(
-              tooltip: l10n.updateErrorDetails,
-              icon: const Icon(Icons.info_outline),
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(item.mangaTitle),
-                  content: SingleChildScrollView(child: SelectableText(message)),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Clipboard.setData(ClipboardData(text: message)),
-                      child: Text(l10n.updateCopyError),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(MaterialLocalizations.of(context).closeButtonLabel),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+      trailing: _buildTrailing(context, item),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
+    );
+  }
+
+  Widget? _buildTrailing(BuildContext context, UpdateReportItem item) {
+    final message = item.message;
+    if (message == null) return null;
+    final l10n = TsukuyomiLocalizations.of(context)!;
+    return IconButton(
+      tooltip: l10n.updateErrorDetails,
+      icon: const Icon(Icons.info_outline),
+      onPressed: () => _showErrorDetails(context, item.mangaTitle, message),
+    );
+  }
+
+  Future<void> _showErrorDetails(BuildContext context, String title, String message) {
+    final l10n = TsukuyomiLocalizations.of(context)!;
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(child: SelectableText(message)),
+        actions: [
+          TextButton(
+            onPressed: () => Clipboard.setData(ClipboardData(text: message)),
+            child: Text(l10n.updateCopyError),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(MaterialLocalizations.of(context).closeButtonLabel),
+          ),
+        ],
+      ),
     );
   }
 
@@ -145,7 +156,7 @@ class UpdatePage extends ConsumerWidget {
                 hasScrollBody: false,
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16.0),
                     child: Text(emptyText, textAlign: TextAlign.center),
                   ),
                 ),

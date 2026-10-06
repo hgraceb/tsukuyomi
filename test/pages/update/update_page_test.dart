@@ -48,8 +48,8 @@ void main() {
   });
 
   testWidgets('Restored interrupted results retain warnings, failure counts and error details on a narrow screen', (tester) async {
-    tester.view.physicalSize = const Size(360, 800);
-    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360.0, 800.0);
+    tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final manager = _Manager();
@@ -120,7 +120,7 @@ void main() {
   });
 }
 
-Future<ProviderContainer> _pumpPage(WidgetTester tester, {required _Manager manager, UpdateReport? report, double textScale = 1}) async {
+Future<ProviderContainer> _pumpPage(WidgetTester tester, {required _Manager manager, UpdateReport? report, double textScale = 1.0}) async {
   SharedPreferences.setMockInitialValues({if (report != null) UpdateReportStore.reportKey: jsonEncode(report.toJson())});
   final preferences = await SharedPreferences.getInstance();
   final container = ProviderContainer(
