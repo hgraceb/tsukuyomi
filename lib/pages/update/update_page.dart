@@ -132,14 +132,15 @@ class UpdatePage extends ConsumerWidget {
             TsukuyomiSliverAppBar(
               title: Text(l10n.updateTitle),
               actions: [
-                if (running)
-                  IconButton(tooltip: l10n.updateStopScan, icon: const Icon(Icons.stop_outlined), onPressed: controller.stop)
-                else
+                if (running) ...[
+                  IconButton(tooltip: l10n.updateStopScan, icon: const Icon(Icons.stop_outlined), onPressed: controller.stop),
+                ] else ...[
                   IconButton(tooltip: l10n.updateStartScan, icon: const Icon(Icons.refresh_outlined), onPressed: controller.scan),
+                ],
               ],
             ),
             SliverToBoxAdapter(child: _buildSummary(context, report, running, message)),
-            if (items.isEmpty)
+            if (items.isEmpty) ...[
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
@@ -148,9 +149,10 @@ class UpdatePage extends ConsumerWidget {
                     child: Text(emptyText, textAlign: TextAlign.center),
                   ),
                 ),
-              )
-            else
+              ),
+            ] else ...[
               SliverList.builder(itemCount: items.length, itemBuilder: (context, index) => _buildItem(context, items[index])),
+            ],
           ],
         ),
       ),
