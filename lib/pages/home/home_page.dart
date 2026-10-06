@@ -23,6 +23,7 @@ class HomePage extends ConsumerWidget {
         physics: const NeverScrollableScrollPhysics(),
         children: const [
           AlwaysKeepAlive(child: LibraryPage()),
+          AlwaysKeepAlive(child: UpdatePage()),
           AlwaysKeepAlive(child: DownloadPage()),
           SettingsPage(),
         ],
@@ -35,6 +36,12 @@ class HomePage extends ConsumerWidget {
             label: l10n.libraryTitle,
             icon: const Icon(Icons.collections_bookmark_outlined),
             selectedIcon: const Icon(Icons.collections_bookmark),
+          ),
+          NavigationDestination(
+            tooltip: '',
+            label: l10n.updateTitle,
+            icon: const Icon(Icons.update_outlined),
+            selectedIcon: const Icon(Icons.update),
           ),
           NavigationDestination(
             tooltip: '',

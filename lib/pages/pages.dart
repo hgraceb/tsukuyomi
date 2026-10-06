@@ -8,3 +8,4 @@ export 'manga/manga_page.dart';
 export 'search/search_page.dart';
 export 'settings/settings_page.dart';
 export 'theme/theme_preview_page.dart';
+export 'update/update_page.dart';
