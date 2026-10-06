@@ -88,6 +88,25 @@ void main() {
     await second;
     expect(container.read(updateReportStoreProvider), secondReport);
   });
+
+  test('Restore a running report as interrupted and retain completed results', () async {
+    final report = _report('unfinished-session').copyWith(
+      phase: UpdatePhase.running,
+      scanKind: UpdateScanKind.full,
+      totalTargets: 2,
+      finishedAt: null,
+    );
+    SharedPreferences.setMockInitialValues({UpdateReportStore.reportKey: jsonEncode(report.toJson())});
+    final preferences = await SharedPreferences.getInstance();
+    final container = _container(preferences);
+
+    final restored = container.read(updateReportStoreProvider)!;
+    expect(restored, report.copyWith(phase: UpdatePhase.interrupted));
+    expect(restored.items.length, 1);
+    expect(restored.finishedAt, isNull);
+    await container.read(updateReportStoreProvider.notifier).save(restored);
+    expect(_container(preferences).read(updateReportStoreProvider), restored);
+  });
 }
 
 class _Preferences implements SharedPreferences {

@@ -20,7 +20,9 @@ class UpdateReportStore extends _$UpdateReportStore {
   UpdateReport? build() {
     _preferences = ref.watch(sharedPreferencesProvider);
     final json = _preferences.getString(reportKey);
-    return json == null ? null : UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    if (json == null) return null;
+    final report = UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    return report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
   }
 
   /// 保存最近的更新报告

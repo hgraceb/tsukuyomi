@@ -17,6 +17,12 @@ class MangaRepository {
     return manga.id.value;
   }
 
+  Future<int> updateLastCheckAt(int mangaId, DateTime checkedAt) {
+    final query = database.update(database.mangaTable);
+    query.where((row) => row.id.equals(mangaId));
+    return query.write(MangaTableCompanion(lastCheckAt: Value(checkedAt)));
+  }
+
   Future<DatabaseManga?> queryMangaOrNull(int source, String url) {
     final query = database.select(database.mangaTable);
     query.where((row) => row.source.equals(source));

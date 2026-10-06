@@ -4,7 +4,7 @@ part 'update_state.freezed.dart';
 part 'update_state.g.dart';
 
 /// 扫描状态
-enum UpdatePhase { idle, running, cancelled, finished }
+enum UpdatePhase { idle, running, cancelled, finished, interrupted }
 
 /// 扫描方式
 enum UpdateScanKind { full, partial }

@@ -8,6 +8,7 @@ import 'package:tsukuyomi/core/exception/tsukuyomi_exception.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
+import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_service.dart';
@@ -50,6 +51,7 @@ void main() {
     expect(source.calls, 1);
     expect(sync.chapters, [_chapter]);
     expect(downloads.calls, 1);
+    expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt.keys, [_manga.id]);
     expect(item.outcome, UpdateOutcome.updated);
     expect(item.insertCount, 0);
     expect(item.updateCount, 1);
@@ -112,6 +114,7 @@ void main() {
       expect(item.deleteCount, 2);
       expect(item.enqueuedCount, result.sourceCount);
       expect(downloads.calls, 1);
+      expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt.keys, [_manga.id]);
     }
   });
 
@@ -129,6 +132,7 @@ void main() {
     expect(item.enqueueFailedCount, 1);
     expect(item.failedChapters, ['chapter-url']);
     expect(item.message, 'chapter-url: insert-error');
+    expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt.keys, [_manga.id]);
   });
 
   test('Source failures are classified and saved without syncing or enqueueing', () async {
@@ -149,6 +153,7 @@ void main() {
       expect(sync.chapters, isNull);
       expect(downloads.calls, 0);
       expect(container.read(updateReportStoreProvider)!.items, [item]);
+      expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt, isEmpty);
     }
   });
 
@@ -163,10 +168,32 @@ void main() {
     expect(item.outcome, UpdateOutcome.storageError);
     expect(item.message, contains('storage-error'));
     expect(downloads.calls, 0);
+    expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt, isEmpty);
+  });
+
+  test('Check time write failure retains sync counts and does not enqueue', () async {
+    final source = _Source();
+    final sync = _Sync(_unchanged);
+    final downloads = _Downloads(const DownloadEnqueueResult());
+    final mangas = _Mangas(error: StateError('check-time-error'));
+    final container = await _createContainer(source, sync, downloads, mangas: mangas);
+
+    final item = await container.read(updateServiceProvider).updateManga(source, _manga);
+    expect(item.outcome, UpdateOutcome.storageError);
+    expect(item.sourceCount, 1);
+    expect(item.updateCount, 1);
+    expect(item.message, contains('check-time-error'));
+    expect(downloads.calls, 0);
   });
 }
 
-Future<ProviderContainer> _createContainer(_Source source, _Sync sync, _Downloads downloads, {DatabaseManga manga = _manga}) async {
+Future<ProviderContainer> _createContainer(
+  _Source source,
+  _Sync sync,
+  _Downloads downloads, {
+  DatabaseManga manga = _manga,
+  _Mangas? mangas,
+}) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
   final container = ProviderContainer(
@@ -174,6 +201,7 @@ Future<ProviderContainer> _createContainer(_Source source, _Sync sync, _Download
       sharedPreferencesProvider.overrideWithValue(preferences),
       chapterSyncWithSourceProvider(source, manga).overrideWithValue(sync),
       downloadServiceProvider.overrideWithValue(downloads),
+      mangaRepositoryProvider.overrideWithValue(mangas ?? _Mangas()),
     ],
   );
   addTearDown(container.dispose);
@@ -222,6 +250,22 @@ class _Downloads implements DownloadService {
   Future<DownloadEnqueueResult> enqueueAutoDownloads(Source source, DatabaseManga manga) async {
     calls++;
     return result;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Mangas implements MangaRepository {
+  _Mangas({this.error});
+  final Object? error;
+  final checkedAt = <int, DateTime>{};
+
+  @override
+  Future<int> updateLastCheckAt(int mangaId, DateTime date) async {
+    if (error != null) throw error!;
+    checkedAt[mangaId] = date;
+    return 1;
   }
 
   @override

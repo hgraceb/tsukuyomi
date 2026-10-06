@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
+import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 import 'update_error.dart';
@@ -27,6 +28,7 @@ class UpdateService {
     }
     try {
       sync = await ref.read(chapterSyncWithSourceProvider(source, manga)).apply(chapters);
+      await ref.read(mangaRepositoryProvider).updateLastCheckAt(manga.id, DateTime.now());
     } catch (error) {
       return _result(source, manga, sync, downloads, UpdateOutcome.storageError, message: error.toString());
     }
