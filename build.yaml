@@ -1,6 +1,10 @@
 targets:
   $default:
     builders:
+      json_serializable:
+        options:
+          # 显式 toJson 调用支持嵌套模型
+          explicit_to_json: true
       # Drift 编译选项：https://drift.simonbinder.eu/docs/advanced-features/builder_options/
       drift_dev:
         options:
