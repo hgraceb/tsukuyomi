@@ -90,11 +90,12 @@ class UpdateReport with _$UpdateReport {
     required List<UpdateReportItem> items,
     DateTime? startedAt,
     DateTime? finishedAt,
+    String? message,
   }) = _UpdateReport;
 
-  factory UpdateReport.fromJson(Map<String, dynamic> json) => _$UpdateReportFromJson(json);
-
   static const int currentVersion = 1;
+
+  factory UpdateReport.fromJson(Map<String, dynamic> json) => _$UpdateReportFromJson(json);
 
   int get failureCount => items.where((item) => item.outcome.isFailure).length;
 

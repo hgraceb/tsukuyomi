@@ -11,6 +11,7 @@ void main() {
       totalTargets: 1,
       startedAt: DateTime(2020, 1, 2, 3, 4),
       finishedAt: DateTime(2020, 1, 2, 3, 4),
+      message: 'scan-message',
       items: [
         UpdateReportItem(
           sourceId: 1,
