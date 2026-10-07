@@ -590,6 +590,16 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     loop = loop!.enclosing;
   }
 
+  void endForLoop(ForLoopParts node) {
+    if (node is ForEachPartsWithDeclaration) {
+      endScope();
+    }
+    endLoop();
+    if (node is ForEachParts) {
+      endScope();
+    }
+  }
+
   void beginTrying() {
     trying = Trying(enclosing: trying, startOffset: chunk.size, blockOffset: emitJump(OP_TRY_JUMP));
   }
@@ -1270,7 +1280,31 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileForElement(ForElement node) {
-    error("Unsupported 'collection-for'.");
+    if (node.awaitKeyword != null) {
+      error("Unsupported 'await for'.");
+    }
+    if (node.forLoopParts is ForPartsWithPattern) {
+      error("Unsupported 'collection-for' with pattern '${node.forLoopParts}'.");
+    }
+    final literal = node.thisOrAncestorMatching<AstNode>((node) => node is ListLiteral || node is SetOrMapLiteral);
+    final isMap = literal is SetOrMapLiteral && literal.isMap;
+    final localOffset = locals.length;
+    beginScope();
+    // 暂存表达式操作数，让循环变量仍按 locals 的槽位编号绑定
+    emitCodes(OP_COLLECTION_BEGIN, localOffset);
+    addLocal('');
+    final collectionOffset = locals.length;
+    addLocal('');
+    node.forLoopParts.accept(this);
+    emitCodes(OP_GET_LOCAL, collectionOffset);
+    emitCollectionElement(node.body, isMap: isMap);
+    emitCodes(OP_POP);
+    endForLoop(node.forLoopParts);
+    emitCodes(OP_COLLECTION_END);
+    // 恢复指令已移除两个匿名槽，只清理编译器记录
+    assert(locals.length == localOffset + 2);
+    locals.removeRange(localOffset, locals.length);
+    scopeDepth--;
   }
 
   @override
@@ -1280,13 +1314,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
     node.forLoopParts.accept(this);
     bodyLoop(node.body);
-    if (node.forLoopParts is ForEachPartsWithDeclaration) {
-      endScope();
-    }
-    endLoop();
-    if (node.forLoopParts is ForEachParts) {
-      endScope();
-    }
+    endForLoop(node.forLoopParts);
   }
 
   @override

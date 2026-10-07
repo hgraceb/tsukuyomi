@@ -637,6 +637,19 @@ class _VM implements VM {
             push((dynamic key, dynamic value) {
               collection[key] = value;
             });
+          case OP_COLLECTION_BEGIN:
+            final slot = frame.slot + readCode(frame);
+            final collection = peek();
+            // 集合可能已占据正在初始化变量的槽位，保留全部已有局部槽
+            final temporaries = stack.sublist(slot);
+            stack.removeRange(slot, stack.size);
+            push(temporaries);
+            push(collection);
+          case OP_COLLECTION_END:
+            // 原集合引用仍在保留的局部槽或暂存操作数中
+            pop();
+            final temporaries = pop() as List;
+            temporaries.forEach(push);
           case OP_THROW:
             throw pop();
           case OP_RETHROW:

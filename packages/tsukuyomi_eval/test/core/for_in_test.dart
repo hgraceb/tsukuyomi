@@ -670,20 +670,13 @@ void main() {
       );
     });
 
-    test('collection-for is rejected before execution', () async {
+    test('collection-for shares synchronous iteration', () async {
       const source = '''
 void main() {
-  print('unreachable');
   print([for (final value in [1, 2]) value]);
 }
       ''';
-      await expectLater(
-        () => expectLater(
-          eval(source),
-          throwsA(isA<EvalCompileError>().having((error) => error.toString(), 'message', contains('collection-for'))),
-        ),
-        prints(''),
-      );
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println(['[1, 2]']));
     });
   });
 }
