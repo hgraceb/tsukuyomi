@@ -279,7 +279,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       // 定义类的静态字段
       emitDefineGlobal('${node.className}.$name');
     } else {
-      emitCodes(OP_CLASS_FIELD, addConstant('${node.className}.$name'));
+      emitCodes(OP_CLASS_FIELD, addConstant(name));
     }
   }
 
@@ -641,7 +641,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       emitDefineGlobal(function.name);
     }
 
-    // 方法参数默认值会在注册时读取静态常量。
+    // 方法参数默认值会在注册时读取静态常量
     final staticFields = node.members.whereType<FieldDeclaration>().where((field) => field.isStatic);
     for (final field in staticFields.where((field) => field.fields.isConst)) {
       field.accept(this);
@@ -687,7 +687,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       endScope();
     }
 
-    // 先完成实例定义，静态初值才能创建已初始化的同类实例。
+    // 先完成实例定义，静态初值才能创建已初始化的同类实例
     for (final field in staticFields.where((field) => !field.fields.isConst)) {
       field.accept(this);
     }

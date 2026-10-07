@@ -87,7 +87,7 @@ class _VM implements VM {
       case ObjClass():
         assert(argCount == 0);
         stack[stack.size - argCount - 1] = ObjInstance(clazz: callee, context: (debug: debug, globals: globals));
-        // 初始化帧共用 receiver 槽位，后入先出，按子类到父类初始化字段。
+        // 初始化帧共用 receiver 槽位，后入先出，按子类到父类初始化字段
         for (final initializer in callee.initializers) {
           call(initializer, 0);
         }
@@ -416,10 +416,11 @@ class _VM implements VM {
           case OP_CLASS_FIELD:
             final name = readString(frame);
             final clazz = peek() as ObjClass;
-            final property = EvalProperty.field(name);
-            // 限定名初始化声明类自己的字段，公开名保持虚拟属性访问。
+            final fieldName = '${clazz.name}.$name';
+            final property = EvalProperty.field(fieldName);
+            // 限定名初始化声明类自己的字段，公开名保持虚拟属性访问
+            clazz.props[fieldName] = property;
             clazz.props[name] = property;
-            clazz.props[name.substring(name.lastIndexOf('.') + 1)] = property;
           case OP_CLASS_INITIALIZER:
             final initializer = pop() as ObjClosure;
             (peek() as ObjClass).initializers.add(initializer);
