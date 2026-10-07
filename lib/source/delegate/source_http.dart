@@ -31,20 +31,20 @@ final _clients = Expando<Dio>();
 
 class IsolateDioHttpSource extends DioHttpSource {
   IsolateDioHttpSource({required this.delegate, required this.preferences}) {
-    delegate.clazz.props['id'] ??= EvalProperty.getter(($) => id);
-    delegate.clazz.props['parseJson'] ??= EvalProperty.getter(($) => parseJson);
-    delegate.clazz.props['parseHtml'] ??= EvalProperty.getter(($) => parseHtml);
-    delegate.clazz.props['parseProto'] ??= EvalProperty.getter(($) => parseProto);
-    delegate.clazz.props['fetchJson'] ??= EvalProperty.getter(($) => fetchJson);
-    delegate.clazz.props['fetchHtml'] ??= EvalProperty.getter(($) => fetchHtml);
-    delegate.clazz.props['fetchBytes'] ??= EvalProperty.getter(($) => fetchBytes);
-    delegate.clazz.props['fetchProto'] ??= EvalProperty.getter(($) => fetchProto);
-    delegate.clazz.props['setStorage'] ??= EvalProperty.getter(($) => setStorage);
-    delegate.clazz.props['getStorage'] ??= EvalProperty.getter(($) => getStorage);
-    delegate.clazz.props['resolveImageBytes'] ??= EvalProperty.getter(($) => resolveImageBytes);
-    delegate.clazz.props['resolveStringBytes'] ??= EvalProperty.getter(($) => resolveStringBytes);
-    delegate.clazz.props['encodeJpg'] ??= EvalProperty.getter(($) => encodeJpg);
-    delegate.clazz.props['encodeGif'] ??= EvalProperty.getter(($) => encodeGif);
+    delegate.props['id'] ??= EvalProperty.getter(($) => id);
+    delegate.props['parseJson'] ??= EvalProperty.getter(($) => parseJson);
+    delegate.props['parseHtml'] ??= EvalProperty.getter(($) => parseHtml);
+    delegate.props['parseProto'] ??= EvalProperty.getter(($) => parseProto);
+    delegate.props['fetchJson'] ??= EvalProperty.getter(($) => fetchJson);
+    delegate.props['fetchHtml'] ??= EvalProperty.getter(($) => fetchHtml);
+    delegate.props['fetchBytes'] ??= EvalProperty.getter(($) => fetchBytes);
+    delegate.props['fetchProto'] ??= EvalProperty.getter(($) => fetchProto);
+    delegate.props['setStorage'] ??= EvalProperty.getter(($) => setStorage);
+    delegate.props['getStorage'] ??= EvalProperty.getter(($) => getStorage);
+    delegate.props['resolveImageBytes'] ??= EvalProperty.getter(($) => resolveImageBytes);
+    delegate.props['resolveStringBytes'] ??= EvalProperty.getter(($) => resolveStringBytes);
+    delegate.props['encodeJpg'] ??= EvalProperty.getter(($) => encodeJpg);
+    delegate.props['encodeGif'] ??= EvalProperty.getter(($) => encodeGif);
   }
 
   final ObjInstance delegate;

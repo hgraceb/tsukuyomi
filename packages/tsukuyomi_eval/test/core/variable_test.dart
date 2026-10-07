@@ -657,13 +657,17 @@ void main() {
       expect(() => eval(source), println([1, 2]));
     });
 
-    test('in instance scope', () {
+    test('in instance scope', () async {
       const source = '''
+class Value {
+  final value = (() => 1)();
+}
+
 class Class {
   final variable1 = (() => 1)();
   final variable2 = (value) {
-    return value + Class().variable1;
-  }(Class().variable1);
+    return value + Value().value;
+  }(Value().value);
 }
 
 void main() {
@@ -672,7 +676,7 @@ void main() {
   print(instance.variable2);
 }
       ''';
-      expect(() => eval(source), println([1, 2]));
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2]));
     });
   });
 }

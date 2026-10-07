@@ -96,6 +96,7 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_DEFINE_GLOBAL_GETTER => _constantInstruction('OP_DEFINE_GLOBAL_GETTER', chunk, offset),
     OP_DEFINE_GLOBAL_SETTER => _constantInstruction('OP_DEFINE_GLOBAL_SETTER', chunk, offset),
     OP_CLASS_FIELD => _constantInstruction('OP_CLASS_FIELD', chunk, offset),
+    OP_CLASS_INITIALIZER => _simpleInstruction('OP_CLASS_INITIALIZER', offset),
     OP_CLASS_GETTER => _constantInstruction('OP_CLASS_GETTER', chunk, offset),
     OP_CLASS_SETTER => _constantInstruction('OP_CLASS_SETTER', chunk, offset),
     OP_CLASS_METHOD => _constantInstruction('OP_CLASS_METHOD', chunk, offset),

@@ -279,7 +279,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       // 定义类的静态字段
       emitDefineGlobal('${node.className}.$name');
     } else {
-      emitCodes(OP_CLASS_FIELD, addConstant(name));
+      emitCodes(OP_CLASS_FIELD, addConstant('${node.className}.$name'));
     }
   }
 
@@ -641,6 +641,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       emitDefineGlobal(function.name);
     }
 
+    // 方法参数默认值会在注册时读取静态常量。
+    final staticFields = node.members.whereType<FieldDeclaration>().where((field) => field.isStatic);
+    for (final field in staticFields.where((field) => field.fields.isConst)) {
+      field.accept(this);
+    }
+
     final extendsClause = node.extendsClause;
     if (extendsClause != null) {
       beginScope();
@@ -650,12 +656,39 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
     if (node.members.isNotEmpty) {
       emitGetVariable(className);
-      node.members.accept(this);
+      final fields = node.members.whereType<FieldDeclaration>().where((field) => !field.isStatic);
+      for (final member in node.members) {
+        if (member is! FieldDeclaration || !member.isStatic) member.accept(this);
+      }
+      if (fields.isNotEmpty) {
+        emitDefineClosure('$typeName.initialize', hasThis: true, body: (compiler) {
+          for (final field in fields) {
+            for (final variable in field.fields.variables) {
+              compiler.emitGetVariable('this');
+              if (variable.initializer case AstNode initializer) {
+                initializer.accept(compiler);
+              } else {
+                compiler.emitCodes(OP_NULL);
+              }
+              compiler.emitSetProperty('$typeName.${variable.name.lexeme}');
+              compiler.emitCodes(OP_POP);
+            }
+          }
+          compiler.emitGetVariable('this');
+          compiler.emitCodes(OP_RETURN);
+        });
+        emitCodes(OP_CLASS_INITIALIZER);
+      }
       emitCodes(OP_POP);
     }
 
     if (extendsClause != null) {
       endScope();
+    }
+
+    // 先完成实例定义，静态初值才能创建已初始化的同类实例。
+    for (final field in staticFields.where((field) => !field.fields.isConst)) {
+      field.accept(this);
     }
   }
 
@@ -692,10 +725,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   @override
   void compileFieldDeclaration(FieldDeclaration node) {
     for (final variable in node.fields.variables) {
-      if (variable.initializer case AstNode initializer) {
-        initializer.accept(this);
-      } else {
-        emitCodes(OP_NULL);
+      if (node.isStatic) {
+        if (variable.initializer case AstNode initializer) {
+          initializer.accept(this);
+        } else {
+          emitCodes(OP_NULL);
+        }
       }
       emitDefineField(variable.name.lexeme, node);
     }
