@@ -192,21 +192,57 @@ class _VM implements VM {
     };
   }
 
-  ObjTrying? tryCatch(Object e, StackTrace s) {
-    for (ObjTrying? trying = this.trying; trying != null; trying = trying.enclosing) {
-      final ip = trying.frame.ip - 1;
-      final index = frames.indexOf(trying.frame);
-      final catching = trying.catchings.firstWhereOrNull((catching) => catching.match(e));
-      if (ip <= trying.start || ip >= trying.end || index == -1 || catching == null) continue;
-      closeUpvalues(trying.slot);
-      frames.removeRange(index + 1, frames.size);
-      stack.removeRange(trying.slot, stack.size);
-      trying.frame.ip = catching.start;
-      push(trying.error = e);
-      push(trying.stackTrace = s);
-      return trying;
+  void trimStack(int slot) {
+    closeUpvalues(slot);
+    stack.removeRange(slot, stack.size);
+  }
+
+  void restoreTrying(ObjTrying handler) {
+    frames.removeRange(frames.indexOf(handler.frame) + 1, frames.size);
+    trimStack(handler.slot);
+  }
+
+  bool unwind(ObjExit exit) {
+    while (trying != null) {
+      final handler = trying!;
+      final finalization = handler.finalization;
+      // 登记处理器时发生的错误向外传播，尚未进入 try 的运行范围
+      if (finalization == null) {
+        trying = handler.enclosing;
+        continue;
+      }
+      if (exit is ObjReturn && handler.frame != exit.frame) break;
+      if (exit is ObjJump) {
+        if (handler.frame != exit.frame) break;
+        final start = handler.isFinalizing ? finalization.start : handler.start;
+        // try 或 finally 内部的循环跳转保留当前处理器与待处理退出
+        if (start <= exit.target && exit.target < finalization.end) break;
+      }
+      if (exit is ObjThrow && !handler.isFinalizing) {
+        final ip = handler.frame.ip - 1;
+        final catching = handler.start <= ip && ip < handler.end
+            ? handler.catchings.firstWhereOrNull((catching) => catching.match(exit.error))
+            : null;
+        if (catching != null) {
+          restoreTrying(handler);
+          handler.frame.ip = catching.start;
+          push(handler.error = exit.error);
+          push(handler.stackTrace = exit.stackTrace);
+          return true;
+        }
+      }
+      if (handler.isFinalizing) {
+        // finally 发起的新退出替代旧退出，不再次进入同一个 finally
+        trying = handler.enclosing;
+        continue;
+      }
+      restoreTrying(handler);
+      handler.isFinalizing = true;
+      handler.pendingExit = exit;
+      handler.frame.ip = finalization.start;
+      return true;
     }
-    return null;
+    return false;
   }
 
   void resume(ObjContinuation continuation) {
@@ -235,8 +271,9 @@ class _VM implements VM {
 
   dynamic execute({Object? error, StackTrace? stackTrace}) {
     CallFrame frame = frames.last;
+    ObjExit? exit;
     while (true) {
-      if (debug) {
+      if (debug && exit == null && error == null) {
         disassembleStack(continuation);
         disassembleInstruction(frame.chunk, frame.ip);
       }
@@ -244,37 +281,55 @@ class _VM implements VM {
       final isAsync = frames.first.closure.function.isAsync;
       try {
         if (error != null) Error.throwWithStackTrace(error, stackTrace!);
+        if (exit case ObjExit pending) {
+          exit = null;
+          if (unwind(pending)) {
+            frame = trying!.frame;
+            continue;
+          }
+          switch (pending) {
+            case ObjJump():
+              trimStack(pending.slot);
+              frame = pending.frame..ip = pending.target;
+              continue;
+            case ObjThrow():
+              Error.throwWithStackTrace(pending.error, pending.stackTrace);
+            case ObjReturn():
+              frame = pending.frame;
+              frames.pop();
+              final result = pending.value;
+              trimStack(frame.slot);
+
+              // 如果还有 frame 未被执行则说明当前函数不是异步函数
+              if (frames.isNotEmpty) {
+                if (frame.hasReturn) push(result);
+                frame = frames.last;
+                continue;
+              }
+
+              // frames 都执行结束后通过 completer 将结果进行异步回调
+              assert(frame.hasReturn);
+              completer.complete(result);
+              final caller = continuation.caller;
+
+              // caller 为空说明没有调用者或者调用者会等待在 complete 回调之后继续执行
+              if (caller == null) return result;
+
+              // caller 不为空则说明在没有执行 await 语句的情况下结束了当前代码块的调用
+              final future = completer.future;
+              resume(caller);
+
+              // caller 的 frames 为空说明调用者的所有代码块已经运行完成
+              if (frames.isEmpty) return future;
+              frame = frames.last;
+              push(future);
+              continue;
+          }
+        }
         final instruction = readCode(frame);
         switch (instruction) {
           case OP_RETURN:
-            frames.pop();
-            final result = pop();
-            closeUpvalues(frame.slot);
-            stack.removeRange(frame.slot, stack.size);
-
-            // 如果还有 frame 未被执行则说明当前函数不是异步函数
-            if (frames.isNotEmpty) {
-              if (frame.hasReturn) push(result);
-              frame = frames.last;
-              continue;
-            }
-
-            // frames 都执行结束后通过 completer 将结果进行异步回调
-            assert(frame.hasReturn);
-            completer.complete(result);
-            final caller = continuation.caller;
-
-            // caller 为空说明没有调用者或者调用者会等待在 complete 回调之后继续执行
-            if (caller == null) return result;
-
-            // caller 不为空则说明在没有执行 await 语句的情况下结束了当前代码块的调用
-            final future = completer.future;
-            resume(caller);
-
-            // caller 的 frames 为空说明调用者的所有代码块已经运行完成
-            if (frames.isEmpty) return future;
-            frame = frames.last;
-            push(future);
+            exit = ObjReturn(frame, pop());
           case OP_CONSTANT:
             final constant = readConstant(frame);
             push(constant);
@@ -574,13 +629,16 @@ class _VM implements VM {
           case OP_THROW:
             throw pop();
           case OP_RETHROW:
-            Error.throwWithStackTrace(trying!.error, trying!.stackTrace);
+            ObjTrying handler = trying!;
+            for (int depth = readCode(frame); depth > 0; depth--) {
+              handler = handler.enclosing!;
+            }
+            Error.throwWithStackTrace(handler.error, handler.stackTrace);
           case OP_TRY_JUMP:
             final offset = readCode(frame);
-            final start = frame.ip - 1;
+            final start = frame.ip;
             final slot = stack.size;
-            final enclosing = trying != null && trying!.start <= start && start <= trying!.end ? trying : null;
-            trying = ObjTrying(enclosing: enclosing, frame: frame, slot: slot, start: start, end: frame.ip += offset);
+            trying = ObjTrying(enclosing: trying, frame: frame, slot: slot, start: start, end: frame.ip += offset);
           case OP_CATCH_JUMP:
             final type = pop() as String;
             final offset = readCode(frame);
@@ -589,23 +647,33 @@ class _VM implements VM {
             trying!.catchings.add(catching);
           case OP_FINALLY_JUMP:
             final offset = readCode(frame);
-            final finalization = ObjFinally(start: frame.ip, end: frame.ip += offset);
+            final finalization = ObjFinally(start: frame.ip, end: frame.ip + offset + 2);
             trying!.finalization = finalization;
+            frame.ip += offset;
+          case OP_TRY_END:
+            exit = ObjJump(frame, target: trying!.finalization!.end, slot: trying!.slot);
+          case OP_FINALLY_END:
+            exit = trying!.pendingExit!;
+            trying = trying!.enclosing;
+          case OP_UNWIND_JUMP:
+            final slot = frame.slot + readCode(frame);
+            final offset = readCode(frame);
+            exit = ObjJump(frame, target: frame.ip + offset, slot: slot);
           default:
             throw EvalRuntimeError('Unknown instruction: $instruction.');
         }
       } catch (e, s) {
         error = null;
-        final trying = tryCatch(e, s);
-        if (trying != null) {
-          frame = trying.frame;
+        exit = null;
+        if (unwind(ObjThrow(e, s))) {
+          frame = trying!.frame;
           continue;
         }
-        if (!isAsync) rethrow;
         closeUpvalues(0);
         stack.clear();
         frames.clear();
-        this.trying = null;
+        trying = null;
+        if (!isAsync) rethrow;
         completer.completeError(e, s);
         final caller = continuation.caller;
         if (caller == null) return;

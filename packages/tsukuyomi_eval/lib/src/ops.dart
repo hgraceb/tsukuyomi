@@ -113,3 +113,9 @@ const OP_TRY_JUMP = 62;
 const OP_CATCH_JUMP = 63;
 
 const OP_FINALLY_JUMP = 64;
+
+const OP_TRY_END = 65;
+
+const OP_FINALLY_END = 66;
+
+const OP_UNWIND_JUMP = 67;

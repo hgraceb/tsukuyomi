@@ -36,6 +36,13 @@ int _jumpInstruction(String name, Chunk chunk, int offset) {
   return offset + 2;
 }
 
+int _unwindJumpInstruction(Chunk chunk, int offset) {
+  final localCount = chunk.codeAt(offset + 1);
+  final jump = chunk.codeAt(offset + 2);
+  stdout.write('${'OP_UNWIND_JUMP'.padRight(_padding)} $offset -> ${offset + 3 + jump} (locals: $localCount)\n');
+  return offset + 3;
+}
+
 int _closureInstruction(String name, Chunk chunk, int offset) {
   offset++;
   final constant = chunk.codeAt(offset++);
@@ -120,10 +127,13 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_MAP => _byteInstruction('OP_MAP', chunk, offset),
     OP_LIST => _byteInstruction('OP_LIST', chunk, offset),
     OP_THROW => _simpleInstruction('OP_THROW', offset),
-    OP_RETHROW => _simpleInstruction('OP_RETHROW', offset),
+    OP_RETHROW => _byteInstruction('OP_RETHROW', chunk, offset),
     OP_TRY_JUMP => _jumpInstruction('OP_TRY_JUMP', chunk, offset),
     OP_CATCH_JUMP => _jumpInstruction('OP_CATCH_JUMP', chunk, offset),
     OP_FINALLY_JUMP => _jumpInstruction('OP_FINALLY_JUMP', chunk, offset),
+    OP_TRY_END => _simpleInstruction('OP_TRY_END', offset),
+    OP_FINALLY_END => _simpleInstruction('OP_FINALLY_END', offset),
+    OP_UNWIND_JUMP => _unwindJumpInstruction(chunk, offset),
     _ => throw EvalRuntimeError('Unknown instruction: $instruction.'),
   };
 }
