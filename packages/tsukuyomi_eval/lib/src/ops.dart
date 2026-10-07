@@ -58,52 +58,54 @@ const OP_DEFINE_GLOBAL_SETTER = 27;
 
 const OP_CLASS_FIELD = 28;
 
-const OP_CLASS_GETTER = 29;
+const OP_CLASS_INITIALIZER = 29;
 
-const OP_CLASS_SETTER = 30;
+const OP_CLASS_GETTER = 30;
 
-const OP_CLASS_METHOD = 31;
+const OP_CLASS_SETTER = 31;
 
-const OP_CONCAT_STRING = 32;
+const OP_CLASS_METHOD = 32;
 
-const OP_PARAMETER_POSITIONAL = 33;
+const OP_CONCAT_STRING = 40;
 
-const OP_PARAMETER_NAMED = 34;
+const OP_PARAMETER_POSITIONAL = 41;
 
-const OP_PARAMETER_DEFAULT = 35;
+const OP_PARAMETER_NAMED = 42;
 
-const OP_PARAMETER_LIST = 36;
+const OP_PARAMETER_DEFAULT = 43;
 
-const OP_ARGUMENT_LIST = 37;
+const OP_PARAMETER_LIST = 44;
 
-const OP_ARGUMENT_POSITIONAL = 38;
+const OP_ARGUMENT_LIST = 45;
 
-const OP_ARGUMENT_NAMED = 39;
+const OP_ARGUMENT_POSITIONAL = 46;
 
-const OP_ASYNC = 40;
+const OP_ARGUMENT_NAMED = 47;
 
-const OP_AWAIT = 41;
+const OP_ASYNC = 50;
 
-const OP_IS = 42;
+const OP_AWAIT = 51;
 
-const OP_OPERATOR_1 = 43;
+const OP_IS = 52;
 
-const OP_OPERATOR_2 = 44;
+const OP_OPERATOR_1 = 53;
 
-const OP_OPERATOR_3 = 45;
+const OP_OPERATOR_2 = 54;
 
-const OP_SET = 46;
+const OP_OPERATOR_3 = 55;
 
-const OP_MAP = 47;
+const OP_SET = 56;
 
-const OP_LIST = 48;
+const OP_MAP = 57;
 
-const OP_THROW = 50;
+const OP_LIST = 58;
 
-const OP_RETHROW = 51;
+const OP_THROW = 60;
 
-const OP_TRY_JUMP = 52;
+const OP_RETHROW = 61;
 
-const OP_CATCH_JUMP = 53;
+const OP_TRY_JUMP = 62;
 
-const OP_FINALLY_JUMP = 54;
+const OP_CATCH_JUMP = 63;
+
+const OP_FINALLY_JUMP = 64;

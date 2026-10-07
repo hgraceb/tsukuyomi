@@ -87,6 +87,10 @@ class _VM implements VM {
       case ObjClass():
         assert(argCount == 0);
         stack[stack.size - argCount - 1] = ObjInstance(clazz: callee, context: (debug: debug, globals: globals));
+        // 初始化帧共用 receiver 槽位，后入先出，按子类到父类初始化字段
+        for (final initializer in callee.initializers) {
+          call(initializer, 0);
+        }
       default:
         throw EvalRuntimeError('Can only call functions and classes.');
     }
@@ -175,7 +179,7 @@ class _VM implements VM {
   Function? getInstanceGetter(Object? instance, String name) {
     assert(instance is! Obj || instance is ObjInstance);
     return switch (instance) {
-      ObjInstance() => instance.clazz.props[name]?.getter,
+      ObjInstance() => instance.props[name]?.getter,
       _ => globals['.$name']?.getter,
     };
   }
@@ -183,7 +187,7 @@ class _VM implements VM {
   Function? getInstanceSetter(Object? instance, String name) {
     assert(instance is! Obj || instance is ObjInstance);
     return switch (instance) {
-      ObjInstance() => instance.clazz.props[name]?.setter,
+      ObjInstance() => instance.props[name]?.setter,
       _ => globals['.$name']?.setter,
     };
   }
@@ -298,7 +302,7 @@ class _VM implements VM {
             setter(peek());
           case OP_DEFINE_GLOBAL:
             final name = readString(frame);
-            final property = EvalProperty.variable(pop(), isStatic: true);
+            final property = EvalProperty.variable(pop());
             assert(globals[name] == null, name);
             globals[name] = property;
           case OP_GET_LOCAL:
@@ -378,6 +382,7 @@ class _VM implements VM {
               throw EvalRuntimeError('Superclass must be a class.');
             }
             subclass.props.addAll(superclass.props);
+            subclass.initializers.addAll(superclass.initializers);
           case OP_GET_SUPER:
             final name = readString(frame);
             final superclass = pop() as ObjClass;
@@ -410,9 +415,15 @@ class _VM implements VM {
             }, globals[name]);
           case OP_CLASS_FIELD:
             final name = readString(frame);
-            final field = pop();
             final clazz = peek() as ObjClass;
-            clazz.props[name] = EvalProperty.variable(field, isStatic: false);
+            final fieldName = '${clazz.name}.$name';
+            final property = EvalProperty.field(fieldName);
+            // 限定名初始化声明类自己的字段，公开名保持虚拟属性访问
+            clazz.props[fieldName] = property;
+            clazz.props[name] = property;
+          case OP_CLASS_INITIALIZER:
+            final initializer = pop() as ObjClosure;
+            (peek() as ObjClass).initializers.add(initializer);
           case OP_CLASS_GETTER:
             final name = readString(frame);
             final closure = pop() as ObjClosure;

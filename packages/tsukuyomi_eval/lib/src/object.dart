@@ -102,16 +102,24 @@ class ObjClass extends Obj {
 
   final props = Table<Property>();
 
+  final initializers = <ObjClosure>[];
+
   @override
   String toString() => '<class $name>';
 }
 
 class ObjInstance extends Obj {
-  ObjInstance({required this.clazz, required this.context});
+  ObjInstance({required this.clazz, required this.context}) {
+    props.addAll(clazz.props);
+  }
 
   final ObjClass clazz;
 
   final ({bool debug, Map<String, Property> globals}) context;
+
+  final props = Table<Property>();
+
+  final fields = <String, dynamic>{};
 
   @override
   String toString() => '<instance ${clazz.name}>';
@@ -215,11 +223,11 @@ extension on Obj {
 
 extension ObjInstanceExtension on ObjInstance {
   bool has(String field) {
-    return clazz.props[field] != null;
+    return props[field] != null;
   }
 
   dynamic get(String field) {
-    return clazz.props[field]!.getter!(this);
+    return props[field]!.getter!(this);
   }
 
   dynamic invoke(String method, List<dynamic>? positionalArguments) {

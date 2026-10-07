@@ -297,7 +297,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
   }
 
-  void emitDefineClosure(String name, {AstNode? node, String? returnType, bool? hasThis, _CompilerBody? body}) {
+  void emitDefineClosure(String name, {String? returnType, bool? hasThis, _CompilerBody? body}) {
     final function = ObjFunction(name.isNotEmpty ? name : 'anonymous', returnType: returnType ?? 'dynamic');
     final compiler = _Compiler(enclosing: this, function: function, debug: debug, hasThis: hasThis);
     emitCodes(OP_CLOSURE, addConstant(compiler.compile(body: body)));
@@ -641,6 +641,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       emitDefineGlobal(function.name);
     }
 
+    // 方法参数默认值会在注册时读取静态常量
+    final staticFields = node.members.whereType<FieldDeclaration>().where((field) => field.isStatic);
+    for (final field in staticFields.where((field) => field.fields.isConst)) {
+      field.accept(this);
+    }
+
     final extendsClause = node.extendsClause;
     if (extendsClause != null) {
       beginScope();
@@ -648,14 +654,42 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       extendsClause.accept(this);
     }
 
-    if (node.members.isNotEmpty) {
+    final members = node.members.where((member) => member is! FieldDeclaration || !member.isStatic);
+    if (members.isNotEmpty) {
       emitGetVariable(className);
-      node.members.accept(this);
+      final fields = members.whereType<FieldDeclaration>();
+      for (final member in members) {
+        member.accept(this);
+      }
+      if (fields.isNotEmpty) {
+        emitDefineClosure('$typeName.initialize', hasThis: true, body: (compiler) {
+          for (final field in fields) {
+            for (final variable in field.fields.variables) {
+              compiler.emitGetVariable('this');
+              if (variable.initializer case AstNode initializer) {
+                initializer.accept(compiler);
+              } else {
+                compiler.emitCodes(OP_NULL);
+              }
+              compiler.emitSetProperty('$typeName.${variable.name.lexeme}');
+              compiler.emitCodes(OP_POP);
+            }
+          }
+          compiler.emitGetVariable('this');
+          compiler.emitCodes(OP_RETURN);
+        });
+        emitCodes(OP_CLASS_INITIALIZER);
+      }
       emitCodes(OP_POP);
     }
 
     if (extendsClause != null) {
       endScope();
+    }
+
+    // 先完成实例定义，静态初值才能创建已初始化的同类实例
+    for (final field in staticFields.where((field) => !field.fields.isConst)) {
+      field.accept(this);
     }
   }
 
@@ -692,10 +726,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   @override
   void compileFieldDeclaration(FieldDeclaration node) {
     for (final variable in node.fields.variables) {
-      if (variable.initializer case AstNode initializer) {
-        initializer.accept(this);
-      } else {
-        emitCodes(OP_NULL);
+      if (node.isStatic) {
+        if (variable.initializer case AstNode initializer) {
+          initializer.accept(this);
+        } else {
+          emitCodes(OP_NULL);
+        }
       }
       emitDefineField(variable.name.lexeme, node);
     }
@@ -706,7 +742,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final className = node.className;
     final methodName = node.name.lexeme;
     final returnType = node.returnType?.type?.element?.name;
-    emitDefineClosure('$className.$methodName', node: node, returnType: returnType, hasThis: true, body: (compiler) {
+    emitDefineClosure('$className.$methodName', returnType: returnType, hasThis: true, body: (compiler) {
       compiler.addFormalParameters(node.parameters);
       node.body.accept(compiler);
     });

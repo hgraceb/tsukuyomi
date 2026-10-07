@@ -27,14 +27,14 @@ class EvalProperty extends Property {
     getter = (instance) => ObjBoundMethod(receiver: instance, method: method);
   }
 
-  EvalProperty.variable(Object? variable, {required bool isStatic}) {
-    if (isStatic) {
-      getter = () => variable;
-      setter = (value) => variable = value;
-    } else {
-      getter = (instance) => variable;
-      setter = (instance, value) => variable = value;
-    }
+  EvalProperty.field(String name) {
+    getter = (ObjInstance instance) => instance.fields[name];
+    setter = (ObjInstance instance, value) => instance.fields[name] = value;
+  }
+
+  EvalProperty.variable(Object? variable) {
+    getter = () => variable;
+    setter = (value) => variable = value;
   }
 
   @override
