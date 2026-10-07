@@ -349,6 +349,8 @@ class _VM implements VM {
           case OP_CLOSE_UPVALUE:
             closeUpvalues(stack.size - 1);
             pop();
+          case OP_CLOSE_UPVALUES:
+            closeUpvalues(frame.slot + readCode(frame));
           case OP_CLASS:
             push(ObjClass(readString(frame)));
           case OP_GET_PROPERTY:

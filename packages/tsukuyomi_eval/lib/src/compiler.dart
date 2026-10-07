@@ -466,10 +466,14 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     emitCodes(OP_POP);
   }
 
-  void updateLoop(NodeList<Expression> updaters) {
-    if (updaters.isEmpty) return;
+  void updateLoop(NodeList<Expression> updaters, {int? localOffset}) {
+    if (updaters.isEmpty && localOffset == null) return;
     final nextOffset = emitJump(OP_JUMP);
     final loopOffset = chunk.size;
+    if (localOffset != null) {
+      // 在 updater 前关闭本轮捕获，保留槽位值供下一轮绑定使用
+      emitCodes(OP_CLOSE_UPVALUES, localOffset);
+    }
     for (final updater in updaters) {
       updater.accept(this);
       emitCodes(OP_POP);
@@ -1045,9 +1049,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileForPartsWithDeclarations(ForPartsWithDeclarations node) {
+    final localOffset = locals.length;
     beginLoop(declarations: node.variables);
     conditionLoop(node.condition);
-    updateLoop(node.updaters);
+    updateLoop(node.updaters, localOffset: localOffset);
   }
 
   @override

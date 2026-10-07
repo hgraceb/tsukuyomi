@@ -38,11 +38,13 @@ const OP_SET_UPVALUE = 17;
 
 const OP_CLOSE_UPVALUE = 18;
 
-const OP_CLASS = 19;
+const OP_CLOSE_UPVALUES = 19;
 
-const OP_GET_PROPERTY = 20;
+const OP_CLASS = 20;
 
-const OP_SET_PROPERTY = 21;
+const OP_GET_PROPERTY = 21;
+
+const OP_SET_PROPERTY = 22;
 
 const OP_INHERIT = 23;
 
