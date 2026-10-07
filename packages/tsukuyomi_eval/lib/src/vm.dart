@@ -99,7 +99,7 @@ class _VM implements VM {
     return getter.call(function);
   }
 
-  Function delegateClosure(ObjContinuation continuation, ObjClosure closure) {
+  Function delegateClosure(ObjClosure closure) {
     final function = closure.function;
     final parameters = closure.parameters;
     final count = parameters.where((e) => e.isPositional).length;
@@ -112,14 +112,17 @@ class _VM implements VM {
     return withOrThrow(function.returnType, <T>() {
       const $ = ObjParameter;
       return ([$0 = $, $1 = $]) {
+        final previous = continuation;
         resume(ObjContinuation());
-        push(closure);
-        if (count > 0) push($0 != $ ? $0 : parameters[0].getDefaultValue(function.name));
-        if (count > 1) push($1 != $ ? $1 : parameters[1].getDefaultValue(function.name));
-        call(closure, count);
-        final result = execute();
-        resume(continuation);
-        return result as T;
+        try {
+          push(closure);
+          if (count > 0) push($0 != $ ? $0 : parameters[0].getDefaultValue(function.name));
+          if (count > 1) push($1 != $ ? $1 : parameters[1].getDefaultValue(function.name));
+          call(closure, count);
+          return execute() as T;
+        } finally {
+          resume(previous);
+        }
       };
     });
   }
@@ -127,7 +130,7 @@ class _VM implements VM {
   dynamic delegateArgument(dynamic argument) {
     if (argument is! Obj) return argument;
     return switch (argument) {
-      ObjClosure() => delegateClosure(continuation, argument),
+      ObjClosure() => delegateClosure(argument),
       _ => throw EvalRuntimeError("Unsupported delegate '$argument' of type '${argument.runtimeType}'."),
     };
   }
@@ -196,7 +199,7 @@ class _VM implements VM {
       stack.removeRange(trying.slot, stack.size);
       trying.frame.ip = catching.start;
       push(trying.error = e);
-      push(s);
+      push(trying.stackTrace = s);
       return trying;
     }
     return null;
@@ -208,19 +211,25 @@ class _VM implements VM {
 
   void suspend(ObjContinuation continuation, dynamic value) async {
     continuation.caller = null;
+    Object? error;
+    StackTrace? stackTrace;
     try {
-      final result = await value;
-      resume(continuation);
-      push(result);
-      execute();
+      value = await value;
     } catch (e, s) {
-      resume(continuation);
-      if (tryCatch(e, s) == null) rethrow;
-      execute();
+      error = e;
+      stackTrace = s;
+    }
+    final previous = this.continuation;
+    resume(continuation);
+    try {
+      if (error == null) push(value);
+      execute(error: error, stackTrace: stackTrace);
+    } finally {
+      resume(previous);
     }
   }
 
-  dynamic execute() {
+  dynamic execute({Object? error, StackTrace? stackTrace}) {
     CallFrame frame = frames.last;
     while (true) {
       if (debug) {
@@ -228,8 +237,10 @@ class _VM implements VM {
         disassembleInstruction(frame.chunk, frame.ip);
       }
 
-      final instruction = readCode(frame);
+      final isAsync = frames.first.closure.function.isAsync;
       try {
+        if (error != null) Error.throwWithStackTrace(error, stackTrace!);
+        final instruction = readCode(frame);
         switch (instruction) {
           case OP_RETURN:
             frames.pop();
@@ -530,7 +541,7 @@ class _VM implements VM {
           case OP_THROW:
             throw pop();
           case OP_RETHROW:
-            throw trying!.error;
+            Error.throwWithStackTrace(trying!.error, trying!.stackTrace);
           case OP_TRY_JUMP:
             final offset = readCode(frame);
             final start = frame.ip - 1;
@@ -551,9 +562,25 @@ class _VM implements VM {
             throw EvalRuntimeError('Unknown instruction: $instruction.');
         }
       } catch (e, s) {
+        error = null;
         final trying = tryCatch(e, s);
-        if (trying == null) rethrow;
-        frame = trying.frame;
+        if (trying != null) {
+          frame = trying.frame;
+          continue;
+        }
+        if (!isAsync) rethrow;
+        closeUpvalues(0);
+        stack.clear();
+        frames.clear();
+        this.trying = null;
+        completer.completeError(e, s);
+        final caller = continuation.caller;
+        if (caller == null) return;
+        final future = completer.future;
+        resume(caller);
+        if (frames.isEmpty) return future;
+        frame = frames.last;
+        push(future);
       }
     }
   }

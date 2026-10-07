@@ -173,6 +173,8 @@ class ObjTrying extends Obj {
 
   late final Object error;
 
+  late final StackTrace stackTrace;
+
   @override
   String toString() => '<trying>';
 }
