@@ -51,8 +51,8 @@ class UpdateService {
     return _result(source, manga, sync, downloads, outcome);
   }
 
-  /// 更新单部漫画并保存检查结果
-  Future<UpdateReportItem> updateAndSaveManga(Source source, DatabaseManga manga) async {
+  /// 更新单部漫画并保存检查报告
+  Future<UpdateReportItem> updateMangaAndSaveReport(Source source, DatabaseManga manga) async {
     final startedAt = DateTime.now();
     final item = await updateManga(source, manga);
     final report = UpdateReport(

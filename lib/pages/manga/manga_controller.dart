@@ -6,11 +6,11 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/extension/extension.dart';
-import 'package:tsukuyomi/pages/chapter/chapter_service.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi/providers/providers.dart';
+import 'package:tsukuyomi/providers/update/update_service.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 part 'manga_controller.freezed.dart';
@@ -97,7 +97,7 @@ class MangaController extends _$MangaController with AsyncNotifierMixin {
   Future<void> refreshChapters() async {
     if (data == null) return;
     try {
-      await ref.read(chapterServiceProvider).syncWithSource(data!.source, data!.manga);
+      await ref.read(updateServiceProvider).updateMangaAndSaveReport(data!.source, data!.manga);
       await ref.read(downloadServiceProvider).refreshDownloadedByManga(data!.source, data!.manga);
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);
