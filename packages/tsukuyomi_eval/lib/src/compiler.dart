@@ -297,7 +297,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
   }
 
-  void emitDefineClosure(String name, {AstNode? node, String? returnType, bool? hasThis, _CompilerBody? body}) {
+  void emitDefineClosure(String name, {String? returnType, bool? hasThis, _CompilerBody? body}) {
     final function = ObjFunction(name.isNotEmpty ? name : 'anonymous', returnType: returnType ?? 'dynamic');
     final compiler = _Compiler(enclosing: this, function: function, debug: debug, hasThis: hasThis);
     emitCodes(OP_CLOSURE, addConstant(compiler.compile(body: body)));
@@ -654,11 +654,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       extendsClause.accept(this);
     }
 
-    if (node.members.isNotEmpty) {
+    final members = node.members.where((member) => member is! FieldDeclaration || !member.isStatic);
+    if (members.isNotEmpty) {
       emitGetVariable(className);
-      final fields = node.members.whereType<FieldDeclaration>().where((field) => !field.isStatic);
-      for (final member in node.members) {
-        if (member is! FieldDeclaration || !member.isStatic) member.accept(this);
+      final fields = members.whereType<FieldDeclaration>();
+      for (final member in members) {
+        member.accept(this);
       }
       if (fields.isNotEmpty) {
         emitDefineClosure('$typeName.initialize', hasThis: true, body: (compiler) {
@@ -741,7 +742,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final className = node.className;
     final methodName = node.name.lexeme;
     final returnType = node.returnType?.type?.element?.name;
-    emitDefineClosure('$className.$methodName', node: node, returnType: returnType, hasThis: true, body: (compiler) {
+    emitDefineClosure('$className.$methodName', returnType: returnType, hasThis: true, body: (compiler) {
       compiler.addFormalParameters(node.parameters);
       node.body.accept(compiler);
     });

@@ -32,14 +32,9 @@ class EvalProperty extends Property {
     setter = (ObjInstance instance, value) => instance.fields[name] = value;
   }
 
-  EvalProperty.variable(Object? variable, {required bool isStatic}) {
-    if (isStatic) {
-      getter = () => variable;
-      setter = (value) => variable = value;
-    } else {
-      getter = (instance) => variable;
-      setter = (instance, value) => variable = value;
-    }
+  EvalProperty.variable(Object? variable) {
+    getter = () => variable;
+    setter = (value) => variable = value;
   }
 
   @override

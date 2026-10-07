@@ -302,7 +302,7 @@ class _VM implements VM {
             setter(peek());
           case OP_DEFINE_GLOBAL:
             final name = readString(frame);
-            final property = EvalProperty.variable(pop(), isStatic: true);
+            final property = EvalProperty.variable(pop());
             assert(globals[name] == null, name);
             globals[name] = property;
           case OP_GET_LOCAL:
