@@ -4,6 +4,35 @@ import 'package:tsukuyomi_eval/src/eval.dart';
 import '../util/print_matcher.dart';
 
 void main() {
+  group('Async function return without a value', () {
+    test('without await anything', () async {
+      const source = '''
+Future<void> main() async {
+  const value = 1;
+  print(value);
+  return;
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1]));
+    });
+
+    test('with await anything in nested scope', () async {
+      const source = '''
+Future<void> main() async {
+  const value = 1;
+  print(value);
+  await null;
+  {
+    final nestedValue = value + 1;
+    print(nestedValue);
+    return;
+  }
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2]));
+    });
+  });
+
   test('Async function without await anything', () {
     const source = '''
 Future<void> foo() async {

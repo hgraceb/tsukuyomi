@@ -1133,6 +1133,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   @override
   void compileReturnStatement(ReturnStatement node) {
     super.compileReturnStatement(node);
+    if (node.expression == null) emitCodes(OP_NULL);
     emitCodes(OP_RETURN);
   }
 

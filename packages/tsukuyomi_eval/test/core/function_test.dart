@@ -5,6 +5,44 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import '../util/print_matcher.dart';
 
 void main() {
+  group('Function return without a value', () {
+    test('in global scope', () async {
+      const source = '''
+dynamic function() {
+  const value = 1;
+  print(value);
+  return;
+}
+
+void main() {
+  print(function());
+}
+      ''';
+      await expectLater(() => eval(source), println([1, null]));
+    });
+
+    test('in nested scope', () async {
+      const source = '''
+dynamic function() {
+  const value = 1;
+  {
+    final nestedValue = value + 1;
+    print(value);
+    print(nestedValue);
+    return;
+  }
+}
+
+void main() {
+  const value = 3;
+  print(function());
+  print(value);
+}
+      ''';
+      await expectLater(() => eval(source), println([1, 2, null, 3]));
+    });
+  });
+
   group('Function loop invocations', () {
     test('in for loop', () {
       const source = '''
