@@ -1000,12 +1000,38 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileAssignmentExpression(AssignmentExpression node) {
-    if (node.operator.lexeme != '=') {
-      error("Unsupported assignment by operator '${node.operator.lexeme}'.");
+    final operator = node.operator.lexeme;
+    final operators = {'+=', '-=', '*=', '/=', '%=', '~/=', '&=', '^=', '|=', '<<=', '>>=', '>>>='};
+    if (operator != '=' && operator != '??=' && !operators.contains(operator)) {
+      error("Unsupported assignment by operator '$operator'.");
     }
     assign(node, node.leftHandSide, (target) {
-      node.rightHandSide.accept(this);
-      target.write();
+      if (operator == '??=') {
+        target.read();
+        final nextOffset = emitJump(OP_JUMP_IF_NULL);
+        // 非 null 分支保留读取值，只清理地址操作数，不执行右侧或 setter
+        if (target.operandCount > 0) {
+          emitCodes(OP_ROTATE, target.operandCount);
+          for (int i = 0; i < target.operandCount; i++) {
+            emitCodes(OP_POP);
+          }
+        }
+        final exitOffset = emitJump(OP_JUMP);
+        patchJump(nextOffset);
+        emitCodes(OP_POP);
+        node.rightHandSide.accept(this);
+        target.write();
+        patchJump(exitOffset);
+      } else {
+        if (operator != '=') {
+          target.read();
+        }
+        node.rightHandSide.accept(this);
+        if (operator != '=') {
+          emitOperator2(operator.substring(0, operator.length - 1));
+        }
+        target.write();
+      }
     });
   }
 
