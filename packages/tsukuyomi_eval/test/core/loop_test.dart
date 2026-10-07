@@ -4,6 +4,229 @@ import 'package:tsukuyomi_eval/src/eval.dart';
 import '../util/print_matcher.dart';
 
 void main() {
+  group('For iteration capture', () {
+    test('body closures retain each iteration binding', () async {
+      const source = '''
+void main() {
+  final callbacks = [];
+  for (var i = 1; i < 4; i++) {
+    callbacks.add(() => i);
+  }
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('multiple initializer variables get fresh bindings together', () async {
+      const source = r'''
+void main() {
+  final callbacks = [];
+  for (var i = 1, nextValue = i + 1; i < 4; i++, nextValue++) {
+    callbacks.add(() => '$i/$nextValue');
+  }
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println(['1/2', '2/3', '3/4']));
+    });
+
+    test('closures share writes within an iteration and stay independent afterwards', () async {
+      const source = '''
+void main() {
+  final readers = [];
+  final writers = [];
+  for (var i = 1; i < 3; i++) {
+    readers.add(() => i);
+    writers.add(() => ++i);
+  }
+  print(readers[0]());
+  print(writers[0]());
+  print(readers[0]());
+  print(readers[1]());
+  print(writers[1]());
+  print(readers[1]());
+  print(readers[0]());
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 2, 2, 3, 3, 2]));
+    });
+
+    test('initializer closures share the first iteration binding', () async {
+      const source = '''
+void main() {
+  var initial = () => 0;
+  for (var i = 1, read = () => i; i < 3; i++) {
+    initial = read;
+    print(read());
+    i++;
+  }
+  print(initial());
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2]));
+    });
+
+    test('condition closures retain each binding including the failed condition', () async {
+      const source = '''
+bool check(callback, callbacks) {
+  callbacks.add(callback);
+  return callback() < 4;
+}
+void main() {
+  final callbacks = [];
+  for (var i = 1; check(() => i, callbacks); i++) {}
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3, 4]));
+    });
+
+    test('condition and body use the same iteration binding', () async {
+      const source = '''
+bool check(callback, callbacks) {
+  callbacks.add(callback);
+  return callback() < 2;
+}
+void main() {
+  final callbacks = [];
+  for (var i = 1; check(() => i, callbacks); i++) {
+    print(i);
+    i++;
+  }
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('updater closures capture the next iteration binding', () async {
+      const source = '''
+void main() {
+  final callbacks = [];
+  for (var i = 0; i < 3; callbacks.add(() => i), i++) {}
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('body changes are carried to the next binding before updating', () async {
+      const source = '''
+void main() {
+  final callbacks = [];
+  for (var i = 0; i < 4; i++) {
+    i++;
+    callbacks.add(() => i);
+  }
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 3]));
+    });
+
+    test('continue switches bindings after closing nested body locals', () async {
+      const source = r'''
+void main() {
+  final callbacks = [];
+  for (var i = 1; i < 4; i++) {
+    {
+      final value = i;
+      callbacks.add(() => '$i/$value');
+      continue;
+    }
+  }
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println(['1/1', '2/2', '3/3']));
+    });
+
+    test('loops without updaters still switch bindings on continue', () async {
+      const source = '''
+void main() {
+  final callbacks = [];
+  for (var i = 0; i < 3;) {
+    i++;
+    callbacks.add(() => i);
+    continue;
+  }
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('loops without conditions retain bindings through continue and break', () async {
+      const source = '''
+void main() {
+  final callbacks = [];
+  for (var i = 1;; i++) {
+    callbacks.add(() => i);
+    if (i < 3) continue;
+    break;
+  }
+  final value = 4;
+  callbacks.forEach((callback) => print(callback()));
+  print(value);
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3, 4]));
+    });
+
+    test('nested loops preserve outer captures until their own iteration ends', () async {
+      const source = r'''
+void main() {
+  final callbacks = [];
+  for (var i = 0; i < 2; i++) {
+    for (var j = 1; j < 3; j++) {
+      callbacks.add(() => '$i/$j');
+    }
+    i++;
+  }
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println(['1/1', '1/2']));
+    });
+
+    test('expression initializers keep sharing an outer variable', () async {
+      const source = '''
+void main() {
+  final callbacks = [];
+  var i = 0;
+  for (i = 1; i < 3; i++) {
+    callbacks.add(() => i);
+  }
+  callbacks.forEach((callback) => print(callback()));
+  i++;
+  callbacks.forEach((callback) => print(callback()));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([3, 3, 4, 4]));
+    });
+
+    test('async body and closures retain bindings across await', () async {
+      const source = '''
+Future<void> main() async {
+  final callbacks = [];
+  for (var i = 1; i < 4; i++) {
+    callbacks.add(() async {
+      await null;
+      return i;
+    });
+    await null;
+    continue;
+  }
+  print(await callbacks[0]());
+  print(await callbacks[1]());
+  print(await callbacks[2]());
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+  });
+
   group('Loop scope cleanup', () {
     test('for break leaves nested scopes', () async {
       const source = '''

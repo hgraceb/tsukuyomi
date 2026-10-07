@@ -105,3 +105,5 @@ const OP_TRY_JUMP = 52;
 const OP_CATCH_JUMP = 53;
 
 const OP_FINALLY_JUMP = 54;
+
+const OP_CLOSE_UPVALUES = 55;

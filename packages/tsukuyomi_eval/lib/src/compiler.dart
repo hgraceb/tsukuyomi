@@ -125,7 +125,7 @@ class Local {
 }
 
 class Loop {
-  Loop({required this.enclosing, required this.loopOffset, required this.scopeDepth, required this.endScope});
+  Loop({required this.enclosing, required this.loopOffset, required this.scopeDepth, required this.endScope, this.localOffset});
 
   int loopOffset;
 
@@ -134,6 +134,8 @@ class Loop {
   final Loop? enclosing;
 
   final int scopeDepth;
+
+  final int? localOffset;
 
   final Function()? endScope;
 
@@ -439,6 +441,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   void beginLoop({VariableDeclarationList? declarations, Expression? initialization}) {
+    final localOffset = declarations == null ? null : locals.length;
     if (declarations != null) {
       beginScope();
       declarations.accept(this);
@@ -452,6 +455,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       loopOffset: chunk.size,
       scopeDepth: scopeDepth,
       endScope: declarations == null ? null : endScope,
+      localOffset: localOffset,
     );
   }
 
@@ -467,9 +471,13 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   void updateLoop(NodeList<Expression> updaters) {
-    if (updaters.isEmpty) return;
+    if (updaters.isEmpty && loop!.localOffset == null) return;
     final nextOffset = emitJump(OP_JUMP);
     final loopOffset = chunk.size;
+    if (loop!.localOffset != null) {
+      // 在 updater 前关闭本轮捕获，保留槽位值供下一轮绑定使用。
+      emitCodes(OP_CLOSE_UPVALUES, loop!.localOffset!);
+    }
     for (final updater in updaters) {
       updater.accept(this);
       emitCodes(OP_POP);

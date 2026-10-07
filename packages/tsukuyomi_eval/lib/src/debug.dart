@@ -86,6 +86,7 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_GET_UPVALUE => _byteInstruction('OP_GET_UPVALUE', chunk, offset),
     OP_SET_UPVALUE => _byteInstruction('OP_SET_UPVALUE', chunk, offset),
     OP_CLOSE_UPVALUE => _simpleInstruction('OP_CLOSE_UPVALUE', offset),
+    OP_CLOSE_UPVALUES => _byteInstruction('OP_CLOSE_UPVALUES', chunk, offset),
     OP_CLASS => _constantInstruction('OP_CLASS', chunk, offset),
     OP_GET_PROPERTY => _constantInstruction('OP_GET_PROPERTY', chunk, offset),
     OP_SET_PROPERTY => _constantInstruction('OP_SET_PROPERTY', chunk, offset),
