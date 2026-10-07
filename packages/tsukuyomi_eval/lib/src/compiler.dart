@@ -471,7 +471,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final nextOffset = emitJump(OP_JUMP);
     final loopOffset = chunk.size;
     if (localOffset != null) {
-      // 在 updater 前关闭本轮捕获，保留槽位值供下一轮绑定使用。
+      // 在 updater 前关闭本轮捕获，保留槽位值供下一轮绑定使用
       emitCodes(OP_CLOSE_UPVALUES, localOffset);
     }
     for (final updater in updaters) {

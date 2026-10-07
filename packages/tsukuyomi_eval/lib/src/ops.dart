@@ -1,7 +1,5 @@
 // ignore_for_file: constant_identifier_names
 
-// 指令使用显式编码；文件格式固定后，同一版本内保留已有编号，新增指令使用空位。
-
 const OP_RETURN = 0;
 
 const OP_CONSTANT = 1;
