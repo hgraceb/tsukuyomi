@@ -177,7 +177,11 @@ class ObjTrying extends Obj {
 
   final List<ObjCatching> catchings = [];
 
-  late final ObjFinally finalization;
+  ObjFinally? finalization;
+
+  bool isFinalizing = false;
+
+  ObjExit? pendingExit;
 
   late final Object error;
 
@@ -209,6 +213,34 @@ class ObjFinally extends Obj {
 
   @override
   String toString() => '<finally>';
+}
+
+sealed class ObjExit extends Obj {}
+
+class ObjReturn extends ObjExit {
+  ObjReturn(this.frame, this.value);
+
+  final CallFrame frame;
+
+  final dynamic value;
+}
+
+class ObjJump extends ObjExit {
+  ObjJump(this.frame, {required this.target, required this.slot});
+
+  final CallFrame frame;
+
+  final int target;
+
+  final int slot;
+}
+
+class ObjThrow extends ObjExit {
+  ObjThrow(this.error, this.stackTrace);
+
+  final Object error;
+
+  final StackTrace stackTrace;
 }
 
 extension on Obj {

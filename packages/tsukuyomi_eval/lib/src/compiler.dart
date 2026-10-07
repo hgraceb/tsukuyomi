@@ -152,8 +152,6 @@ class Trying {
   final int startOffset;
 
   final Trying? enclosing;
-
-  final List<int> finallyOffsets = [];
 }
 
 class Shorting {
@@ -411,11 +409,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
   }
 
-  void emitScopeExit(int depth) {
-    for (final local in locals.reversed) {
-      if (local.depth <= depth) break;
-      emitCodes(local.isCaptured ? OP_CLOSE_UPVALUE : OP_POP);
-    }
+  int emitExitJump(int depth, [int offset = 0]) {
+    // finally 仍可能访问离开作用域的变量，清理延后到实际跳转时
+    final localCount = locals.where((local) => local.depth <= depth).length;
+    emitCodes(OP_UNWIND_JUMP, localCount);
+    emitCodes(offset);
+    return chunk.size - 1;
   }
 
   void beginShorting(NullShortableExpression node) {
@@ -490,14 +489,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   void continueLoop() {
-    emitScopeExit(loop!.scopeDepth);
     // continue 默认跳转到循环开始的位置
-    loop!.continueOffsets.add(emitJump(OP_JUMP, loop!.loopOffset - chunk.size - 2));
+    loop!.continueOffsets.add(emitExitJump(loop!.scopeDepth, loop!.loopOffset - chunk.size - 3));
   }
 
   void breakLoop() {
-    emitScopeExit(loop!.scopeDepth);
-    loop!.breakOffsets.add(emitJump(OP_JUMP));
+    loop!.breakOffsets.add(emitExitJump(loop!.scopeDepth));
   }
 
   void endLoop() {
@@ -522,7 +519,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   void bodyTrying(Block body) {
     body.accept(this);
-    trying!.finallyOffsets.add(emitJump(OP_JUMP));
+    emitCodes(OP_TRY_END);
   }
 
   void catchTrying(NodeList<CatchClause> catchClauses) {
@@ -540,7 +537,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       trying!.blockOffset = emitJump(OP_CATCH_JUMP);
       catchClause.body.accept(this);
       endScope();
-      trying!.finallyOffsets.add(emitJump(OP_JUMP));
+      emitCodes(OP_TRY_END);
     }
   }
 
@@ -548,12 +545,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     debugUpdateNode(body);
     patchJump(trying!.blockOffset);
     trying!.blockOffset = emitJump(OP_FINALLY_JUMP);
-    trying!.finallyOffsets.forEach(patchJump);
     body?.accept(this);
-    final tryOffset = emitJump(OP_JUMP);
+    emitCodes(OP_FINALLY_END);
     patchJump(trying!.blockOffset);
     emitJump(OP_JUMP, trying!.startOffset - chunk.size);
-    patchJump(tryOffset);
   }
 
   void endTrying() {
@@ -1212,7 +1207,11 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileRethrowExpression(RethrowExpression node) {
-    emitCodes(OP_RETHROW);
+    int depth = 0;
+    for (AstNode? parent = node.parent; parent != null && parent is! CatchClause; parent = parent.parent) {
+      if (parent is TryStatement) depth++;
+    }
+    emitCodes(OP_RETHROW, depth);
   }
 
   @override
