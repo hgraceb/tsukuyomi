@@ -1,5 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
+// 指令使用显式编码；文件格式固定后，同一版本内保留已有编号，新增指令使用空位。
+
 const OP_RETURN = 0;
 
 const OP_CONSTANT = 1;
@@ -38,11 +40,13 @@ const OP_SET_UPVALUE = 17;
 
 const OP_CLOSE_UPVALUE = 18;
 
-const OP_CLASS = 19;
+const OP_CLOSE_UPVALUES = 19;
 
-const OP_GET_PROPERTY = 20;
+const OP_CLASS = 20;
 
-const OP_SET_PROPERTY = 21;
+const OP_GET_PROPERTY = 21;
+
+const OP_SET_PROPERTY = 22;
 
 const OP_INHERIT = 23;
 
@@ -105,5 +109,3 @@ const OP_TRY_JUMP = 52;
 const OP_CATCH_JUMP = 53;
 
 const OP_FINALLY_JUMP = 54;
-
-const OP_CLOSE_UPVALUES = 55;
