@@ -220,9 +220,8 @@ class _VM implements VM {
       }
       if (exit is ObjThrow && !handler.isFinalizing) {
         final ip = handler.frame.ip - 1;
-        final catching = handler.start <= ip && ip < handler.end
-            ? handler.catchings.firstWhereOrNull((catching) => catching.match(exit.error))
-            : null;
+        final isInTryBody = handler.start <= ip && ip < handler.end;
+        final catching = isInTryBody ? handler.catchings.firstWhereOrNull((catching) => catching.match(exit.error)) : null;
         if (catching != null) {
           restoreTrying(handler);
           handler.frame.ip = catching.start;
@@ -466,7 +465,7 @@ class _VM implements VM {
             final last = stack.size - 1;
             final first = last - distance;
             final value = stack[last];
-            for (int i = last; i > first; i--) {
+            for (var i = last; i > first; i--) {
               stack[i] = stack[i - 1];
             }
             stack[first] = value;
@@ -630,7 +629,7 @@ class _VM implements VM {
             throw pop();
           case OP_RETHROW:
             ObjTrying handler = trying!;
-            for (int depth = readCode(frame); depth > 0; depth--) {
+            for (var depth = readCode(frame); depth > 0; depth--) {
               handler = handler.enclosing!;
             }
             Error.throwWithStackTrace(handler.error, handler.stackTrace);
