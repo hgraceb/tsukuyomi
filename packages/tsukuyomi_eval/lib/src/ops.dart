@@ -50,21 +50,25 @@ const OP_INHERIT = 23;
 
 const OP_GET_SUPER = 24;
 
-const OP_PEEK = 25;
+const OP_SET_SUPER = 25;
 
-const OP_DEFINE_GLOBAL_GETTER = 26;
+const OP_PEEK = 26;
 
-const OP_DEFINE_GLOBAL_SETTER = 27;
+const OP_ROTATE = 27;
 
-const OP_CLASS_FIELD = 28;
+const OP_DEFINE_GLOBAL_GETTER = 28;
 
-const OP_CLASS_INITIALIZER = 29;
+const OP_DEFINE_GLOBAL_SETTER = 29;
 
-const OP_CLASS_GETTER = 30;
+const OP_CLASS_FIELD = 30;
 
-const OP_CLASS_SETTER = 31;
+const OP_CLASS_INITIALIZER = 31;
 
-const OP_CLASS_METHOD = 32;
+const OP_CLASS_GETTER = 32;
+
+const OP_CLASS_SETTER = 33;
+
+const OP_CLASS_METHOD = 34;
 
 const OP_CONCAT_STRING = 40;
 
