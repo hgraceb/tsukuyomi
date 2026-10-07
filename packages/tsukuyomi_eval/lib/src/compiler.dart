@@ -235,6 +235,67 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     emitCodes(OP_OPERATOR_3, addConstant(operator));
   }
 
+  void emitCollectionElement(CollectionElement node, {required bool isMap}) {
+    debugUpdateNode(node);
+    switch (node) {
+      case IfElement():
+        if (node.caseClause != null) {
+          error("Unsupported 'collection-if' with pattern '${node.caseClause}'.");
+        }
+        node.expression.accept(this);
+        final elseOffset = emitJump(OP_JUMP_IF_FALSE);
+        emitCodes(OP_POP);
+        emitCollectionElement(node.thenElement, isMap: isMap);
+        final exitOffset = emitJump(OP_JUMP);
+        patchJump(elseOffset);
+        emitCodes(OP_POP);
+        if (node.elseElement case CollectionElement element) {
+          emitCollectionElement(element, isMap: isMap);
+        }
+        patchJump(exitOffset);
+      case SpreadElement():
+        node.expression.accept(this);
+        final nullOffset = node.isNullAware ? emitJump(OP_JUMP_IF_NULL) : null;
+        emitCodes(OP_COLLECTION_CHECK_SPREAD, isMap ? 1 : 0);
+        if (isMap) {
+          emitGetProperty('forEach');
+          emitCodes(OP_ARGUMENT_LIST, OP_COLLECTION_ENTRY_CALLBACK);
+          emitCodes(OP_ARGUMENT_POSITIONAL, OP_CALL);
+          emitCodes(OP_POP);
+        } else {
+          emitGetProperty('iterator');
+          final loopOffset = chunk.size;
+          emitCodes(OP_PEEK, 0);
+          emitGetProperty('moveNext');
+          emitCodes(OP_ARGUMENT_LIST, OP_CALL);
+          final endOffset = emitJump(OP_JUMP_IF_FALSE);
+          emitCodes(OP_POP);
+          emitCodes(OP_PEEK, 0);
+          emitGetProperty('current');
+          // iterator 位于集合上方，加入元素后仍留在栈顶供下一轮使用
+          emitCodes(OP_COLLECTION_ADD, 1);
+          emitCodes(OP_JUMP, loopOffset - chunk.size - 2);
+          patchJump(endOffset);
+          emitCodes(OP_POP, OP_POP);
+        }
+        if (nullOffset != null) {
+          final exitOffset = emitJump(OP_JUMP);
+          patchJump(nullOffset);
+          emitCodes(OP_POP);
+          patchJump(exitOffset);
+        }
+      case MapLiteralEntry():
+        node.key.accept(this);
+        node.value.accept(this);
+        emitCodes(OP_COLLECTION_ADD_ENTRY);
+      case Expression():
+        node.accept(this);
+        emitCodes(OP_COLLECTION_ADD, 0);
+      case ForElement():
+        node.accept(this);
+    }
+  }
+
   void emitSetProperty(String name) {
     emitCodes(OP_SET_PROPERTY, addConstant(name));
   }
@@ -1115,8 +1176,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     for (final type in node.typeArgumentNames) {
       emitCodes(OP_CONSTANT, addConstant(type));
     }
-    node.elements.accept(this);
-    emitCodes(node.isSet ? OP_SET : OP_MAP, node.elements.length);
+    emitCodes(node.isSet ? OP_SET : OP_MAP);
+    for (final element in node.elements) {
+      emitCollectionElement(element, isMap: node.isMap);
+    }
   }
 
   @override
@@ -1124,8 +1187,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     for (final type in node.typeArgumentNames) {
       emitCodes(OP_CONSTANT, addConstant(type));
     }
-    node.elements.accept(this);
-    emitCodes(OP_LIST, node.elements.length);
+    emitCodes(OP_LIST);
+    for (final element in node.elements) {
+      emitCollectionElement(element, isMap: false);
+    }
   }
 
   @override

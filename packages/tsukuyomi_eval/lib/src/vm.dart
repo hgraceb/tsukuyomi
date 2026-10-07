@@ -601,30 +601,42 @@ class _VM implements VM {
             final p1 = pop();
             push(getter(p1, p2, p3));
           case OP_SET:
-            final length = readCode(frame);
-            final params = stack.sublist(stack.size - length);
-            stack.removeRange(stack.size - length, stack.size);
             final type = pop() as String;
-            withOrThrow(type, <E>() => push(Set<E>.from(params)));
+            withOrThrow(type, <E>() => push(<E>{}));
           case OP_MAP:
-            final length = readCode(frame);
-            final params = stack.sublist(stack.size - length * 2);
-            stack.removeRange(stack.size - length * 2, stack.size);
             final valueType = pop() as String;
             final keyType = pop() as String;
             withOrThrow(keyType, <K>() {
-              withOrThrow(valueType, <V>() {
-                final keys = List<K>.generate(length, (i) => params[i * 2]);
-                final values = List<V>.generate(length, (i) => params[i * 2 + 1]);
-                push(Map.fromIterables(keys, values));
-              });
+              withOrThrow(valueType, <V>() => push(<K, V>{}));
             });
           case OP_LIST:
-            final length = readCode(frame);
-            final list = stack.sublist(stack.size - length);
-            stack.removeRange(stack.size - length, stack.size);
             final type = pop() as String;
-            withOrThrow(type, <E>() => push(List<E>.from(list)));
+            withOrThrow(type, <E>() => push(<E>[]));
+          case OP_COLLECTION_ADD:
+            final distance = readCode(frame);
+            final value = pop();
+            peek(distance).add(value);
+          case OP_COLLECTION_ADD_ENTRY:
+            final value = pop();
+            final key = pop();
+            (peek() as Map)[key] = value;
+          case OP_COLLECTION_CHECK_SPREAD:
+            final isMap = readCode(frame) == 1;
+            final source = pop();
+            // 脚本实例沿用属性/方法协议，原生对象先检查展开源的集合类型
+            if (source is ObjInstance) {
+              push(source);
+            } else if (isMap) {
+              push(source as Map);
+            } else {
+              push(source as Iterable);
+            }
+          case OP_COLLECTION_ENTRY_CALLBACK:
+            // 集合位于 forEach 方法和参数列表下方，回调逐项写入并检查键值类型
+            final collection = peek(2) as Map;
+            push((dynamic key, dynamic value) {
+              collection[key] = value;
+            });
           case OP_THROW:
             throw pop();
           case OP_RETHROW:

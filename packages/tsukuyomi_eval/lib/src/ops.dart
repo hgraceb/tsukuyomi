@@ -98,24 +98,32 @@ const OP_OPERATOR_2 = 54;
 
 const OP_OPERATOR_3 = 55;
 
-const OP_SET = 56;
+const OP_SET = 60;
 
-const OP_MAP = 57;
+const OP_MAP = 61;
 
-const OP_LIST = 58;
+const OP_LIST = 62;
 
-const OP_THROW = 60;
+const OP_COLLECTION_ADD = 63;
 
-const OP_RETHROW = 61;
+const OP_COLLECTION_ADD_ENTRY = 64;
 
-const OP_TRY_JUMP = 62;
+const OP_COLLECTION_CHECK_SPREAD = 65;
 
-const OP_CATCH_JUMP = 63;
+const OP_COLLECTION_ENTRY_CALLBACK = 66;
 
-const OP_FINALLY_JUMP = 64;
+const OP_THROW = 70;
 
-const OP_TRY_END = 65;
+const OP_RETHROW = 71;
 
-const OP_FINALLY_END = 66;
+const OP_TRY_JUMP = 72;
 
-const OP_UNWIND_JUMP = 67;
+const OP_CATCH_JUMP = 73;
+
+const OP_FINALLY_JUMP = 74;
+
+const OP_TRY_END = 75;
+
+const OP_FINALLY_END = 76;
+
+const OP_UNWIND_JUMP = 77;

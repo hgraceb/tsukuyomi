@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Build List, Set, and Map literals incrementally, supporting spread, null-aware spread, and collection-if with ordered evaluation and per-element type checks.
 * Support arithmetic and bitwise compound assignment and short-circuiting `??=`, evaluating assignment targets once and reusing existing getter/setter, null-aware, and async paths.
 * Support synchronous `for-in` loops with fresh declared bindings per iteration, existing variable assignment, and native iterator access.
 * Store fields and injected source properties per instance, and evaluate each object's field initializers in Dart inheritance order during construction.
