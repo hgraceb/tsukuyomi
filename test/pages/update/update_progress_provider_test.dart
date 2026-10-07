@@ -15,9 +15,9 @@ final _source = NoInstalledSource(1);
 const _manga = DatabaseManga(
   id: 1,
   source: 1,
-  url: '漫画地址',
-  title: '示例漫画',
-  cover: '封面地址',
+  url: 'manga-url',
+  title: 'manga-title',
+  cover: 'manga-cover',
   favorite: true,
   auto: true,
   lastCheckAt: null,
@@ -31,7 +31,7 @@ void main() {
       if (directory.parent.absolute.path != root.absolute.path) throw StateError('Unexpected test directory');
       directory.deleteSync(recursive: true);
     });
-    Directory('${directory.path}/第1话').createSync();
+    Directory('${directory.path}/chapter-title-1').createSync();
     final container = ProviderContainer(
       overrides: [
         mangaStreamByIdProvider(_manga.id).overrideWith((ref) => Stream.value(_manga)),
@@ -42,15 +42,15 @@ void main() {
     addTearDown(container.dispose);
     container.listen(updateDownloadedChaptersProvider(_manga.id), (_, _) {});
 
-    expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'第1话'});
-    Directory('${directory.path}/第2话').createSync();
-    container.read(downloadedChaptersProvider(directory.path).notifier).update('第2话');
+    expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'chapter-title-1'});
+    Directory('${directory.path}/chapter-title-2').createSync();
+    container.read(downloadedChaptersProvider(directory.path).notifier).update('chapter-title-2');
     await container.pump();
-    expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'第1话', '第2话'});
+    expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'chapter-title-1', 'chapter-title-2'});
   });
 
   test('Download progress loading errors remain observable', () async {
-    final error = StateError('漫画源加载失败');
+    final error = StateError('source-error');
     final container = ProviderContainer(
       overrides: [
         mangaStreamByIdProvider(_manga.id).overrideWith((ref) => Stream.value(_manga)),

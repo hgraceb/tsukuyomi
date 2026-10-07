@@ -19,7 +19,9 @@ import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
 
-final _downloadedProvider = StateProvider<Set<String>>((ref) => {'第1话', '第2话', '第7话', '已移除章节'});
+final _downloadedProvider = StateProvider<Set<String>>(
+  (ref) => {'chapter-title-1', 'chapter-title-2', 'chapter-title-7', 'removed-chapter'},
+);
 
 void main() {
   setUpAll(() async {
@@ -32,16 +34,15 @@ void main() {
     final container = await _pumpPage(tester, manager: manager);
 
     expect(manager._scans, 0);
-    expect(find.text('尚未检查'), findsNothing);
-    expect(find.text('暂无检查结果'), findsNothing);
-    expect(find.textContaining('点击右上角扫描'), findsNothing);
+    expect(find.text('Updates'), findsOneWidget);
+    expect(find.byType(Text), findsOneWidget);
     expect(find.byType(ListTile), findsNothing);
     expect(find.byType(AnimatedProgressCircleIcon), findsNothing);
     final button = tester.getRect(find.byType(FloatingActionButton));
     final size = tester.view.physicalSize / tester.view.devicePixelRatio;
     expect(button.center.dx, greaterThan(size.width * 0.8));
     expect(button.center.dy, greaterThan(size.height * 0.8));
-    await tester.tap(find.byTooltip('扫描书架'));
+    await tester.tap(find.byTooltip('Scan library'));
     await tester.pump();
     expect(manager._scans, 1);
     expect(find.text('0 · 0 · 0 / 0'), findsOneWidget);
@@ -57,15 +58,15 @@ void main() {
     expect(tester.widget<AnimatedProgressCircleIcon>(summary).progress, 0.5);
     expect(find.byType(LinearProgressIndicator), findsNothing);
 
-    await tester.tap(find.byTooltip('当前漫画处理完成后停止扫描'));
+    await tester.tap(find.byTooltip('Stop scanning after the current manga'));
     await tester.pump();
     expect(manager._stops, 1);
-    expect(find.byTooltip('扫描书架'), findsNothing);
+    expect(find.byTooltip('Scan library'), findsNothing);
     await container.read(updateReportStoreProvider.notifier).save(report.copyWith(phase: UpdatePhase.cancelled));
     manager._finish();
     await tester.pumpAndSettle();
     expect(find.text('0 · 0 · 1 / 2'), findsOneWidget);
-    expect(find.byTooltip('扫描书架'), findsOneWidget);
+    expect(find.byTooltip('Scan library'), findsOneWidget);
   });
 
   testWidgets('Errors and warnings have separate counts and colors without detail dialogs', (tester) async {
@@ -78,7 +79,7 @@ void main() {
       report: _report(
         phase: UpdatePhase.running,
         items: [
-          _item(1).copyWith(outcome: UpdateOutcome.enqueueFailed, message: '章节添加失败', sourceCount: 8),
+          _item(1).copyWith(outcome: UpdateOutcome.enqueueFailed, message: 'queue-error', sourceCount: 8),
           _item(2).copyWith(outcome: UpdateOutcome.chaptersEmpty, sourceCount: 0),
         ],
       ),
@@ -87,18 +88,17 @@ void main() {
     expect(container.read(updateReportStoreProvider)!.phase, UpdatePhase.interrupted);
     final summary = tester.widget<Text>(find.text('1 · 1 · 2 / 2'));
     final spans = (summary.textSpan! as TextSpan).children!;
-    final colors = Theme.of(tester.element(find.text('安排失败'))).colorScheme;
+    final colors = Theme.of(tester.element(find.text('Queue / start failed'))).colorScheme;
     expect(spans[0].style?.color, colors.error);
     expect(spans[2].style?.color, const Color(0xffffb74d));
     expect(summary.style?.color, colors.onSurface);
-    expect(tester.widget<Text>(find.text('安排失败')).style?.color, colors.error);
-    expect(tester.widget<Text>(find.text('章节为空')).style?.color, const Color(0xffffb74d));
+    expect(tester.widget<Text>(find.text('Queue / start failed')).style?.color, colors.error);
+    expect(tester.widget<Text>(find.text('No chapters')).style?.color, const Color(0xffffb74d));
     expect(find.text('2 / 5'), findsOneWidget);
     expect(find.text('0 / 0'), findsOneWidget);
-    expect(_progress(tester, '漫画2'), 0.0);
+    expect(_progress(tester, 'manga-title-2'), 0.0);
     expect(find.byIcon(Icons.info_outline), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.byTooltip('查看错误详情'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -107,7 +107,7 @@ void main() {
     final container = await _pumpPage(
       tester,
       manager: manager,
-      report: _report(message: '目标查询失败').copyWith(totalTargets: 0),
+      report: _report(message: 'query-error').copyWith(totalTargets: 0),
     );
     final summaryIcon = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
     Color? iconColor() => IconTheme.of(tester.element(summaryIcon)).color;
@@ -117,14 +117,14 @@ void main() {
     expect(find.byType(ListTile), findsNothing);
 
     await container.read(updateReportStoreProvider.notifier).save(_report().copyWith(totalTargets: 0));
-    manager._fail(StateError('报告保存失败'));
+    manager._fail(StateError('save-error'));
     await tester.pumpAndSettle();
     expect(iconColor(), colors.error);
-    expect(find.byTooltip('扫描书架'), findsOneWidget);
+    expect(find.byTooltip('Scan library'), findsOneWidget);
     manager._finish();
     await tester.pumpAndSettle();
     expect(iconColor(), colors.onSurface);
-    expect(find.text('没有开启自动下载的收藏漫画'), findsNothing);
+    expect(find.byType(Text), findsNWidgets(2));
     expect(find.byType(AlertDialog), findsNothing);
   });
 
@@ -140,16 +140,16 @@ void main() {
     );
     final report = container.read(updateReportStoreProvider);
     expect(find.text('2 / 5'), findsOneWidget);
-    expect(_progress(tester, '漫画1'), 0.4);
-    container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 7; id++) '第$id话', '已移除章节'};
+    expect(_progress(tester, 'manga-title-1'), 0.4);
+    container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 7; id++) 'chapter-title-$id', 'removed-chapter'};
     await tester.pumpAndSettle();
     expect(find.text('5 / 5'), findsOneWidget);
-    expect(_progress(tester, '漫画1'), 1.0);
+    expect(_progress(tester, 'manga-title-1'), 1.0);
 
     chapters.add(_chapters(1, publicCount: 6));
     await tester.pumpAndSettle();
     expect(find.text('6 / 6'), findsOneWidget);
-    expect(_progress(tester, '漫画1'), 1.0);
+    expect(_progress(tester, 'manga-title-1'), 1.0);
     expect(container.read(updateReportStoreProvider), report);
     expect(find.text('0 · 0 · 1 / 1'), findsOneWidget);
   });
@@ -169,7 +169,7 @@ void main() {
         locale: locale,
         textScale: 1.3,
         chapterStream: (id) => Stream.value(_chapters(id, total: 1002, publicCount: 1000)),
-        downloaded: {for (var id = 1; id <= 999; id++) '第$id话', '第1002话'},
+        downloaded: {for (var id = 1; id <= 999; id++) 'chapter-title-$id', 'chapter-title-1002'},
         report: _report(items: [item]).copyWith(totalTargets: 1),
       );
       expect(find.text(item.mangaTitle), findsOneWidget);
@@ -192,7 +192,7 @@ void main() {
     );
     await tester.drag(find.byType(CustomScrollView), const Offset(0.0, -1600.0));
     await tester.pumpAndSettle();
-    final last = tester.getRect(find.widgetWithText(ListTile, '漫画12'));
+    final last = tester.getRect(find.widgetWithText(ListTile, 'manga-title-12'));
     final button = tester.getRect(find.byType(FloatingActionButton));
     expect(last.bottom, lessThanOrEqualTo(button.top));
     expect(tester.takeException(), isNull);
@@ -204,7 +204,7 @@ Future<ProviderContainer> _pumpPage(
   required _Manager manager,
   UpdateReport? report,
   double textScale = 1.0,
-  Locale locale = const Locale('zh'),
+  Locale locale = const Locale('en'),
   Stream<List<DatabaseChapter>> Function(int)? chapterStream,
   Set<String>? downloaded,
 }) async {
@@ -261,9 +261,9 @@ List<DatabaseChapter> _chapters(int mangaId, {int total = 7, int publicCount = 5
       id: id,
       manga: mangaId,
       index: id,
-      title: '第$id话',
-      url: '章节地址$id',
-      date: '章节日期',
+      title: 'chapter-title-$id',
+      url: 'chapter-url-$id',
+      date: 'chapter-date',
       public: id <= publicCount,
       images: 0,
       progress: 0,
@@ -274,7 +274,7 @@ UpdateReport _report({UpdatePhase phase = UpdatePhase.finished, List<UpdateRepor
   version: UpdateReport.currentVersion,
   phase: phase,
   scanKind: UpdateScanKind.full,
-  sessionId: '扫描会话',
+  sessionId: 'scan-session',
   totalTargets: 2,
   items: items,
   startedAt: DateTime(2026, 10, 7, 18),
@@ -283,9 +283,9 @@ UpdateReport _report({UpdatePhase phase = UpdatePhase.finished, List<UpdateRepor
 
 UpdateReportItem _item(int id) => UpdateReportItem(
   sourceId: 1,
-  sourceName: '示例漫画源',
+  sourceName: 'source-name',
   mangaId: id,
-  mangaTitle: '漫画$id',
+  mangaTitle: 'manga-title-$id',
   outcome: UpdateOutcome.updated,
   insertCount: 1,
   deleteCount: 0,

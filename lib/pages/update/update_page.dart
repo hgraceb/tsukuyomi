@@ -12,6 +12,12 @@ import 'update_progress_provider.dart';
 
 const _warningColor = Color(0xffffb74d);
 
+Color _getStatusColor(ColorScheme colors, {required bool error, required bool warning}) {
+  if (error) return colors.error;
+  if (warning) return _warningColor;
+  return colors.onSurface;
+}
+
 Widget _buildProgress(int completed, int total, Color color) {
   return IconTheme(
     data: IconThemeData(size: 24.0, color: color),
@@ -31,11 +37,7 @@ class UpdatePage extends ConsumerWidget {
     final warnings = report?.warningCount ?? 0;
     final processed = report?.items.length ?? 0;
     final total = report?.totalTargets ?? 0;
-    final color = error || failures > 0
-        ? colors.error
-        : warnings > 0
-        ? _warningColor
-        : colors.onSurface;
+    final color = _getStatusColor(colors, error: error || failures > 0, warning: warnings > 0);
 
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
@@ -153,11 +155,7 @@ class _UpdateItem extends ConsumerWidget {
     final publicChapters = (chapters.valueOrNull ?? []).where((chapter) => chapter.public);
     final completed = publicChapters.where((chapter) => downloaded.valueOrNull?.contains(chapter.title) == true).length;
     final total = publicChapters.length;
-    final color = item.outcome.isFailure
-        ? colors.error
-        : item.outcome.isWarning
-        ? _warningColor
-        : colors.onSurface;
+    final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final outcome = switch (item.outcome) {
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
       UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
