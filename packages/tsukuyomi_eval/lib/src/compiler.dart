@@ -467,6 +467,22 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     emitCodes(OP_POP);
   }
 
+  int beginForEachLoop(ForEachParts node) {
+    beginScope();
+    // 先求值 iterable，避免循环变量遮蔽同名的外层变量
+    node.iterable.accept(this);
+    emitGetProperty('iterator');
+    final iteratorOffset = locals.length;
+    addLocal('');
+    beginLoop();
+    emitCodes(OP_GET_LOCAL, iteratorOffset);
+    emitGetProperty('moveNext');
+    emitCodes(OP_ARGUMENT_LIST, OP_CALL);
+    loop!.conditionOffset = emitJump(OP_JUMP_IF_FALSE);
+    emitCodes(OP_POP);
+    return iteratorOffset;
+  }
+
   void updateLoop(NodeList<Expression> updaters, {int? localOffset}) {
     if (updaters.isEmpty && localOffset == null) return;
     final nextOffset = emitJump(OP_JUMP);
@@ -1127,10 +1143,59 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   @override
+  void compileForEachPartsWithDeclaration(ForEachPartsWithDeclaration node) {
+    final iteratorOffset = beginForEachLoop(node);
+    // 每轮绑定单独的作用域，正常结束与退出跳转都会关闭本轮捕获
+    beginScope();
+    addLocal(node.loopVariable.name.lexeme);
+    emitCodes(OP_GET_LOCAL, iteratorOffset);
+    emitGetProperty('current');
+  }
+
+  @override
+  void compileForEachPartsWithIdentifier(ForEachPartsWithIdentifier node) {
+    final iteratorOffset = beginForEachLoop(node);
+    final identifier = node.identifier;
+    final member = identifier.classMemberElement;
+    if (member != null && !member.isStatic) {
+      emitGetVariable('this');
+    }
+    emitCodes(OP_GET_LOCAL, iteratorOffset);
+    emitGetProperty('current');
+    if (member == null) {
+      emitSetVariable(identifier.name);
+    } else if (member.isStatic) {
+      emitSetVariable('${member.classElement.name}.${identifier.name}');
+    } else {
+      emitSetProperty(identifier.name);
+    }
+    emitCodes(OP_POP);
+  }
+
+  @override
+  void compileForEachPartsWithPattern(ForEachPartsWithPattern node) {
+    error("Unsupported 'for-in' with pattern '${node.pattern}'.");
+  }
+
+  @override
+  void compileForElement(ForElement node) {
+    error("Unsupported 'collection-for'.");
+  }
+
+  @override
   void compileForStatement(ForStatement node) {
+    if (node.awaitKeyword != null) {
+      error("Unsupported 'await for'.");
+    }
     node.forLoopParts.accept(this);
     bodyLoop(node.body);
+    if (node.forLoopParts is ForEachPartsWithDeclaration) {
+      endScope();
+    }
     endLoop();
+    if (node.forLoopParts is ForEachParts) {
+      endScope();
+    }
   }
 
   @override

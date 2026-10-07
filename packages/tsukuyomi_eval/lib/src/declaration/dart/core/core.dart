@@ -13,6 +13,7 @@ part 'duration.dart';
 part 'exceptions.dart';
 part 'int.dart';
 part 'iterable.dart';
+part 'iterator.dart';
 part 'list.dart';
 part 'map.dart';
 part 'never.dart';
@@ -46,6 +47,7 @@ export 'dart:async' show Future, Stream;
     ...$dateTime,
     ...$int,
     ...$iterable,
+    ...$iterator,
     ...$list,
     ...$map,
     ...$never,
