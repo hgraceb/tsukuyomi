@@ -130,6 +130,8 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_COLLECTION_ADD_ENTRY => _simpleInstruction('OP_COLLECTION_ADD_ENTRY', offset),
     OP_COLLECTION_CHECK_SPREAD => _byteInstruction('OP_COLLECTION_CHECK_SPREAD', chunk, offset),
     OP_COLLECTION_ENTRY_CALLBACK => _simpleInstruction('OP_COLLECTION_ENTRY_CALLBACK', offset),
+    OP_COLLECTION_BEGIN => _byteInstruction('OP_COLLECTION_BEGIN', chunk, offset),
+    OP_COLLECTION_END => _simpleInstruction('OP_COLLECTION_END', offset),
     OP_THROW => _simpleInstruction('OP_THROW', offset),
     OP_RETHROW => _byteInstruction('OP_RETHROW', chunk, offset),
     OP_TRY_JUMP => _jumpInstruction('OP_TRY_JUMP', chunk, offset),
