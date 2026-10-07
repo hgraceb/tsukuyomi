@@ -72,7 +72,7 @@ const EdgeInsets.all(20);
 const EdgeInsets.all(20.0);
 ```
 
-## 条件分支
+## 代码换行
 
 - 优先使用 ...[] 语法与组件内部的 if 进行配合使用对齐代码，增强代码的可阅读性，如：
 
@@ -93,5 +93,18 @@ Row(
     ],
   ],
 );
+```
+
+- 尽量在使用 ?: 表达式的时候内联过长的判断或者处理导致多余的格式化换行，如：
+
+```dart
+// Bad
+final catching = handler.start <= ip && ip < handler.end
+    ? handler.catchings.firstWhereOrNull((catching) => catching.match(exit.error))
+    : null;
+
+// Good
+final isInTryBody = handler.start <= ip && ip < handler.end;
+final catching = isInTryBody ? handler.catchings.firstWhereOrNull((catching) => catching.match(exit.error)) : null;
 ```
 

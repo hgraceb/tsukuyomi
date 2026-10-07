@@ -10,21 +10,6 @@ import 'package:tsukuyomi/widgets/widgets.dart';
 
 import 'update_progress_provider.dart';
 
-const _warningColor = Color(0xffffb74d);
-
-Color _getStatusColor(ColorScheme colors, {required bool error, required bool warning}) {
-  if (error) return colors.error;
-  if (warning) return _warningColor;
-  return colors.onSurface;
-}
-
-Widget _buildProgress(int completed, int total, Color color) {
-  return IconTheme(
-    data: IconThemeData(size: 24.0, color: color),
-    child: AnimatedProgressCircleIcon(progress: total > 0 ? (completed / total).clamp(0.0, 1.0) : 0.0),
-  );
-}
-
 /// 更新页面
 class UpdatePage extends ConsumerWidget {
   const UpdatePage({super.key});
@@ -57,7 +42,7 @@ class UpdatePage extends ConsumerWidget {
                   const TextSpan(text: ' · '),
                   TextSpan(
                     text: '$warnings',
-                    style: const TextStyle(color: _warningColor),
+                    style: TextStyle(color: colors.tertiary),
                   ),
                   TextSpan(text: ' · $processed / $total'),
                 ],
@@ -192,4 +177,17 @@ class _UpdateItem extends ConsumerWidget {
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );
   }
+}
+
+Widget _buildProgress(int completed, int total, Color color) {
+  return IconTheme(
+    data: IconThemeData(size: 24.0, color: color),
+    child: AnimatedProgressCircleIcon(progress: total > 0 ? (completed / total).clamp(0.0, 1.0) : 0.0),
+  );
+}
+
+Color _getStatusColor(ColorScheme colors, {required bool error, required bool warning}) {
+  if (error) return colors.error;
+  if (warning) return colors.tertiary;
+  return colors.onSurface;
 }

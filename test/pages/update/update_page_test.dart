@@ -90,10 +90,10 @@ void main() {
     final spans = (summary.textSpan! as TextSpan).children!;
     final colors = Theme.of(tester.element(find.text('Queue / start failed'))).colorScheme;
     expect(spans[0].style?.color, colors.error);
-    expect(spans[2].style?.color, const Color(0xffffb74d));
+    expect(spans[2].style?.color, colors.tertiary);
     expect(summary.style?.color, colors.onSurface);
     expect(tester.widget<Text>(find.text('Queue / start failed')).style?.color, colors.error);
-    expect(tester.widget<Text>(find.text('No chapters')).style?.color, const Color(0xffffb74d));
+    expect(tester.widget<Text>(find.text('No chapters')).style?.color, colors.tertiary);
     expect(find.text('2 / 5'), findsOneWidget);
     expect(find.text('0 / 0'), findsOneWidget);
     expect(_progress(tester, 'manga-title-2'), 0.0);
