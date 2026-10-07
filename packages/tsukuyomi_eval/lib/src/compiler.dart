@@ -12,6 +12,8 @@ import 'ops.dart';
 import 'stack.dart';
 import 'visitor.dart';
 
+typedef _AssignmentTarget = ({int operandCount, void Function() read, void Function() write});
+
 extension on ClassDeclaration {
   bool get hasUnnamedConstructor {
     return members.whereType<ConstructorDeclaration>().isEmpty;
@@ -558,46 +560,68 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     trying = trying!.enclosing;
   }
 
-  void assign(CompoundAssignmentExpression assignment, Expression expression, void Function(int offset) accept) {
+  void assign(CompoundAssignmentExpression assignment, Expression expression, void Function(_AssignmentTarget) accept) {
+    void variable(String name) {
+      accept((operandCount: 0, read: () => emitGetVariable(name), write: () => emitSetVariable(name)));
+    }
+
+    void property(String name, {Expression? target}) {
+      final isSuper = target is SuperExpression;
+      final operandCount = isSuper ? 2 : 1;
+      accept((
+        operandCount: operandCount,
+        read: () {
+          for (int i = 0; i < operandCount; i++) {
+            emitCodes(OP_PEEK, operandCount - 1);
+          }
+          emitGetProperty(name, target: target);
+        },
+        write: () => emitCodes(isSuper ? OP_SET_SUPER : OP_SET_PROPERTY, addConstant(name)),
+      ));
+    }
+
+    // 判空跳转覆盖整个赋值运算，跳过读取、计算、写入及后缀结果清理
+    final shortable = assignment as NullShortableExpression;
+    beginShorting(shortable);
     switch (expression) {
       case SimpleIdentifier simpleIdentifier:
         final fieldElement = assignment.fieldElement;
         if (fieldElement != null && fieldElement.isStatic) {
-          accept(0);
           // 设置类的静态字段
-          emitSetVariable('${fieldElement.classElement.name}.${simpleIdentifier.name}');
+          variable('${fieldElement.classElement.name}.${simpleIdentifier.name}');
         } else if (fieldElement != null) {
           emitGetVariable('this');
-          accept(1);
-          emitSetProperty(simpleIdentifier.name);
+          property(simpleIdentifier.name);
         } else {
-          accept(0);
-          emitSetVariable(simpleIdentifier.name);
+          variable(simpleIdentifier.name);
         }
       case PrefixedIdentifier prefixedIdentifier:
         if (prefixedIdentifier.prefix.classElement case ClassElement classElement) {
-          accept(0);
           // 设置类的静态字段
-          emitSetVariable('${classElement.name}.${prefixedIdentifier.identifier.name}');
+          variable('${classElement.name}.${prefixedIdentifier.identifier.name}');
         } else {
           prefixedIdentifier.prefix.accept(this);
-          accept(1);
-          emitSetProperty(prefixedIdentifier.identifier.name);
+          property(prefixedIdentifier.identifier.name);
         }
       case PropertyAccess propertyAccess:
-        beginShorting(propertyAccess);
         targetShorting(propertyAccess.target, propertyAccess.isNullAware);
-        accept(1);
-        emitSetProperty(propertyAccess.propertyName.name);
-        endShorting(propertyAccess);
+        property(propertyAccess.propertyName.name, target: propertyAccess.target);
       case IndexExpression indexExpression:
-        indexExpression.target?.accept(this);
+        targetShorting(indexExpression.target, indexExpression.isNullAware);
         indexExpression.index.accept(this);
-        accept(2);
-        emitOperator3('[]=');
+        accept((
+          operandCount: 2,
+          read: () {
+            emitCodes(OP_PEEK, 1);
+            emitCodes(OP_PEEK, 1);
+            emitOperator2('[]');
+          },
+          write: () => emitOperator3('[]='),
+        ));
       default:
         throw UnimplementedError('(${expression.runtimeType}) $expression');
     }
+    endShorting(shortable);
   }
 
   @override
@@ -871,13 +895,18 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final operator = node.operator.lexeme;
     final operators = {'!'};
     if (operator == '++' || operator == '--') {
-      node.operand.accept(this);
-      assign(node, node.operand, (offset) {
-        emitCodes(OP_PEEK, offset);
+      assign(node, node.operand, (target) {
+        target.read();
+        // 把旧值移到地址操作数下面，写入消耗地址后仍可返回旧值
+        if (target.operandCount > 0) {
+          emitCodes(OP_ROTATE, target.operandCount);
+        }
+        emitCodes(OP_PEEK, target.operandCount);
         emitCodes(OP_CONSTANT, addConstant(1));
         emitOperator2(operator[0]);
+        target.write();
+        emitCodes(OP_POP);
       });
-      emitCodes(OP_POP);
     } else if (operators.contains(operator)) {
       node.operand.accept(this);
       emitOperator1('#$operator');
@@ -891,10 +920,11 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final operator = node.operator.lexeme;
     final operators = {'-', '!', '~'};
     if (operator == '++' || operator == '--') {
-      assign(node, node.operand, (offset) {
-        node.operand.accept(this);
+      assign(node, node.operand, (target) {
+        target.read();
         emitCodes(OP_CONSTANT, addConstant(1));
         emitOperator2(operator[0]);
+        target.write();
       });
     } else if (operators.contains(operator)) {
       node.operand.accept(this);
@@ -962,7 +992,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     if (node.operator.lexeme != '=') {
       error("Unsupported assignment by operator '${node.operator.lexeme}'.");
     }
-    assign(node, node.leftHandSide, (offset) => node.rightHandSide.accept(this));
+    assign(node, node.leftHandSide, (target) {
+      node.rightHandSide.accept(this);
+      target.write();
+    });
   }
 
   @override

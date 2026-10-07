@@ -392,9 +392,29 @@ class _VM implements VM {
               throw EvalRuntimeError("Undefined getter '$name' in superclass '${superclass.name}'.");
             }
             push(getter(instance));
+          case OP_SET_SUPER:
+            final name = readString(frame);
+            final value = pop();
+            final superclass = pop() as ObjClass;
+            final instance = pop() as ObjInstance;
+            final setter = superclass.props[name]?.setter;
+            if (setter == null) {
+              throw EvalRuntimeError("Undefined setter '$name' in superclass '${superclass.name}'.");
+            }
+            push(value);
+            setter(instance, value);
           case OP_PEEK:
             final distance = readCode(frame);
             push(peek(distance));
+          case OP_ROTATE:
+            final distance = readCode(frame);
+            final last = stack.size - 1;
+            final first = last - distance;
+            final value = stack[last];
+            for (int i = last; i > first; i--) {
+              stack[i] = stack[i - 1];
+            }
+            stack[first] = value;
           case OP_DEFINE_GLOBAL_GETTER:
             final name = readString(frame);
             final closure = pop() as ObjClosure;
