@@ -125,13 +125,15 @@ class Local {
 }
 
 class Loop {
-  Loop({required this.enclosing, required this.loopOffset, required this.endScope});
+  Loop({required this.enclosing, required this.loopOffset, required this.scopeDepth, required this.endScope});
 
   int loopOffset;
 
   int? conditionOffset;
 
   final Loop? enclosing;
+
+  final int scopeDepth;
 
   final Function()? endScope;
 
@@ -407,6 +409,13 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
   }
 
+  void emitScopeExit(int depth) {
+    for (final local in locals.reversed) {
+      if (local.depth <= depth) break;
+      emitCodes(local.isCaptured ? OP_CLOSE_UPVALUE : OP_POP);
+    }
+  }
+
   void beginShorting(NullShortableExpression node) {
     if (node.isNullShortable) {
       shorting = Shorting(enclosing: shorting);
@@ -438,7 +447,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       initialization.accept(this);
       emitCodes(OP_POP);
     }
-    loop = Loop(enclosing: loop, loopOffset: chunk.size, endScope: declarations == null ? null : endScope);
+    loop = Loop(
+      enclosing: loop,
+      loopOffset: chunk.size,
+      scopeDepth: scopeDepth,
+      endScope: declarations == null ? null : endScope,
+    );
   }
 
   void conditionLoop(Expression? condition) {
@@ -456,8 +470,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     if (updaters.isEmpty) return;
     final nextOffset = emitJump(OP_JUMP);
     final loopOffset = chunk.size;
-    updaters.accept(this);
-    emitCodes(OP_POP);
+    for (final updater in updaters) {
+      updater.accept(this);
+      emitCodes(OP_POP);
+    }
     emitCodes(OP_JUMP, loop!.loopOffset - chunk.size - 2);
     loop!.loopOffset = loopOffset;
     patchJump(nextOffset);
@@ -468,11 +484,13 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   void continueLoop() {
+    emitScopeExit(loop!.scopeDepth);
     // continue 默认跳转到循环开始的位置
     loop!.continueOffsets.add(emitJump(OP_JUMP, loop!.loopOffset - chunk.size - 2));
   }
 
   void breakLoop() {
+    emitScopeExit(loop!.scopeDepth);
     loop!.breakOffsets.add(emitJump(OP_JUMP));
   }
 
@@ -480,8 +498,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     emitCodes(OP_JUMP, loop!.loopOffset - chunk.size - 2);
 
     // 修改 condition 的跳转位置
-    patchJump(loop!.conditionOffset);
-    emitCodes(OP_POP);
+    if (loop!.conditionOffset != null) {
+      patchJump(loop!.conditionOffset);
+      emitCodes(OP_POP);
+    }
 
     // 修改 break 的跳转位置
     loop!.breakOffsets.forEach(patchJump);

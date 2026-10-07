@@ -2,6 +2,7 @@
 
 * Fix bare `return;` yielding a leftover stack value instead of `null`, including async functions and nested scopes.
 * Complete async functions with their uncaught errors, preserve rethrow stack traces, and restore VM state when native callbacks throw.
+* Clean up loop body locals and captured values on `break` and `continue`, and discard each `for` updater result.
 
 ## 0.0.1
 
