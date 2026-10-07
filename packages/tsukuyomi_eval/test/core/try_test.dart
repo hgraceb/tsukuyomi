@@ -4,6 +4,172 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import '../util/print_matcher.dart';
 
 void main() {
+  group('Try-catch with async errors and native callbacks', () {
+    test('handle a native callback error and continue execution', () async {
+      const source = '''
+void main() {
+  print(1);
+  try {
+    [2].forEach((value) {
+      throw value;
+    });
+  } on int catch (e) {
+    print(e);
+  }
+  print(3);
+  [4].forEach((value) => print(value));
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3, 4]));
+    });
+
+    test('handle a nested native callback error', () async {
+      const source = '''
+void main() {
+  print(1);
+  try {
+    [2].forEach((value) {
+      [value].forEach((value) {
+        throw value;
+      });
+    });
+  } catch (e) {
+    print(e);
+  }
+  print(3);
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('handle a native callback error after await', () async {
+      const source = '''
+Future<void> main() async {
+  print(1);
+  await null;
+  try {
+    [2].forEach((value) {
+      throw value;
+    });
+  } catch (e) {
+    print(e);
+  }
+  print(3);
+  await null;
+  print(4);
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3, 4]));
+    });
+
+    test('handle an interpreted async error before the first await', () async {
+      const source = '''
+Future<void> foo() async {
+  throw 2;
+}
+
+Future<void> main() async {
+  print(1);
+  try {
+    await foo();
+  } catch (e) {
+    print(e);
+  }
+  print(3);
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('handle an interpreted async error after await', () async {
+      const source = '''
+Future<void> foo() async {
+  await null;
+  throw 2;
+}
+
+Future<void> main() async {
+  print(1);
+  try {
+    await foo();
+  } catch (e) {
+    print(e);
+  }
+  print(3);
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('handle rethrow after nested await in an outer catch', () async {
+      const source = '''
+Future<void> main() async {
+  print(1);
+  try {
+    try {
+      await null;
+      await Future.error(2);
+    } catch (e) {
+      print(e);
+      await null;
+      rethrow;
+    }
+  } on int catch (e) {
+    print(e + 1);
+  }
+  await null;
+  print(4);
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3, 4]));
+    });
+
+    test('preserve captured locals when an async function fails', () async {
+      const source = '''
+var callback = () => 0;
+
+Future<void> foo() async {
+  final value = 2;
+  callback = () => value;
+  await null;
+  throw value;
+}
+
+Future<void> main() async {
+  print(1);
+  try {
+    await foo();
+  } catch (e) {
+    print(e);
+  }
+  print(callback() + 1);
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), completion(isNull)), println([1, 2, 3]));
+    });
+
+    test('rethrow after await preserves the original stack trace', () async {
+      const source = '''
+Future<void> main() async {
+  try {
+    await Future.error('error', StackTrace.fromString('original stack trace'));
+  } catch (e) {
+    print(1);
+    await null;
+    rethrow;
+  }
+}
+      ''';
+      await expectLater(() async {
+        final future = eval(source) as Future;
+        await expectLater(future, throwsA('error'));
+        await future.then<void>((_) => fail('Expected an error'), onError: (Object error, StackTrace stackTrace) {
+          expect(stackTrace.toString(), 'original stack trace');
+        });
+      }, println([1]));
+    });
+  });
+
   test('Try-catch handle error thrown directly', () {
     const source = '''
 void main() {

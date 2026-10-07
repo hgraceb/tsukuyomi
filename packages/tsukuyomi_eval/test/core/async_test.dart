@@ -1,9 +1,128 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tsukuyomi_eval/src/eval.dart';
+import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 
 import '../util/print_matcher.dart';
 
 void main() {
+  group('Async function errors', () {
+    test('before the first await complete the returned future', () async {
+      const source = '''
+Future<void> foo() async {
+  print(2);
+  throw 'error';
+}
+
+Future<void> main() async {
+  print(1);
+  final future = foo();
+  print(3);
+  await future;
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), throwsA('error')), println([1, 2, 3]));
+    });
+
+    test('after await complete the returned future', () async {
+      const source = '''
+Future<void> main() async {
+  print(1);
+  await Future.value(null);
+  print(2);
+  throw 'error';
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), throwsA('error')), println([1, 2]));
+    });
+
+    test('from an awaited future preserve the error and stack trace', () async {
+      const source = '''
+Future<void> main() async {
+  await Future.error('error', StackTrace.fromString('original stack trace'));
+}
+      ''';
+      final future = eval(source) as Future;
+      await expectLater(future, throwsA('error'));
+      await future.then<void>((_) => fail('Expected an error'), onError: (Object error, StackTrace stackTrace) {
+        expect(error, 'error');
+        expect(stackTrace.toString(), 'original stack trace');
+      });
+    });
+
+    test('thrown in catch complete the returned future', () async {
+      const source = '''
+Future<void> main() async {
+  try {
+    await Future.error('first error');
+  } catch (e) {
+    print(1);
+    throw 'second error';
+  }
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), throwsA('second error')), println([1]));
+    });
+
+    test('thrown after await in catch complete the returned future', () async {
+      const source = '''
+Future<void> main() async {
+  try {
+    await Future.error('first error');
+  } catch (e) {
+    print(1);
+    await null;
+    print(2);
+    throw 'second error';
+  }
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), throwsA('second error')), println([1, 2]));
+    });
+
+    test('from an async native callback complete the returned future', () async {
+      const source = '''
+Future<void> main() async {
+  print(1);
+  await Future.delayed(const Duration(), () async {
+    print(2);
+    await null;
+    print(3);
+    throw 'error';
+  });
+}
+      ''';
+      await expectLater(() => expectLater(eval(source), throwsA('error')), println([1, 2, 3]));
+    });
+
+    test('from instance methods remain isolated after compute', () async {
+      const source = '''
+class Source {
+  Future<String> load() async {
+    try {
+      await Future.delayed(const Duration(), () async {
+        await null;
+        ['error'].forEach((value) {
+          throw value;
+        });
+      });
+    } catch (e) {
+      return e;
+    }
+    return 'unreachable';
+  }
+}
+
+Source main() => Source();
+      ''';
+      final instances = await Future.wait([
+        compute<String, ObjInstance>((source) async => await eval(source) as ObjInstance, source),
+        compute<String, ObjInstance>((source) async => await eval(source) as ObjInstance, source),
+      ]);
+      final futures = instances.map((instance) => instance.invoke('load', null) as Future);
+      await expectLater(Future.wait(futures), completion(['error', 'error']));
+    });
+  });
+
   group('Async function return without a value', () {
     test('without await anything', () async {
       const source = '''
