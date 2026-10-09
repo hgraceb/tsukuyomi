@@ -272,14 +272,21 @@ class _VM implements VM {
         if (start <= exit.target && exit.target < finalization.end) break;
       }
       if (exit is ObjThrow && !handler.isFinalizing) {
+        final thrown = exit;
         final ip = handler.frame.ip - 1;
         final isInTryBody = handler.start <= ip && ip < handler.end;
-        final catching = isInTryBody ? handler.catchings.firstWhereOrNull((catching) => catching.match(exit.error)) : null;
+        ObjCatching? catching;
+        try {
+          catching = isInTryBody ? handler.catchings.firstWhereOrNull((catching) => catching.match(thrown.error)) : null;
+        } catch (e, s) {
+          // 匹配失败作为新异常经过当前 finally，再向外层传播
+          exit = ObjThrow(e, s);
+        }
         if (catching != null) {
           restoreTrying(handler);
           handler.frame.ip = catching.start;
-          push(handler.error = exit.error);
-          push(handler.stackTrace = exit.stackTrace);
+          push(handler.error = thrown.error);
+          push(handler.stackTrace = thrown.stackTrace);
           return true;
         }
       }

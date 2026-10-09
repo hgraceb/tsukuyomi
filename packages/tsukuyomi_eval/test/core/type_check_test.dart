@@ -495,7 +495,209 @@ dynamic main() { dynamic value = Example(); return value as NativeSibling; }
     });
   });
 
+  group('Catch matcher failures', () {
+    test('replace the original error and run both finally blocks before the outer catch', () async {
+      const source = '''
+class Interface {}
+class Unsupported implements Interface {}
+
+void main() {
+  try {
+    try {
+      try { throw Unsupported(); }
+      on Interface { print('typed'); }
+      catch (error) { print('same handler fallback'); }
+      finally { print('inner finally'); }
+    } finally {
+      print('outer finally');
+    }
+  } catch (error) {
+    print(error.toString().contains('Unsupported type check'));
+  }
+  print('after');
+}
+      ''';
+      await expectLater(() => eval(source), println(['inner finally', 'outer finally', true, 'after']));
+    });
+
+    test('can be caught after awaited finally without escaping the async continuation', () async {
+      const source = '''
+class Interface {}
+class Unsupported implements Interface {}
+
+Future<void> main() async {
+  await null;
+  try {
+    try { throw Unsupported(); }
+    on Interface { print('typed'); }
+    finally {
+      print('inner finally');
+      await null;
+      print('inner done');
+    }
+  } catch (error) {
+    print(error.toString().contains('Unsupported type check'));
+  } finally {
+    await null;
+    print('outer finally');
+  }
+  print('after');
+}
+      ''';
+      await expectLater(() => eval(source), println(['inner finally', 'inner done', true, 'outer finally', 'after']));
+    });
+
+    test('complete the async error future with the replacement stack after awaited finally', () async {
+      const source = '''
+class Interface {}
+class Unsupported implements Interface {}
+
+Future<void> main() async {
+  await null;
+  try {
+    try { throw Unsupported(); }
+    on Interface { print('typed'); }
+    finally {
+      print('inner finally');
+      await null;
+      print('inner done');
+    }
+  } finally {
+    await null;
+    print('outer finally');
+  }
+}
+      ''';
+      await expectLater(() async {
+        final future = eval(source) as Future;
+        await expectLater(
+          future,
+          throwsA(isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains('Unsupported type check'))),
+        );
+        await future.then<void>(
+          (_) => fail('Expected an error'),
+          onError: (Object error, StackTrace stackTrace) {
+            expect(stackTrace.toString(), contains('matchInstance'));
+          },
+        );
+      }, println(['inner finally', 'inner done', 'outer finally']));
+    });
+
+    test('close captured locals and allow later host invocation after an uncaught failure', () async {
+      const source = '''
+class Interface {}
+class Unsupported implements Interface {}
+class Example {
+  Function read = () => 0;
+  void fail() {
+    int value = 0;
+    read = () => value;
+    try { throw Unsupported(); }
+    on Interface { print('typed'); }
+    finally {
+      value++;
+      print(value);
+    }
+  }
+  int inspect() => read();
+}
+Example main() => Example();
+      ''';
+      final instance = await eval(source) as ObjInstance;
+      expect(() => expect(() => instance.invoke('fail', null), throwsA(isA<EvalRuntimeError>())), println([1]));
+      expect(instance.invoke('inspect', null), 1);
+    });
+
+    test('a finally return can replace the matcher failure', () async {
+      const source = '''
+class Interface {}
+class Unsupported implements Interface {}
+int inspect() {
+  try { throw Unsupported(); }
+  on Interface { return 1; }
+  finally { return 0; }
+}
+void main() { print(inspect()); }
+      ''';
+      await expectLater(() => eval(source), println([0]));
+    });
+  });
+
+  group('Cast error type bridge', () {
+    test('on TypeError catches casts and retains the Error ancestry', () async {
+      const source = '''
+void main() {
+  try {
+    dynamic value = '';
+    print(value as int);
+  } on TypeError catch (error) {
+    print(error is TypeError);
+    print(error is Error);
+    print(error is Exception);
+    print((error as Error) == error);
+  } finally {
+    print('finally');
+  }
+  print('after');
+}
+      ''';
+      await expectLater(() => eval(source), println([true, true, false, true, 'finally', 'after']));
+    });
+
+    test('on Error catches a cast failure after await', () async {
+      const source = '''
+Future<void> main() async {
+  await null;
+  try {
+    dynamic value = null;
+    print(value as int);
+  } on Error catch (error) {
+    print(error is TypeError);
+    print((error as TypeError) == error);
+    await null;
+    print('caught');
+  } finally {
+    print('finally');
+  }
+}
+      ''';
+      await expectLater(() => eval(source), println([true, true, 'caught', 'finally']));
+    });
+
+    test('native Error and TypeError factories also use the registered types', () async {
+      const source = '''
+void main() {
+  final error = Error();
+  final typeError = TypeError();
+  print(error is Error);
+  print(error is TypeError);
+  print(typeError is Error);
+  print(typeError is TypeError);
+  print((typeError as Error) == typeError);
+}
+      ''';
+      await expectLater(() => eval(source), println([true, false, true, true, true]));
+    });
+  });
+
   group('Unsupported type checks', () {
+    for (final entry in [
+      (name: 'parameterized alias', declaration: 'typedef Target = List<int>;'),
+      (name: 'nested parameterized alias', declaration: 'typedef Target = List<List<int>>;'),
+      (name: 'parameterized alias chain', declaration: 'typedef IntList = List<int>; typedef Target = IntList;'),
+    ]) {
+      for (final operator in ['is', 'as', 'on']) {
+        test('${entry.name} is rejected before execution for $operator', () async {
+          final body = operator == 'on' ? 'try { throw value; } on Target {}' : 'print(value $operator Target);';
+          final source = '${entry.declaration} void main() { dynamic value = null; $body }';
+          await expectLater(
+            eval(source),
+            throwsA(isA<EvalCompileError>().having((error) => error.toString(), 'message', contains('type check'))),
+          );
+        });
+      }
+    }
+
     for (final operator in ['is', 'as']) {
       test('function signature aliases are rejected for $operator', () async {
         final source = '''

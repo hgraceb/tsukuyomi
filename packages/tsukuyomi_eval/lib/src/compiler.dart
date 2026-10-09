@@ -949,8 +949,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   void emitTypeCheck(TypeAnnotation type) {
     final isSimpleNamedType = type is NamedType && type.typeArguments == null && type.importPrefix == null;
-    final isParameterOrFunctionType = type.type is TypeParameterType || type.type is FunctionType;
-    if (!isSimpleNamedType || isParameterOrFunctionType) {
+    final resolvedType = type.type;
+    final isParameterOrFunctionType = resolvedType is TypeParameterType || resolvedType is FunctionType;
+    final isParameterizedAlias = resolvedType is InterfaceType && resolvedType.alias != null && resolvedType.typeArguments.isNotEmpty;
+    if (!isSimpleNamedType || isParameterOrFunctionType || isParameterizedAlias) {
       error("Unsupported type check '$type'.");
     }
     emitCodes(OP_CONSTANT, addConstant(type.toSource()));
