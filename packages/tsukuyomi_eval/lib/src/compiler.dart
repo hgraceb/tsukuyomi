@@ -734,11 +734,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final className = '$typeName.class';
     emitCodes(OP_CLASS, addConstant(typeName));
     // 尚未保存接口、mixin 和泛型关系，类型检查不能按普通父类链猜测
-    final isTypeCheckSupported =
-        node.typeParameters == null &&
-        node.implementsClause == null &&
-        node.withClause == null &&
-        node.extendsClause?.superclass.typeArguments == null;
+    final hasGenericTypes = node.typeParameters != null || node.extendsClause?.superclass.typeArguments != null;
+    final hasInterfacesOrMixins = node.implementsClause != null || node.withClause != null;
+    final isTypeCheckSupported = !hasGenericTypes && !hasInterfacesOrMixins;
     emitCodes(isTypeCheckSupported ? 1 : 0);
     emitCodes(OP_DEFINE_GLOBAL, addConstant(className));
 
@@ -950,12 +948,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   void emitTypeCheck(TypeAnnotation type) {
-    final isUnsupported = type is! NamedType ||
-        type.typeArguments != null ||
-        type.importPrefix != null ||
-        type.type is TypeParameterType ||
-        type.type is FunctionType;
-    if (isUnsupported) {
+    final isSimpleNamedType = type is NamedType && type.typeArguments == null && type.importPrefix == null;
+    final isParameterOrFunctionType = type.type is TypeParameterType || type.type is FunctionType;
+    if (!isSimpleNamedType || isParameterOrFunctionType) {
       error("Unsupported type check '$type'.");
     }
     emitCodes(OP_CONSTANT, addConstant(type.toSource()));
