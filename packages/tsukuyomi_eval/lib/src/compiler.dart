@@ -614,10 +614,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       debugUpdateNode(catchClause);
       patchJump(trying!.blockOffset);
       beginScope();
-      if (catchClause.exceptionType case NamedType? type when '$type'.contains('<') != true) {
-        emitCodes(OP_CONSTANT, addConstant(type != null ? type.name2.lexeme : 'dynamic'));
+      if (catchClause.exceptionType case TypeAnnotation type) {
+        emitTypeCheck(type);
       } else {
-        error("Unsupported catch on type '${catchClause.exceptionType}'.");
+        emitCodes(OP_CONSTANT, addConstant('dynamic'));
       }
       addLocal(catchClause.exceptionParameter?.name.lexeme ?? '');
       addLocal(catchClause.stackTraceParameter?.name.lexeme ?? '');
@@ -733,6 +733,13 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final typeName = node.name.lexeme;
     final className = '$typeName.class';
     emitCodes(OP_CLASS, addConstant(typeName));
+    // 尚未保存接口、mixin 和泛型关系，类型检查不能按普通父类链猜测
+    final isTypeCheckSupported =
+        node.typeParameters == null &&
+        node.implementsClause == null &&
+        node.withClause == null &&
+        node.extendsClause?.superclass.typeArguments == null;
+    emitCodes(isTypeCheckSupported ? 1 : 0);
     emitCodes(OP_DEFINE_GLOBAL, addConstant(className));
 
     if (node.hasUnnamedConstructor) {
@@ -942,18 +949,21 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     emitCodes(OP_POP);
   }
 
+  void emitTypeCheck(TypeAnnotation type) {
+    final isUnsupported = type is! NamedType ||
+        type.typeArguments != null ||
+        type.importPrefix != null ||
+        type.type is TypeParameterType ||
+        type.type is FunctionType;
+    if (isUnsupported) {
+      error("Unsupported type check '$type'.");
+    }
+    emitCodes(OP_CONSTANT, addConstant(type.toSource()));
+  }
+
   @override
   void compileNamedType(NamedType node) {
-    switch (node.parent) {
-      case IsExpression():
-        if ('$node'.contains('<')) {
-          error("Unsupported named type '${node.type}' for '${node.parent}'.");
-        } else {
-          emitCodes(OP_CONSTANT, addConstant(node.name2.lexeme));
-        }
-      default:
-        return;
-    }
+    // 声明中的类型注解不生成运行时代码，is/as/on T 单独编译
   }
 
   @override
@@ -965,11 +975,18 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   @override
   void compileIsExpression(IsExpression node) {
     node.expression.accept(this);
-    node.type.accept(this);
+    emitTypeCheck(node.type);
     emitCodes(OP_IS);
     if (node.notOperator != null) {
       emitOperator1('!#');
     }
+  }
+
+  @override
+  void compileAsExpression(AsExpression node) {
+    node.expression.accept(this);
+    emitTypeCheck(node.type);
+    emitCodes(OP_AS);
   }
 
   @override

@@ -92,11 +92,13 @@ const OP_AWAIT = 51;
 
 const OP_IS = 52;
 
-const OP_OPERATOR_1 = 53;
+const OP_AS = 53;
 
-const OP_OPERATOR_2 = 54;
+const OP_OPERATOR_1 = 54;
 
-const OP_OPERATOR_3 = 55;
+const OP_OPERATOR_2 = 55;
+
+const OP_OPERATOR_3 = 56;
 
 const OP_SET = 60;
 

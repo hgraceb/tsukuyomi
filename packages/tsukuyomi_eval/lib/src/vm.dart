@@ -103,6 +103,59 @@ class _VM implements VM {
     return getter.call(function);
   }
 
+  bool matchInstance(ObjInstance instance, bool Function(ObjClass) match) {
+    if (!instance.clazz.isTypeCheckSupported) {
+      throw EvalRuntimeError("Unsupported type check for class '${instance.clazz.name}'.");
+    }
+    for (ObjClass? clazz = instance.clazz; clazz != null; clazz = clazz.superclass) {
+      if (match(clazz)) return true;
+    }
+    return false;
+  }
+
+  bool Function(Object?) typeMatcher(String type) {
+    final isNullable = type.endsWith('?');
+    final name = isNullable ? type.substring(0, type.length - 1) : type;
+    final bool Function(Object?) match;
+    switch (name) {
+      case 'dynamic':
+        match = (_) => true;
+      case 'Object':
+        match = (value) => value != null;
+      case 'Null':
+        match = (value) => value == null;
+      case 'Never':
+        match = (_) => false;
+      case 'Function':
+        match = (value) {
+          if (value is ObjInstance) {
+            return matchInstance(value, (actual) => actual.isDartSubtype?.call<Function>() ?? false);
+          }
+          return value is Function || value is ObjClosure || value is ObjBoundMethod;
+        };
+      default:
+        final clazz = globals['$name.class']?.getter?.call();
+        if (clazz is ObjClass && clazz.isDartSubtype == null) {
+          if (!clazz.isTypeCheckSupported) {
+            throw EvalRuntimeError("Unsupported type check for class '${clazz.name}'.");
+          }
+          match = (value) => value is ObjInstance && matchInstance(value, (actual) => identical(actual, clazz));
+        } else {
+          match = withOrThrow(name, <T>() => (Object? value) {
+            if (value is T) return true;
+            if (value is ObjClosure || value is ObjBoundMethod) {
+              return <Function>[] is List<T>;
+            }
+            if (value is ObjInstance) {
+              return matchInstance(value, (actual) => actual.isDartSubtype?.call<T>() ?? false);
+            }
+            return false;
+          });
+        }
+    }
+    return (value) => (isNullable && value == null) || match(value);
+  }
+
   Function delegateClosure(ObjClosure closure) {
     final function = closure.function;
     final parameters = closure.parameters;
@@ -410,7 +463,8 @@ class _VM implements VM {
           case OP_CLOSE_UPVALUES:
             closeUpvalues(frame.slot + readCode(frame));
           case OP_CLASS:
-            push(ObjClass(readString(frame)));
+            final name = readString(frame);
+            push(ObjClass(name, isTypeCheckSupported: readCode(frame) == 1));
           case OP_GET_PROPERTY:
             final instance = pop();
             final name = readString(frame);
@@ -435,6 +489,8 @@ class _VM implements VM {
             if (superclass is! ObjClass) {
               throw EvalRuntimeError('Superclass must be a class.');
             }
+            subclass.superclass = superclass;
+            subclass.isTypeCheckSupported = subclass.isTypeCheckSupported && superclass.isTypeCheckSupported;
             subclass.props.addAll(superclass.props);
             subclass.initializers.addAll(superclass.initializers);
           case OP_GET_SUPER:
@@ -572,7 +628,14 @@ class _VM implements VM {
           case OP_IS:
             final type = pop() as String;
             final value = pop() as Object?;
-            push(withOrThrow(type, <T>() => ($) => $ is T)(value));
+            push(typeMatcher(type)(value));
+          case OP_AS:
+            final type = pop() as String;
+            final value = peek();
+            if (!typeMatcher(type)(value)) {
+              final actual = value is ObjInstance ? value.clazz.name : value.runtimeType.toString();
+              throw EvalTypeError("Type '$actual' is not a subtype of type '$type' in type cast.");
+            }
           case OP_OPERATOR_1:
             final operator = readString(frame);
             final getter = globals[operator]?.getter;
@@ -666,7 +729,7 @@ class _VM implements VM {
           case OP_CATCH_JUMP:
             final type = pop() as String;
             final offset = readCode(frame);
-            final match = withOrThrow(type, <T>() => ($) => $ is T);
+            final match = typeMatcher(type);
             final catching = ObjCatching(start: frame.ip, end: frame.ip += offset, match: match);
             trying!.catchings.add(catching);
           case OP_FINALLY_JUMP:

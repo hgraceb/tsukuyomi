@@ -96,7 +96,13 @@ class ObjClosure extends Obj {
 }
 
 class ObjClass extends Obj {
-  ObjClass(this.name);
+  ObjClass(this.name, {this.isTypeCheckSupported = true});
+
+  ObjClass? superclass;
+
+  bool isTypeCheckSupported;
+
+  bool Function<T>()? isDartSubtype;
 
   final String name;
 
