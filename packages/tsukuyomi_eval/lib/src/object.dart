@@ -96,13 +96,15 @@ class ObjClosure extends Obj {
 }
 
 class ObjTypeCheck extends Obj {
-  ObjTypeCheck(this.name, {this.aliases = const [], this.isScriptType = false});
+  ObjTypeCheck(this.name, {this.aliases = const [], this.isScriptType = false, this.isCoreType = false});
 
   final String name;
 
   final List<String> aliases;
 
   final bool isScriptType;
+
+  final bool isCoreType;
 
   @override
   String toString() => name;

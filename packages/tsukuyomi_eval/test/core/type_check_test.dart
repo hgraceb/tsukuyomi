@@ -489,6 +489,148 @@ void main() {
     }
   });
 
+  group('Imported core type names', () {
+    for (final name in ['Null', 'Never', 'Object', 'Function']) {
+      test('bridged $name uses its registered matcher for type checks', () async {
+        final source =
+            '''
+import 'package:shadow_types/shadow_types.dart';
+void main() {
+  final value = hostValue;
+  print(value is $name);
+  print(value is! $name);
+  print(value is Target);
+  print(null is $name);
+  print(null is $name?);
+  print(0 is $name);
+  print((() => 0) is $name);
+}
+        ''';
+        await expectLater(() => eval(source, libraries: [_shadowLibrary(name)]), println([true, false, true, false, true, false, false]));
+      });
+
+      test('bridged $name retains successful casts and rejects unrelated values', () async {
+        final source =
+            '''
+import 'package:shadow_types/shadow_types.dart';
+void main() {
+  final value = hostValue;
+  print((value as $name) == value);
+  print((value as Target) == value);
+  print(null as $name?);
+  try { dynamic other = 0; other as $name; }
+  on TypeError { print('number rejected'); }
+  try { dynamic other = null; other as $name; }
+  on TypeError { print('null rejected'); }
+}
+        ''';
+        await expectLater(
+          () => eval(source, libraries: [_shadowLibrary(name)]),
+          println([true, true, null, 'number rejected', 'null rejected']),
+        );
+      });
+
+      test('typed catches for bridged $name match only the registered host type', () async {
+        final source =
+            '''
+import 'package:shadow_types/shadow_types.dart';
+void main() {
+  final value = hostValue;
+  try { throw value; }
+  on $name catch (error) { print(error == value); }
+  catch (_) { print(false); }
+  try { throw 0; }
+  on $name { print('host'); }
+  catch (_) { print('other'); }
+}
+        ''';
+        await expectLater(() => eval(source, libraries: [_shadowLibrary(name)]), println([true, 'other']));
+      });
+
+      test('core aliases retain their origin when an imported bridge shadows $name', () async {
+        final source = '''
+import 'package:shadow_types/shadow_types.dart';
+import 'package:alias_types/alias_types.dart';
+void main() {
+  final value = hostValue;
+  print(null is CoreNull);
+  print(value is CoreNull);
+  print(value is CoreNever);
+  print(value is CoreObject);
+  print(value is CoreFunction);
+  print((() => 0) is CoreFunction);
+  print(null as CoreNull);
+  print((value as CoreObject) == value);
+  try { throw value; }
+  on CoreNull { print('null'); }
+  on CoreNever { print('never'); }
+  on CoreFunction { print('function'); }
+  on CoreObject catch (error) { print(error == value); }
+}
+        ''';
+        await expectLater(
+          () => eval(source, libraries: [_shadowLibrary(name), _aliasLibrary()]),
+          println([true, false, false, true, false, true, null, true, true]),
+        );
+      });
+    }
+  });
+
+  group('Forward inherited type boundaries', () {
+    for (final relation in [
+      (name: 'direct parent', intermediate: '', parent: 'Parent'),
+      (name: 'ancestor', intermediate: 'class Intermediate extends Parent {}', parent: 'Intermediate'),
+    ]) {
+      for (final operation in [
+        (name: 'nullable is', body: 'print(null is Child?);'),
+        (name: 'nullable is!', body: 'print(null is! Child?);'),
+        (name: 'nullable as', body: 'print(null as Child?);'),
+        (name: 'typed catch', body: 'try { throw 0; } on Child {} catch (_) {}'),
+      ]) {
+        for (final isStatic in [true, false]) {
+          final location = isStatic ? 'static initializer' : 'main';
+          test('${operation.name} rejects a generic native ${relation.name} in $location', () async {
+            final initializer = isStatic ? 'static final Child? child = inspect();' : '';
+            final inspect = isStatic ? 'Child? inspect() { ${operation.body} return null; }' : '';
+            final body = isStatic ? 'print(Parent.child);' : operation.body;
+            final source =
+                '''
+import 'package:generic_types/generic_types.dart';
+$inspect
+class Parent extends NativeBase<int> { $initializer }
+${relation.intermediate}
+class Child extends ${relation.parent} {}
+void main() { $body }
+            ''';
+            await expectLater(
+              eval(source, libraries: [_genericLibrary()]),
+              throwsA(isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains('Unsupported type check'))),
+            );
+          });
+        }
+      }
+    }
+
+    for (final isStatic in [true, false]) {
+      final location = isStatic ? 'static initializer' : 'main';
+      test('raw native inheritance keeps its nullable checks in $location', () async {
+        const checks = 'print(null is Child?); print(null is Child); print(null is! Child?); print(null as Child?);';
+        final initializer = isStatic ? 'static final Child? child = inspect();' : '';
+        final inspect = isStatic ? 'Child? inspect() { $checks return null; }' : '';
+        final body = isStatic ? 'final child = Parent.child;' : checks;
+        final source =
+            '''
+import 'package:generic_types/generic_types.dart';
+$inspect
+class Parent extends NativeBase { $initializer }
+class Child extends Parent {}
+void main() { $body }
+        ''';
+        await expectLater(() => eval(source, libraries: [_genericLibrary()]), println([true, false, false, null]));
+      });
+    }
+  });
+
   group('Forward script type checks', () {
     test('nullable casts in parent static fields can target a later child', () async {
       const source = '''
@@ -1249,6 +1391,43 @@ class _NativeChild extends _NativeParent {}
 class _NativeSibling extends _NativeParent {}
 
 class _HostValue {}
+
+class _NativeBase<T> {}
+
+DartLibrary _shadowLibrary(String name) {
+  return DartLibrary(
+    'shadow_types',
+    path: 'shadow_types.dart',
+    declarations: [
+      DartClass<_HostValue>(
+        ($) =>
+            '''
+// ${$.alias(name)}
+class $name {}
+typedef Target = $name;
+    ''',
+      ),
+      DartVariable('hostValue', _HostValue(), 'external $name get hostValue;'),
+    ],
+  );
+}
+
+DartLibrary _genericLibrary() {
+  return DartLibrary(
+    'generic_types',
+    path: 'generic_types.dart',
+    declarations: [
+      DartClass<_NativeBase>(
+        ($) =>
+            '''
+// ${$.alias('NativeBase')}
+// ${$.empty('NativeBase.class', () => ObjClass('NativeBase'))}
+class NativeBase<T> {}
+    ''',
+      ),
+    ],
+  );
+}
 
 DartLibrary _aliasLibrary() {
   return DartLibrary('alias_types', path: 'alias_types.dart', declarations: [

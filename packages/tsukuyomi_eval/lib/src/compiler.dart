@@ -21,13 +21,11 @@ extension on ClassDeclaration {
     return members.whereType<ConstructorDeclaration>().isEmpty;
   }
 
-  bool get isTypeCheckSupported {
+  bool get hasUnsupportedTypeRelations {
     // 尚未保存接口、mixin 和泛型关系，类型检查不能按普通父类链猜测
     final hasInterfacesOrMixins = implementsClause != null || withClause != null;
     final hasGenericTypes = typeParameters != null || extendsClause?.superclass.typeArguments != null;
-    final parents = declaredElement?.allSupertypes.where((e) => e.element.library == declaredElement?.library).map((e) => e.element) ?? [];
-    final hasUnsupportedParents = parents.any((e) => e.typeParameters.isNotEmpty || e.interfaces.isNotEmpty || e.mixins.isNotEmpty);
-    return !hasGenericTypes && !hasInterfacesOrMixins && !hasUnsupportedParents;
+    return hasGenericTypes || hasInterfacesOrMixins;
   }
 }
 
@@ -630,7 +628,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       if (catchClause.exceptionType case TypeAnnotation type) {
         emitTypeCheck(type);
       } else {
-        emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck('dynamic')));
+        emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck('dynamic', isCoreType: true)));
       }
       addLocal(catchClause.exceptionParameter?.name.lexeme ?? '');
       addLocal(catchClause.stackTraceParameter?.name.lexeme ?? '');
@@ -724,12 +722,17 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     typeAliasDeclarations[node.declaredElement!.source.uri] = {
       for (final declaration in node.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration,
     };
+    final declarations = node.declarations.whereType<ClassDeclaration>();
+    final unsupportedClasses = declarations.where((e) => e.hasUnsupportedTypeRelations).map((e) => e.declaredElement).toSet();
     // 先创建类型身份，类成员和静态初值仍按声明顺序执行
-    for (final declaration in node.declarations.whereType<ClassDeclaration>()) {
+    for (final declaration in declarations) {
       debugUpdateNode(declaration);
+      final parents = declaration.declaredElement?.allSupertypes ?? [];
+      final hasUnsupportedParents = parents.any((e) => unsupportedClasses.contains(e.element));
+      final isTypeCheckSupported = !declaration.hasUnsupportedTypeRelations && !hasUnsupportedParents;
       final typeName = declaration.name.lexeme;
       emitCodes(OP_CLASS, addConstant(typeName));
-      emitCodes(declaration.isTypeCheckSupported ? 1 : 0);
+      emitCodes(isTypeCheckSupported ? 1 : 0);
       emitCodes(OP_DEFINE_GLOBAL, addConstant('$typeName.class'));
     }
     super.compileCompilationUnit(node);
@@ -1002,7 +1005,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       _ => type.toSource(),
     };
     final isScriptType = resolvedType is InterfaceType && resolvedType.element.library == library;
-    emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType)));
+    final isCoreType = resolvedType is DynamicType || resolvedType is NeverType || resolvedType?.element?.library?.isDartCore == true;
+    final typeCheck = ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType, isCoreType: isCoreType);
+    emitCodes(OP_CONSTANT, addConstant(typeCheck));
   }
 
   @override

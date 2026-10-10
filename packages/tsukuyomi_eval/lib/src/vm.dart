@@ -140,8 +140,8 @@ class _VM implements VM {
         throw EvalRuntimeError("Unsupported type check for class '${clazz.name}'.");
       }
       match = (value) => value is ObjInstance && matchInstance(value, (actual) => identical(actual, clazz));
-    } else if (alias != null) {
-      match = nativeTypeMatcher(alias);
+    } else if (alias != null || !type.isCoreType) {
+      match = nativeTypeMatcher(alias ?? name);
     } else {
       switch (name) {
         case 'dynamic':
