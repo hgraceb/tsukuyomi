@@ -104,6 +104,7 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_GET_PROPERTY => _constantInstruction('OP_GET_PROPERTY', chunk, offset),
     OP_SET_PROPERTY => _constantInstruction('OP_SET_PROPERTY', chunk, offset),
     OP_INHERIT => _simpleInstruction('OP_INHERIT', offset),
+    OP_LINK_SUPERCLASS => _simpleInstruction('OP_LINK_SUPERCLASS', offset),
     OP_GET_SUPER => _constantInstruction('OP_GET_SUPER', chunk, offset),
     OP_SET_SUPER => _constantInstruction('OP_SET_SUPER', chunk, offset),
     OP_PEEK => _byteInstruction('OP_PEEK', chunk, offset),

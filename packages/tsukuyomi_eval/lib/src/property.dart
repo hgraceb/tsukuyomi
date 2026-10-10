@@ -84,6 +84,8 @@ class DartLibrary extends DartDeclaration {
   late final String source;
 
   late final Set<String> debugProps = {};
+
+  String get uri => name.startsWith('dart:') ? name : 'package:$name/$path';
 }
 
 class DartClass<T> extends DartDeclaration {
@@ -197,6 +199,9 @@ extension DartLibrariesExtension on Iterable<DartLibrary> {
   Map<String, Property> get props {
     final props = <String, Property>{
       for (final declaration in this) ...declaration.props,
+      for (final library in this)
+        for (final entry in library.props.entries)
+          if (entry.key.endsWith('.with')) '${library.uri}::${entry.key}': entry.value,
     };
     late final missingProps = <String>{};
     assert(() {

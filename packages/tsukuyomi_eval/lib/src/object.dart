@@ -66,7 +66,7 @@ class ObjUpvalue extends Obj {
 }
 
 class ObjFunction extends Obj {
-  ObjFunction(this.name, {required this.returnType}) : chunk = Chunk(name);
+  ObjFunction(this.name, {required this.returnType, this.hasNullableReturnType = false}) : chunk = Chunk(name);
 
   int upvalueCount = 0;
 
@@ -77,6 +77,8 @@ class ObjFunction extends Obj {
   final Chunk chunk;
 
   final String returnType;
+
+  final bool hasNullableReturnType;
 
   @override
   String toString() => '<fn $name>';
@@ -96,7 +98,7 @@ class ObjClosure extends Obj {
 }
 
 class ObjTypeCheck extends Obj {
-  ObjTypeCheck(this.name, {this.aliases = const [], this.isScriptType = false, this.isCoreType = false});
+  ObjTypeCheck(this.name, {this.aliases = const [], this.isScriptType = false, this.libraryUri});
 
   final String name;
 
@@ -104,7 +106,9 @@ class ObjTypeCheck extends Obj {
 
   final bool isScriptType;
 
-  final bool isCoreType;
+  final String? libraryUri;
+
+  bool get isCoreType => libraryUri == 'dart:core';
 
   @override
   String toString() => name;

@@ -489,6 +489,321 @@ void main() {
     }
   });
 
+  group('Host callback function results', () {
+    test('map callbacks can return script closures declared as Function', () async {
+      const source = '''
+Function make(int value) => () => value;
+void main() {
+  final callbacks = [0, 1].map(make).toList();
+  print(callbacks[0] is Function);
+  print(callbacks[0]());
+  print(callbacks[1]());
+}
+      ''';
+      await expectLater(() => eval(source), println([true, 0, 1]));
+    });
+
+    test('returned functions retain writable captured variables across host calls', () async {
+      const source = '''
+Function make(int value) => () => ++value;
+void main() {
+  final callback = [0].map(make).first;
+  print(callback());
+  print(callback());
+  print([0].map(make).first());
+}
+      ''';
+      await expectLater(() => eval(source), println([1, 2, 1]));
+    });
+
+    test('Function aliases and nested returned functions adapt at each host boundary', () async {
+      const source = '''
+typedef Callback = Function;
+Callback make(int value) => () => value;
+Function outer(int value) => make;
+void main() {
+  print([0].map(make).first());
+  final factory = [0].map(outer).first;
+  print(factory(1)());
+}
+      ''';
+      await expectLater(() => eval(source), println([0, 1]));
+    });
+
+    test('returned bound methods retain their receiver', () async {
+      const source = '''
+class Example {
+  int value = 0;
+  int next() => ++value;
+}
+Function make(int value) => Example().next;
+void main() {
+  final callback = [0].map(make).first;
+  print(callback());
+  print(callback());
+  print([0].map(make).first());
+}
+      ''';
+      await expectLater(() => eval(source), println([1, 2, 1]));
+    });
+
+    test('native functions returned through callbacks remain callable', () async {
+      const source = '''
+Function make(int value) => print;
+void main() { [0].map(make).first('native'); }
+      ''';
+      await expectLater(() => eval(source), println(['native']));
+    });
+
+    test('nullable Function callback results retain null and adapt returned closures', () async {
+      const source = '''
+Function? make(int value) => value == 0 ? null : () => value;
+void main() {
+  final callbacks = [0, 1].map(make).toList();
+  print(callbacks[0]);
+  print(callbacks[1]!());
+}
+      ''';
+      await expectLater(() => eval(source), println([null, 1]));
+    });
+
+    test('nullable Function method results use the same callback return adaptation', () async {
+      const source = '''
+class Example {
+  Function? make(int value) => value == 0 ? null : () => value;
+}
+void main() {
+  final example = Example();
+  final callbacks = [0, 1].map(example.make).toList();
+  print(callbacks[0]);
+  print(callbacks[1]!());
+}
+      ''';
+      await expectLater(() => eval(source), println([null, 1]));
+    });
+
+    test('nullable primitive callbacks also retain their declared return type', () async {
+      const source = '''
+int? make(int value) => value == 0 ? null : value;
+void main() { print([0, 1].map(make).toList()); }
+      ''';
+      await expectLater(() => eval(source), println(['[null, 1]']));
+    });
+
+    test('dynamic and Object callback results retain their script class identity', () async {
+      const source = '''
+class Example {}
+dynamic makeDynamic(int value) => Example();
+Object makeObject(int value) => Example();
+void main() {
+  print([0].map(makeDynamic).first is Example);
+  print([0].map(makeObject).first is Example);
+}
+      ''';
+      await expectLater(() => eval(source), println([true, true]));
+    });
+  });
+
+  group('Shadowed error constructors', () {
+    for (final name in ['Error', 'TypeError']) {
+      test('script $name can shadow the core constructor and retain its own identity', () async {
+        final source =
+            '''
+class $name {}
+class Child extends $name {}
+void main() {
+  final value = $name();
+  print(value is $name);
+  print((value as $name) == value);
+  print(Child() is $name);
+  try { throw value; }
+  on $name catch (error) { print(error == value); }
+}
+        ''';
+        await expectLater(() => eval(source), println([true, true, true, true]));
+      });
+
+      test('core error aliases keep matching native errors when script $name shadows them', () async {
+        final source =
+            '''
+import 'package:core_aliases/core_aliases.dart';
+class $name {}
+void main() {
+  print($name() is CoreError);
+  try { dynamic value = ''; value as int; }
+  on $name { print('script'); }
+  on CoreTypeError catch (error) { print(error is CoreError); }
+}
+        ''';
+        await expectLater(() => eval(source, libraries: [_coreAliasesLibrary()]), println([false, true]));
+      });
+    }
+
+    test('core error constructors still work when they are not shadowed', () async {
+      const source = '''
+void main() {
+  print(Error() is Error);
+  print(TypeError() is TypeError);
+  try { throw TypeError(); }
+  on Error { print('error'); }
+}
+      ''';
+      await expectLater(() => eval(source), println([true, true, 'error']));
+    });
+  });
+
+  group('Forward ordinary inheritance', () {
+    for (final operation in [
+      (name: 'is', body: 'print(Child() is Root);', expected: true),
+      (name: 'as', body: 'final value = Child(); print((value as Root) == value);', expected: true),
+      (name: 'typed catch', body: "try { throw Child(); } on Root { print('root'); } catch (_) { print('other'); }", expected: 'root'),
+    ]) {
+      for (final isStatic in [true, false]) {
+        final location = isStatic ? 'static initializer' : 'main';
+        test('${operation.name} recognizes a later ancestor in $location', () async {
+          final initializer = isStatic ? 'static final checked = inspect();' : '';
+          final inspect = isStatic ? 'dynamic inspect() { ${operation.body} return null; }' : '';
+          final body = isStatic ? 'final checked = Child.checked;' : operation.body;
+          final source =
+              '''
+$inspect
+class Child extends Parent { $initializer }
+class Parent extends Root {}
+class Root {}
+void main() { $body }
+          ''';
+          await expectLater(() => eval(source), println([operation.expected]));
+        });
+      }
+    }
+
+    test('an early instance keeps the same class identities after later bodies execute', () async {
+      const source = '''
+class Child extends Parent { static final value = Child(); }
+class Parent extends Root {}
+class Root {}
+void main() {
+  print(Child.value is Child);
+  print(Child.value is Parent);
+  print(Child.value is Root);
+}
+      ''';
+      await expectLater(() => eval(source), println([true, true, true]));
+    });
+
+    test('preparing parent links preserves initializer counts and static declaration order', () async {
+      const source = '''
+int initialize(String name) { print(name); return 0; }
+bool inspect() { print('child static'); return true; }
+class Root { final root = initialize('root field'); }
+class Parent extends Root { final parent = initialize('parent field'); }
+class Child extends Parent {
+  static final checked = inspect();
+  final child = initialize('child field');
+}
+void main() { final checked = Child.checked; print(Child().root); }
+      ''';
+      await expectLater(() => eval(source), println(['child static', 'child field', 'parent field', 'root field', 0]));
+    });
+
+    test('a forward chain also reaches the registered native ancestor', () async {
+      const source = '''
+import 'package:type_checks/type_checks.dart';
+bool inspect() { print(Child() is NativeParent); return true; }
+class Child extends Parent { static final checked = inspect(); }
+class Parent extends NativeChild {}
+void main() { print(Child() is NativeParent); }
+      ''';
+      await expectLater(() => eval(source, libraries: [_nativeLibrary()]), println([true, true]));
+    });
+  });
+
+  group('Library type matcher identity', () {
+    test('callback return aliases retain the same core matcher identity', () async {
+      const source = '''
+import 'package:shadow_types/shadow_types.dart';
+import 'package:core_aliases/core_aliases.dart';
+CoreTarget make(int value) => '';
+void main() {
+  final value = [0].map(make).first;
+  print(value is CoreTarget);
+  print(value);
+}
+      ''';
+      await expectLater(
+        () => eval(
+          source,
+          libraries: [
+            _shadowLibrary('String'),
+            _coreAliasesLibrary(type: 'String'),
+          ],
+        ),
+        println([true, '']),
+      );
+    });
+
+    for (final entry in [
+      (name: 'String', value: "''"),
+      (name: 'List', value: '[]'),
+      (name: 'Map', value: '{}'),
+      (name: 'int', value: '0'),
+    ]) {
+      test('core ${entry.name} aliases ignore a same-name matcher from another library', () async {
+        final source =
+            '''
+import 'package:shadow_types/shadow_types.dart';
+import 'package:core_aliases/core_aliases.dart';
+void main() {
+  dynamic value = ${entry.value};
+  print(value is CoreTarget);
+  print(value is! CoreTarget);
+  print(hostValue is CoreTarget);
+  print(hostValue is Target);
+  print(value is Target);
+  print((value as CoreTarget) == value);
+  print(null as CoreTarget?);
+  try { throw value; }
+  on CoreTarget catch (error) { print(error == value); }
+  try { throw hostValue; }
+  on CoreTarget { print('core'); }
+  on Target { print('host'); }
+}
+        ''';
+        await expectLater(
+          () => eval(
+            source,
+            libraries: [
+              _shadowLibrary(entry.name),
+              _coreAliasesLibrary(type: entry.name),
+            ],
+          ),
+          println([true, false, false, true, false, true, null, true, 'host']),
+        );
+      });
+    }
+
+    test('an unregistered core alias cannot borrow another library alias matcher', () async {
+      const source = '''
+import 'package:core_aliases/core_aliases.dart';
+void main() {
+  print('' is CoreTarget);
+  print(hostValue is CoreTarget);
+  print('' as CoreTarget);
+}
+      ''';
+      await expectLater(
+        () => eval(
+          source,
+          libraries: [
+            _shadowLibrary('CoreTarget'),
+            _coreAliasesLibrary(type: 'String', exportHost: true),
+          ],
+        ),
+        println([true, false, '']),
+      );
+    });
+  });
+
   group('Imported core type names', () {
     for (final name in ['Null', 'Never', 'Object', 'Function']) {
       test('bridged $name uses its registered matcher for type checks', () async {
@@ -1393,6 +1708,26 @@ class _NativeSibling extends _NativeParent {}
 class _HostValue {}
 
 class _NativeBase<T> {}
+
+class _AliasMarker {}
+
+DartLibrary _coreAliasesLibrary({String? type, bool exportHost = false}) {
+  return DartLibrary(
+    'core_aliases',
+    path: 'core_aliases.dart',
+    source: exportHost ? "export 'package:shadow_types/shadow_types.dart' show hostValue;" : '',
+    declarations: [
+      DartClass<_AliasMarker>(
+        ($) =>
+            '''
+typedef CoreError = Error;
+typedef CoreTypeError = TypeError;
+${type != null ? 'typedef CoreTarget = $type;' : ''}
+    ''',
+      ),
+    ],
+  );
+}
 
 DartLibrary _shadowLibrary(String name) {
   return DartLibrary(

@@ -103,9 +103,9 @@ extension on NullShortableExpression {
 }
 
 extension on FunctionExpression {
-  String? get returnType {
+  DartType? get returnType {
     return switch (staticType) {
-      FunctionType type => type.returnType.element?.name,
+      FunctionType type => type.returnType,
       _ => null,
     };
   }
@@ -369,8 +369,15 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
   }
 
-  void emitDefineClosure(String name, {String? returnType, bool? hasThis, _CompilerBody? body}) {
-    final function = ObjFunction(name.isNotEmpty ? name : 'anonymous', returnType: returnType ?? 'dynamic');
+  void emitDefineClosure(String name, {DartType? returnType, bool? hasThis, _CompilerBody? body}) {
+    final typeName = returnType?.element?.name;
+    final libraryUri = returnType?.element?.library?.source.uri;
+    final returnTypeName = typeName != null && libraryUri != null ? '$libraryUri::$typeName' : 'dynamic';
+    final function = ObjFunction(
+      name.isNotEmpty ? name : 'anonymous',
+      returnType: returnTypeName,
+      hasNullableReturnType: returnType?.nullabilitySuffix == NullabilitySuffix.question,
+    );
     final compiler = _Compiler(enclosing: this, function: function, debug: debug, hasThis: hasThis);
     emitCodes(OP_CLOSURE, addConstant(compiler.compile(body: body)));
     for (final upvalue in compiler.upvalues) {
@@ -628,7 +635,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       if (catchClause.exceptionType case TypeAnnotation type) {
         emitTypeCheck(type);
       } else {
-        emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck('dynamic', isCoreType: true)));
+        emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck('dynamic', libraryUri: 'dart:core')));
       }
       addLocal(catchClause.exceptionParameter?.name.lexeme ?? '');
       addLocal(catchClause.stackTraceParameter?.name.lexeme ?? '');
@@ -734,6 +741,16 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       emitCodes(OP_CLASS, addConstant(typeName));
       emitCodes(isTypeCheckSupported ? 1 : 0);
       emitCodes(OP_DEFINE_GLOBAL, addConstant('$typeName.class'));
+    }
+    // 先连接类型父类链，成员复制和实例初值仍由类体中的 OP_INHERIT 处理
+    final subclasses = declarations.where((e) => e.extendsClause != null).toList();
+    subclasses.sort((a, b) => a.declaredElement!.allSupertypes.length.compareTo(b.declaredElement!.allSupertypes.length));
+    for (final declaration in subclasses) {
+      debugUpdateNode(declaration.extendsClause);
+      final superclass = declaration.extendsClause!.superclass.name2.lexeme;
+      emitCodes(OP_GET_GLOBAL, addConstant('$superclass.class'));
+      emitCodes(OP_GET_GLOBAL, addConstant('${declaration.name.lexeme}.class'));
+      emitCodes(OP_LINK_SUPERCLASS);
     }
     super.compileCompilationUnit(node);
 
@@ -872,7 +889,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void compileMethodDeclaration(MethodDeclaration node) {
     final className = node.className;
     final methodName = node.name.lexeme;
-    final returnType = node.returnType?.type?.element?.name;
+    final returnType = node.returnType?.type;
     emitDefineClosure('$className.$methodName', returnType: returnType, hasThis: true, body: (compiler) {
       compiler.addFormalParameters(node.parameters);
       node.body.accept(compiler);
@@ -995,7 +1012,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
         error("Unsupported type check '$type'.");
       }
       // 宿主别名可能有独立的 .with 入口，脚本中遮蔽的同名别名不能复用它
-      if (alias.library != library) aliases.add(alias.name);
+      if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
       alias = alias.aliasedType.alias?.element;
     }
     final nullableSuffix = resolvedType?.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
@@ -1005,8 +1022,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       _ => type.toSource(),
     };
     final isScriptType = resolvedType is InterfaceType && resolvedType.element.library == library;
-    final isCoreType = resolvedType is DynamicType || resolvedType is NeverType || resolvedType?.element?.library?.isDartCore == true;
-    final typeCheck = ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType, isCoreType: isCoreType);
+    final isIntrinsicType = resolvedType is DynamicType || resolvedType is NeverType;
+    final libraryUri = isIntrinsicType ? 'dart:core' : resolvedType?.element?.library?.source.uri.toString();
+    final typeCheck = ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType, libraryUri: libraryUri);
     emitCodes(OP_CONSTANT, addConstant(typeCheck));
   }
 

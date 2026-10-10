@@ -130,6 +130,7 @@ class _VM implements VM {
     final isNullable = type.name.endsWith('?');
     final name = isNullable ? type.name.substring(0, type.name.length - 1) : type.name;
     final alias = type.aliases.firstWhereOrNull((alias) => globals['$alias.with']?.getter != null);
+    final nativeName = type.libraryUri != null ? '${type.libraryUri}::$name' : name;
     final bool Function(Object?) match;
     if (type.isScriptType) {
       final clazz = globals['$name.class']?.getter?.call();
@@ -141,7 +142,7 @@ class _VM implements VM {
       }
       match = (value) => value is ObjInstance && matchInstance(value, (actual) => identical(actual, clazz));
     } else if (alias != null || !type.isCoreType) {
-      match = nativeTypeMatcher(alias ?? name);
+      match = nativeTypeMatcher(alias ?? nativeName);
     } else {
       switch (name) {
         case 'dynamic':
@@ -160,13 +161,18 @@ class _VM implements VM {
             return value is Function || value is ObjClosure || value is ObjBoundMethod;
           };
         default:
-          match = nativeTypeMatcher(name);
+          match = nativeTypeMatcher(nativeName);
       }
     }
     return (value) => (isNullable && value == null) || match(value);
   }
 
-  Function delegateClosure(ObjClosure closure) {
+  Function delegateFunction(Obj callee) {
+    final closure = switch (callee) {
+      ObjClosure() => callee,
+      ObjBoundMethod() => callee.method,
+      _ => throw EvalRuntimeError("Unsupported delegate '$callee' of type '${callee.runtimeType}'."),
+    };
     final function = closure.function;
     final parameters = closure.parameters;
     final count = parameters.where((e) => e.isPositional).length;
@@ -177,27 +183,33 @@ class _VM implements VM {
       throw EvalRuntimeError("Unsupported delegate '$closure' with $count parameters greater than 2.");
     }
     return withOrThrow(function.returnType, <T>() {
-      const $ = ObjParameter;
-      return ([$0 = $, $1 = $]) {
-        final previous = continuation;
-        resume(ObjContinuation());
-        try {
-          push(closure);
-          if (count > 0) push($0 != $ ? $0 : parameters[0].getDefaultValue(function.name));
-          if (count > 1) push($1 != $ ? $1 : parameters[1].getDefaultValue(function.name));
-          call(closure, count);
-          return execute() as T;
-        } finally {
-          resume(previous);
-        }
-      };
+      Function delegate<R>() {
+        const $ = ObjParameter;
+        return ([$0 = $, $1 = $]) {
+          final previous = continuation;
+          resume(ObjContinuation());
+          try {
+            push(callee);
+            if (count > 0) push($0 != $ ? $0 : parameters[0].getDefaultValue(function.name));
+            if (count > 1) push($1 != $ ? $1 : parameters[1].getDefaultValue(function.name));
+            callValue(callee, count);
+            final value = execute();
+            final isScriptFunction = value is ObjClosure || value is ObjBoundMethod;
+            final returnsFunction = <Function>[] is List<R> && <R>[] is List<Function?>;
+            return (returnsFunction && isScriptFunction ? delegateArgument(value) : value) as R;
+          } finally {
+            resume(previous);
+          }
+        };
+      }
+      return function.hasNullableReturnType ? delegate<T?>() : delegate<T>();
     });
   }
 
   dynamic delegateArgument(dynamic argument) {
     if (argument is! Obj) return argument;
     return switch (argument) {
-      ObjClosure() => delegateClosure(argument),
+      ObjClosure() || ObjBoundMethod() => delegateFunction(argument),
       _ => throw EvalRuntimeError("Unsupported delegate '$argument' of type '${argument.runtimeType}'."),
     };
   }
@@ -427,7 +439,7 @@ class _VM implements VM {
           case OP_DEFINE_GLOBAL:
             final name = readString(frame);
             final property = EvalProperty.variable(pop());
-            assert(globals[name] == null, name);
+            assert(globals[name] is! EvalProperty, name);
             globals[name] = property;
           case OP_GET_LOCAL:
             final slot = readCode(frame);
@@ -500,6 +512,14 @@ class _VM implements VM {
             }
             push(value);
             setter(instance, value);
+          case OP_LINK_SUPERCLASS:
+            final subclass = pop() as ObjClass;
+            final superclass = pop();
+            if (superclass is! ObjClass) {
+              throw EvalRuntimeError('Superclass must be a class.');
+            }
+            subclass.superclass = superclass;
+            subclass.isTypeCheckSupported = subclass.isTypeCheckSupported && superclass.isTypeCheckSupported;
           case OP_INHERIT:
             final subclass = pop() as ObjClass;
             final superclass = peek();
