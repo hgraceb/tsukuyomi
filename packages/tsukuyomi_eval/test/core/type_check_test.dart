@@ -285,6 +285,210 @@ void main() {
     });
   });
 
+  group('Raw type aliases', () {
+    for (final entry in [
+      (type: 'List', value: '<int>[]'),
+      (type: 'Iterable', value: '<int>[]'),
+      (type: 'Map', value: '<String, int>{}'),
+      (type: 'Set', value: '<int>{}'),
+      (type: 'Iterator', value: '<int>[].iterator'),
+    ]) {
+      test('${entry.type} aliases preserve raw targets through chains and nullable annotations', () async {
+        final source =
+            '''
+typedef Target = ${entry.type};
+typedef Chained = Target;
+typedef Nullable = Chained?;
+void main() {
+  dynamic value = ${entry.value};
+  print(value is Target);
+  print((value as Target) == value);
+  print(value is! Chained);
+  print((value as Chained) == value);
+  print(null as Nullable);
+  print(null as Target?);
+  print(null is Nullable);
+  print(null is Target);
+  try { throw value; }
+  on Chained catch (error) { print(error == value); }
+}
+        ''';
+        await expectLater(() => eval(source), println([true, true, false, true, null, null, true, false, true]));
+      });
+    }
+
+    test('a raw alias to a bounded generic script class still reports the script boundary', () async {
+      const source = '''
+class Box<T extends num> {}
+typedef RawBox = Box;
+void main() { print(null is RawBox?); }
+      ''';
+      await expectLater(
+        eval(source),
+        throwsA(isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains('Unsupported type check'))),
+      );
+    });
+  });
+
+  group('Registered bridge aliases', () {
+    test('an alias retains its registered matcher when the declared underlying name is unregistered', () async {
+      const source = '''
+import 'package:alias_types/alias_types.dart';
+void main() {
+  final value = hostValue;
+  print(value is PublicValue);
+  print(value is! PublicValue);
+  print((value as PublicValue) == value);
+  print(0 is PublicValue);
+  print(null is PublicValue);
+  print(null as PublicValue?);
+  try { throw value; }
+  on PublicValue catch (error) { print(error == value); }
+}
+      ''';
+      await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([true, false, true, false, false, null, true]));
+    });
+
+    test('script aliases can resolve through a registered bridge alias', () async {
+      const source = '''
+import 'package:alias_types/alias_types.dart';
+typedef Local = PublicValue;
+typedef Nullable = Local?;
+void main() {
+  final value = hostValue;
+  print(value is Local);
+  print((value as Local) == value);
+  print(null as Nullable);
+  try { throw value; }
+  on Local catch (error) { print(error == value); }
+}
+      ''';
+      await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([true, true, null, true]));
+    });
+
+    test('unregistered library aliases can resolve through another registered alias', () async {
+      const source = '''
+import 'package:alias_types/alias_types.dart';
+void main() {
+  final value = hostValue;
+  print(value is PublicChain);
+  print((value as PublicChain) == value);
+  print(null as PublicChain?);
+  try { throw value; }
+  on PublicChain catch (error) { print(error == value); }
+}
+      ''';
+      await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([true, true, null, true]));
+    });
+
+    test('script declarations shadow an imported bridge alias', () async {
+      const source = '''
+import 'package:alias_types/alias_types.dart';
+class PublicValue {}
+void main() {
+  final value = PublicValue();
+  print(value is PublicValue);
+  print((value as PublicValue) == value);
+  print(hostValue is PublicValue);
+}
+      ''';
+      await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([true, true, false]));
+    });
+
+    test('a script typedef does not reuse a shadowed imported bridge matcher', () async {
+      const source = '''
+import 'package:alias_types/alias_types.dart';
+typedef PublicValue = num;
+void main() {
+  print(0 is PublicValue);
+  print(0 as PublicValue);
+  print(hostValue is PublicValue);
+}
+      ''';
+      await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([true, 0, false]));
+    });
+
+    for (final entry in [
+      (type: 'Values', value: '<int>[]'),
+      (type: 'Entries', value: '<String, int>{}'),
+      (type: 'Items', value: '<int>[]'),
+    ]) {
+      test('registered raw ${entry.type} aliases retain their matcher', () async {
+        final source =
+            '''
+import 'package:alias_types/alias_types.dart';
+void main() {
+  dynamic value = ${entry.value};
+  print(value is ${entry.type});
+  print((value as ${entry.type}) == value);
+  print(null as ${entry.type}?);
+  try { throw value; }
+  on ${entry.type} catch (error) { print(error == value); }
+}
+        ''';
+        await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([true, true, null, true]));
+      });
+    }
+  });
+
+  group('Shadowed core type names', () {
+    for (final name in ['Null', 'Never']) {
+      test('script $name retains its identity for casts, nullable checks and typed catches', () async {
+        final source =
+            '''
+class $name {}
+class Child extends $name {}
+typedef Target = $name;
+void main() {
+  final value = Child();
+  print(value is $name);
+  print((value as $name) == value);
+  print(value is Target);
+  print((value as Target) == value);
+  print(0 is $name);
+  print(null is $name);
+  print(null is $name?);
+  print(null as Target?);
+  try { throw value; }
+  on $name catch (error) { print(error == value); }
+  try { dynamic other = 0; print(other as $name); }
+  on TypeError { print('type error'); }
+}
+        ''';
+        await expectLater(() => eval(source), println([true, true, true, true, false, false, true, null, true, 'type error']));
+      });
+    }
+
+    test('library aliases retain their core origin when the script shadows the names', () async {
+      const source = '''
+import 'package:alias_types/alias_types.dart';
+class Null {}
+class Never {}
+void main() {
+  print(null as CoreNull);
+  print(null as CoreNever?);
+  print(0 as CoreObject);
+  print((() => 0) is CoreFunction);
+  print(Null() is CoreNull);
+  print(Never() is CoreNever);
+  print(Null() is Null);
+  print(Never() is Never);
+}
+      ''';
+      await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([null, null, 0, true, false, false, true, true]));
+    });
+
+    for (final name in ['Null', 'Never']) {
+      test('script $name retains its unsupported interface boundary', () async {
+        final source = 'class Interface {} class $name implements Interface {} void main() { print(null is $name?); }';
+        await expectLater(
+          eval(source),
+          throwsA(isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains('Unsupported type check'))),
+        );
+      });
+    }
+  });
+
   group('Forward script type checks', () {
     test('nullable casts in parent static fields can target a later child', () async {
       const source = '''
@@ -939,6 +1143,10 @@ void main() {
       (name: 'parameterized alias', declaration: 'typedef Target = List<int>;'),
       (name: 'nested parameterized alias', declaration: 'typedef Target = List<List<int>>;'),
       (name: 'parameterized alias chain', declaration: 'typedef IntList = List<int>; typedef Target = IntList;'),
+      (name: 'explicit dynamic alias', declaration: 'typedef Target = List<dynamic>;'),
+      (name: 'explicit dynamic map alias', declaration: 'typedef Target = Map<dynamic, dynamic>;'),
+      (name: 'explicit dynamic alias chain', declaration: 'typedef Values = List<dynamic>; typedef Target = Values;'),
+      (name: 'generic alias declaration', declaration: 'typedef Target<T> = List;'),
     ]) {
       for (final operator in ['is', 'as', 'on']) {
         test('${entry.name} is rejected before execution for $operator', () async {
@@ -950,6 +1158,17 @@ void main() {
           );
         });
       }
+    }
+
+    for (final operator in ['is', 'as', 'on']) {
+      test('registered explicit parameterized aliases remain rejected for $operator', () async {
+        final body = operator == 'on' ? 'try { throw value; } on ExplicitValues {}' : 'print(value $operator ExplicitValues);';
+        final source = "import 'package:alias_types/alias_types.dart'; void main() { dynamic value = null; $body }";
+        await expectLater(
+          eval(source, libraries: [_aliasLibrary()]),
+          throwsA(isA<EvalCompileError>().having((error) => error.toString(), 'message', contains('type check'))),
+        );
+      });
     }
 
     for (final operator in ['is', 'as']) {
@@ -1028,6 +1247,38 @@ class _NativeParent {}
 class _NativeChild extends _NativeParent {}
 
 class _NativeSibling extends _NativeParent {}
+
+class _HostValue {}
+
+DartLibrary _aliasLibrary() {
+  return DartLibrary('alias_types', path: 'alias_types.dart', declarations: [
+    DartClass<_HostValue>(($) => '''
+class InternalValue {}
+// ${$.alias('PublicValue')}
+typedef PublicValue = InternalValue;
+typedef PublicChain = PublicValue;
+    '''),
+    DartVariable('hostValue', _HostValue(), 'external PublicValue get hostValue;'),
+    DartClass<List>(($) => '''
+// ${$.alias('Values')}
+typedef Values = List;
+// ${$.alias('ExplicitValues')}
+typedef ExplicitValues = List<dynamic>;
+    '''),
+    DartClass<Map>(($) => '''
+// ${$.alias('Entries')}
+typedef Entries = Map;
+    '''),
+    DartClass<Iterable>(($) => '''
+// ${$.alias('Items')}
+typedef Items = Iterable;
+    '''),
+    DartClass<Null>(($) => 'typedef CoreNull = Null;'),
+    DartClass<Never>(($) => 'typedef CoreNever = Never;'),
+    DartClass<Object>(($) => 'typedef CoreObject = Object;'),
+    DartClass<Function>(($) => 'typedef CoreFunction = Function;'),
+  ]);
+}
 
 DartLibrary _nativeLibrary() {
   return DartLibrary('type_checks', path: 'type_checks.dart', declarations: [

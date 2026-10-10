@@ -95,6 +95,19 @@ class ObjClosure extends Obj {
   String toString() => function.toString();
 }
 
+class ObjTypeCheck extends Obj {
+  ObjTypeCheck(this.name, {this.aliases = const [], this.isScriptType = false});
+
+  final String name;
+
+  final List<String> aliases;
+
+  final bool isScriptType;
+
+  @override
+  String toString() => name;
+}
+
 class ObjClass extends Obj {
   ObjClass(this.name, {this.isTypeCheckSupported = true});
 

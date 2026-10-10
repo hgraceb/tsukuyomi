@@ -1,5 +1,7 @@
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/source/line_info.dart';
 
@@ -214,6 +216,8 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   final ObjFunction function;
 
   final _Compiler? enclosing;
+
+  late final Map<Uri, Map<String, GenericTypeAlias>> typeAliasDeclarations = enclosing?.typeAliasDeclarations ?? {};
 
   final upvalues = Stack<Upvalue>(MAX_UPVALUES);
 
@@ -626,7 +630,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       if (catchClause.exceptionType case TypeAnnotation type) {
         emitTypeCheck(type);
       } else {
-        emitCodes(OP_CONSTANT, addConstant('dynamic'));
+        emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck('dynamic')));
       }
       addLocal(catchClause.exceptionParameter?.name.lexeme ?? '');
       addLocal(catchClause.stackTraceParameter?.name.lexeme ?? '');
@@ -717,6 +721,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileCompilationUnit(CompilationUnit node) {
+    typeAliasDeclarations[node.declaredElement!.source.uri] = {
+      for (final declaration in node.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration,
+    };
     // 先创建类型身份，类成员和静态初值仍按声明顺序执行
     for (final declaration in node.declarations.whereType<ClassDeclaration>()) {
       debugUpdateNode(declaration);
@@ -957,17 +964,45 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     emitCodes(OP_POP);
   }
 
+  GenericTypeAlias? getTypeAliasDeclaration(TypeAliasElement element) {
+    // 解析后的类型已补齐 raw 实参，保留别名声明才能区分显式参数化目标
+    final source = element.source;
+    final declarations = typeAliasDeclarations.putIfAbsent(source.uri, () {
+      final unit = parseString(content: source.contents.data, throwIfDiagnostics: false).unit;
+      return {for (final declaration in unit.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration};
+    });
+    return declarations[element.name];
+  }
+
   void emitTypeCheck(TypeAnnotation type) {
     final isSimpleNamedType = type is NamedType && type.typeArguments == null && type.importPrefix == null;
     final resolvedType = type.type;
     final isParameterOrFunctionType = resolvedType is TypeParameterType || resolvedType is FunctionType;
-    final isParameterizedAlias = resolvedType is InterfaceType && resolvedType.alias != null && resolvedType.typeArguments.isNotEmpty;
-    if (!isSimpleNamedType || isParameterOrFunctionType || isParameterizedAlias) {
+    if (!isSimpleNamedType || isParameterOrFunctionType) {
       error("Unsupported type check '$type'.");
     }
     final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
-    final typeName = isResolvedAlias ? resolvedType.getDisplayString(withNullability: true) : type.toSource();
-    emitCodes(OP_CONSTANT, addConstant(typeName));
+    final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
+    final aliases = <String>[];
+    TypeAliasElement? alias = isResolvedAlias ? type.element as TypeAliasElement : null;
+    while (alias != null) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      final isSimpleTarget = target is NamedType && target.typeArguments == null && target.importPrefix == null;
+      if (alias.typeParameters.isNotEmpty || !isSimpleTarget) {
+        error("Unsupported type check '$type'.");
+      }
+      // 宿主别名可能有独立的 .with 入口，脚本中遮蔽的同名别名不能复用它
+      if (alias.library != library) aliases.add(alias.name);
+      alias = alias.aliasedType.alias?.element;
+    }
+    final nullableSuffix = resolvedType?.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
+    final typeName = switch (resolvedType) {
+      InterfaceType() when isResolvedAlias => '${resolvedType.element.name}$nullableSuffix',
+      DartType() when isResolvedAlias => resolvedType.getDisplayString(withNullability: true),
+      _ => type.toSource(),
+    };
+    final isScriptType = resolvedType is InterfaceType && resolvedType.element.library == library;
+    emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType)));
   }
 
   @override

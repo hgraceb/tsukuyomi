@@ -113,45 +113,55 @@ class _VM implements VM {
     return false;
   }
 
-  bool Function(Object?) typeMatcher(String type) {
-    final isNullable = type.endsWith('?');
-    final name = isNullable ? type.substring(0, type.length - 1) : type;
+  bool Function(Object?) nativeTypeMatcher(String name) {
+    return withOrThrow(name, <T>() => (Object? value) {
+      if (value is T) return true;
+      if (value is ObjClosure || value is ObjBoundMethod) {
+        return <Function>[] is List<T>;
+      }
+      if (value is ObjInstance) {
+        return matchInstance(value, (actual) => actual.isDartSubtype?.call<T>() ?? false);
+      }
+      return false;
+    });
+  }
+
+  bool Function(Object?) typeMatcher(ObjTypeCheck type) {
+    final isNullable = type.name.endsWith('?');
+    final name = isNullable ? type.name.substring(0, type.name.length - 1) : type.name;
+    final alias = type.aliases.firstWhereOrNull((alias) => globals['$alias.with']?.getter != null);
     final bool Function(Object?) match;
-    switch (name) {
-      case 'dynamic':
-        match = (_) => true;
-      case 'Object':
-        match = (value) => value != null;
-      case 'Null':
-        match = (value) => value == null;
-      case 'Never':
-        match = (_) => false;
-      case 'Function':
-        match = (value) {
-          if (value is ObjInstance) {
-            return matchInstance(value, (actual) => actual.isDartSubtype?.call<Function>() ?? false);
-          }
-          return value is Function || value is ObjClosure || value is ObjBoundMethod;
-        };
-      default:
-        final clazz = globals['$name.class']?.getter?.call();
-        if (clazz is ObjClass && clazz.isDartSubtype == null) {
-          if (!clazz.isTypeCheckSupported) {
-            throw EvalRuntimeError("Unsupported type check for class '${clazz.name}'.");
-          }
-          match = (value) => value is ObjInstance && matchInstance(value, (actual) => identical(actual, clazz));
-        } else {
-          match = withOrThrow(name, <T>() => (Object? value) {
-            if (value is T) return true;
-            if (value is ObjClosure || value is ObjBoundMethod) {
-              return <Function>[] is List<T>;
-            }
+    if (type.isScriptType) {
+      final clazz = globals['$name.class']?.getter?.call();
+      if (clazz is! ObjClass) {
+        throw EvalRuntimeError("Undefined getter for '$name.class'.");
+      }
+      if (!clazz.isTypeCheckSupported) {
+        throw EvalRuntimeError("Unsupported type check for class '${clazz.name}'.");
+      }
+      match = (value) => value is ObjInstance && matchInstance(value, (actual) => identical(actual, clazz));
+    } else if (alias != null) {
+      match = nativeTypeMatcher(alias);
+    } else {
+      switch (name) {
+        case 'dynamic':
+          match = (_) => true;
+        case 'Object':
+          match = (value) => value != null;
+        case 'Null':
+          match = (value) => value == null;
+        case 'Never':
+          match = (_) => false;
+        case 'Function':
+          match = (value) {
             if (value is ObjInstance) {
-              return matchInstance(value, (actual) => actual.isDartSubtype?.call<T>() ?? false);
+              return matchInstance(value, (actual) => actual.isDartSubtype?.call<Function>() ?? false);
             }
-            return false;
-          });
-        }
+            return value is Function || value is ObjClosure || value is ObjBoundMethod;
+          };
+        default:
+          match = nativeTypeMatcher(name);
+      }
     }
     return (value) => (isNullable && value == null) || match(value);
   }
@@ -633,11 +643,11 @@ class _VM implements VM {
             frame = frames.last;
             push(future);
           case OP_IS:
-            final type = pop() as String;
+            final type = pop() as ObjTypeCheck;
             final value = pop() as Object?;
             push(typeMatcher(type)(value));
           case OP_AS:
-            final type = pop() as String;
+            final type = pop() as ObjTypeCheck;
             final value = peek();
             if (!typeMatcher(type)(value)) {
               final actual = value is ObjInstance ? value.clazz.name : value.runtimeType.toString();
@@ -734,7 +744,7 @@ class _VM implements VM {
             final slot = stack.size;
             trying = ObjTrying(enclosing: trying, frame: frame, slot: slot, start: start, end: frame.ip += offset);
           case OP_CATCH_JUMP:
-            final type = pop() as String;
+            final type = pop() as ObjTypeCheck;
             final offset = readCode(frame);
             final match = typeMatcher(type);
             final catching = ObjCatching(start: frame.ip, end: frame.ip += offset, match: match);
