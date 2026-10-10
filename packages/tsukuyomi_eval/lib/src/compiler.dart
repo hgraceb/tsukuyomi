@@ -18,6 +18,19 @@ extension on ClassDeclaration {
   bool get hasUnnamedConstructor {
     return members.whereType<ConstructorDeclaration>().isEmpty;
   }
+
+  bool get isTypeCheckSupported {
+    // 尚未保存接口、mixin 和泛型关系，类型检查不能按普通父类链猜测
+    final hasGenericTypes = typeParameters != null || extendsClause?.superclass.typeArguments != null;
+    final hasInterfacesOrMixins = implementsClause != null || withClause != null;
+    final element = declaredElement;
+    final scriptParents = element?.allSupertypes.where((type) => type.element.library == element.library) ?? const <InterfaceType>[];
+    final hasUnsupportedParents = scriptParents.any((type) {
+      final parent = type.element;
+      return parent.typeParameters.isNotEmpty || parent.interfaces.isNotEmpty || parent.mixins.isNotEmpty;
+    });
+    return !hasGenericTypes && !hasInterfacesOrMixins && !hasUnsupportedParents;
+  }
 }
 
 extension on FieldDeclaration {
@@ -708,6 +721,14 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileCompilationUnit(CompilationUnit node) {
+    // 先创建类型身份，类成员和静态初值仍按声明顺序执行
+    for (final declaration in node.declarations.whereType<ClassDeclaration>()) {
+      debugUpdateNode(declaration);
+      final typeName = declaration.name.lexeme;
+      emitCodes(OP_CLASS, addConstant(typeName));
+      emitCodes(declaration.isTypeCheckSupported ? 1 : 0);
+      emitCodes(OP_DEFINE_GLOBAL, addConstant('$typeName.class'));
+    }
     super.compileCompilationUnit(node);
 
     // TODO 重构程序入口调用方式
@@ -732,13 +753,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     assert(scopeDepth == 0);
     final typeName = node.name.lexeme;
     final className = '$typeName.class';
-    emitCodes(OP_CLASS, addConstant(typeName));
-    // 尚未保存接口、mixin 和泛型关系，类型检查不能按普通父类链猜测
-    final hasGenericTypes = node.typeParameters != null || node.extendsClause?.superclass.typeArguments != null;
-    final hasInterfacesOrMixins = node.implementsClause != null || node.withClause != null;
-    final isTypeCheckSupported = !hasGenericTypes && !hasInterfacesOrMixins;
-    emitCodes(isTypeCheckSupported ? 1 : 0);
-    emitCodes(OP_DEFINE_GLOBAL, addConstant(className));
 
     if (node.hasUnnamedConstructor) {
       final function = ObjFunction('$typeName.new', returnType: 'void');
@@ -955,7 +969,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     if (!isSimpleNamedType || isParameterOrFunctionType || isParameterizedAlias) {
       error("Unsupported type check '$type'.");
     }
-    emitCodes(OP_CONSTANT, addConstant(type.toSource()));
+    final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
+    final typeName = isResolvedAlias ? resolvedType.getDisplayString(withNullability: true) : type.toSource();
+    emitCodes(OP_CONSTANT, addConstant(typeName));
   }
 
   @override

@@ -147,6 +147,260 @@ void main() {
     });
   });
 
+  group('Non-parameterized type aliases', () {
+    test('native aliases and alias chains use their underlying targets', () async {
+      const source = '''
+typedef Number = num;
+typedef Numeric = Number;
+typedef Text = String;
+void main() {
+  dynamic value = 0;
+  print(value as Number);
+  print(value as Numeric);
+  print(value is Number);
+  print(value is! Number);
+  print(value is Text);
+  value = '';
+  print(value as Text);
+  print(value is Text);
+}
+      ''';
+      await expectLater(() => eval(source), println([0, 0, true, false, false, '', true]));
+    });
+
+    test('nullable aliases retain nullability from both the definition and the target', () async {
+      const source = '''
+typedef Number = num;
+typedef MaybeNumber = num?;
+typedef NullableNumber = MaybeNumber;
+void main() {
+  dynamic value = null;
+  print(value as Number?);
+  print(value as MaybeNumber);
+  print(value as NullableNumber);
+  print(value is Number);
+  print(value is Number?);
+  print(value is MaybeNumber);
+  value = 0;
+  print(value as MaybeNumber);
+  print(value is NullableNumber);
+}
+      ''';
+      await expectLater(() => eval(source), println([null, null, null, false, true, true, 0, true]));
+    });
+
+    test('intrinsic aliases retain their own null rules', () async {
+      const source = '''
+typedef Any = dynamic;
+typedef Root = Object;
+typedef Empty = Null;
+typedef Bottom = Never;
+void main() {
+  dynamic value = null;
+  print(value as Any);
+  print(value as Root?);
+  print(value as Empty);
+  print(value as Bottom?);
+  print(value is Any);
+  print(value is Root);
+  print(value is Empty);
+  print(value is Bottom);
+  value = 0;
+  print(value as Root);
+  print(value is Bottom);
+}
+      ''';
+      await expectLater(() => eval(source), println([null, null, null, null, true, false, true, false, 0, false]));
+    });
+
+    test('bare Function aliases recognize script and native functions', () async {
+      const source = '''
+typedef Callback = Function;
+typedef MaybeCallback = Callback?;
+class Example { int read() => 0; }
+void main() {
+  dynamic callback = () => 0;
+  print(callback is Callback);
+  print((callback as Callback)());
+  print(Example().read is Callback);
+  print(print is Callback);
+  print(null is Callback);
+  print(null is MaybeCallback);
+  print(null as MaybeCallback);
+}
+      ''';
+      await expectLater(() => eval(source), println([true, 0, true, true, false, true, null]));
+    });
+
+    test('script aliases retain the underlying class identity and inheritance', () async {
+      const source = '''
+typedef ParentAlias = Parent;
+typedef MaybeParent = ParentAlias?;
+class Parent {}
+class Child extends Parent {}
+class Other {}
+void main() {
+  dynamic value = Child();
+  print(value is ParentAlias);
+  print((value as ParentAlias) == value);
+  print(value is Child);
+  print(Other() is ParentAlias);
+  print(null is ParentAlias);
+  print(null as MaybeParent);
+}
+      ''';
+      await expectLater(() => eval(source), println([true, true, true, false, false, null]));
+    });
+
+    test('typed catches share the expanded aliases for native and script values', () async {
+      const source = '''
+typedef Number = num;
+typedef ParentAlias = Parent;
+typedef Callback = Function;
+class Parent {}
+class Child extends Parent {}
+void main() {
+  try { throw 0; }
+  on Number catch (error) { print(error as Number); }
+  try { throw Child(); }
+  on ParentAlias catch (error) { print(error is Child); }
+  try { throw () => 0; }
+  on Callback catch (error) { print((error as Callback)()); }
+}
+      ''';
+      await expectLater(() => eval(source), println([0, true, 0]));
+    });
+
+    test('failed alias casts remain TypeErrors for the underlying nullable target', () async {
+      const source = '''
+typedef MaybeNumber = num?;
+void main() {
+  dynamic value = '';
+  try { print(value as MaybeNumber); }
+  on TypeError { print('type error'); }
+  finally { print('finally'); }
+}
+      ''';
+      await expectLater(() => eval(source), println(['type error', 'finally']));
+    });
+  });
+
+  group('Forward script type checks', () {
+    test('nullable casts in parent static fields can target a later child', () async {
+      const source = '''
+class Parent { static final Child? child = null as Child?; }
+class Child extends Parent {}
+void main() { print(Parent.child); }
+      ''';
+      await expectLater(() => eval(source), println([null]));
+    });
+
+    test('nullable aliases can target a script class declared after the static field', () async {
+      const source = '''
+typedef MaybeChild = Child?;
+class Parent { static final Child? child = null as MaybeChild; }
+class Child extends Parent {}
+void main() { print(Parent.child); }
+      ''';
+      await expectLater(() => eval(source), println([null]));
+    });
+
+    test('null checks retain nullable and non-nullable rules before the class body runs', () async {
+      const source = '''
+class Parent {
+  static final bool nullable = null is Child?;
+  static final bool nonNullable = null is Child;
+  static final bool negated = null is! Child?;
+}
+class Child extends Parent {}
+void main() {
+  print(Parent.nullable);
+  print(Parent.nonNullable);
+  print(Parent.negated);
+}
+      ''';
+      await expectLater(() => eval(source), println([true, false, false]));
+    });
+
+    test('an earlier parent instance still fails a cast to the later child', () async {
+      const source = '''
+class Parent {
+  static final bool rejected = inspect();
+  static bool inspect() {
+    dynamic value = Parent();
+    try { value as Child?; }
+    on TypeError { return true; }
+    return false;
+  }
+}
+class Child extends Parent {}
+void main() { print(Parent.rejected); }
+      ''';
+      await expectLater(() => eval(source), println([true]));
+    });
+
+    test('a typed catch registered early keeps the final class identity', () async {
+      const source = '''
+class Parent {
+  static final String matched = inspect();
+  static String inspect() {
+    try { throw Parent(); }
+    on Child { return 'child'; }
+    on Parent { return 'parent'; }
+  }
+}
+class Child extends Parent {}
+void main() {
+  print(Parent.matched);
+  try { throw Child(); }
+  on Child { print('child'); }
+}
+      ''';
+      await expectLater(() => eval(source), println(['parent', 'child']));
+    });
+
+    test('preparing identities preserves static order and does not run instance initializers', () async {
+      const source = '''
+String childValue() { print('child static'); return ''; }
+class Parent {
+  static final Child? child = inspect();
+  static Child? inspect() { print('parent static'); return null as Child?; }
+}
+class Child extends Parent {
+  static final String value = childValue();
+  final field = initialize();
+}
+int initialize() { print('instance'); return 0; }
+void main() {
+  final child = Parent.child;
+  final value = Child.value;
+  print(child);
+  print(value);
+}
+      ''';
+      await expectLater(() => eval(source), println(['parent static', 'child static', null, '']));
+    });
+
+    for (final entry in [
+      (name: 'generic parent', parent: 'class Parent<T>', extra: ''),
+      (name: 'interface parent', parent: 'class Parent implements Interface', extra: 'class Interface {}'),
+      (name: 'mixin parent', parent: 'class Parent with Extra', extra: 'mixin Extra {}'),
+    ]) {
+      test('a forward target with an unsupported ${entry.name} still reports its boundary', () async {
+        final source = '''
+${entry.extra}
+${entry.parent} { static final Child? child = null as Child?; }
+class Child extends Parent {}
+void main() { print(Parent.child); }
+        ''';
+        await expectLater(
+          eval(source),
+          throwsA(isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains('Unsupported type check'))),
+        );
+      });
+    }
+  });
+
   group('Script class type checks', () {
     test('is and as evaluate the operand only once', () async {
       const source = '''
