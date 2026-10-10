@@ -11,5 +11,5 @@ dynamic eval(String source, {List<DartLibrary> libraries = const [], bool debug 
   final resolved = await resolve(source, context);
   final compiler = Compiler(debug: debug, debugLineInfo: resolved.lineInfo);
   final function = compiler.compile(node: resolved.unit);
-  return VM(debug: debug, globals: context.props).interpret(function);
+  return VM(debug: debug, globals: resolveProperties(resolved, context)).interpret(function);
 }

@@ -29,6 +29,12 @@ int _byteInstruction(String name, Chunk chunk, int offset) {
   return offset + 2;
 }
 
+int _classInstruction(Chunk chunk, int offset) {
+  final next = _constantInstruction('OP_CLASS', chunk, offset);
+  stdout.write('${'type check'.padLeft(_padding)} ${chunk.codeAt(next) == 1}\n');
+  return next + 1;
+}
+
 int _jumpInstruction(String name, Chunk chunk, int offset) {
   final jump = chunk.codeAt(offset + 1);
   stdout.write('${name.padRight(_padding)} $offset -> ');
@@ -94,10 +100,11 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_SET_UPVALUE => _byteInstruction('OP_SET_UPVALUE', chunk, offset),
     OP_CLOSE_UPVALUE => _simpleInstruction('OP_CLOSE_UPVALUE', offset),
     OP_CLOSE_UPVALUES => _byteInstruction('OP_CLOSE_UPVALUES', chunk, offset),
-    OP_CLASS => _constantInstruction('OP_CLASS', chunk, offset),
+    OP_CLASS => _classInstruction(chunk, offset),
     OP_GET_PROPERTY => _constantInstruction('OP_GET_PROPERTY', chunk, offset),
     OP_SET_PROPERTY => _constantInstruction('OP_SET_PROPERTY', chunk, offset),
     OP_INHERIT => _simpleInstruction('OP_INHERIT', offset),
+    OP_LINK_SUPERCLASS => _simpleInstruction('OP_LINK_SUPERCLASS', offset),
     OP_GET_SUPER => _constantInstruction('OP_GET_SUPER', chunk, offset),
     OP_SET_SUPER => _constantInstruction('OP_SET_SUPER', chunk, offset),
     OP_PEEK => _byteInstruction('OP_PEEK', chunk, offset),
@@ -120,6 +127,7 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_ASYNC => _simpleInstruction('OP_ASYNC', offset),
     OP_AWAIT => _simpleInstruction('OP_AWAIT', offset),
     OP_IS => _simpleInstruction('OP_IS', offset),
+    OP_AS => _simpleInstruction('OP_AS', offset),
     OP_OPERATOR_1 => _constantInstruction('OP_OPERATOR_1', chunk, offset),
     OP_OPERATOR_2 => _constantInstruction('OP_OPERATOR_2', chunk, offset),
     OP_OPERATOR_3 => _constantInstruction('OP_OPERATOR_3', chunk, offset),

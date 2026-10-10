@@ -84,6 +84,8 @@ class DartLibrary extends DartDeclaration {
   late final String source;
 
   late final Set<String> debugProps = {};
+
+  String get uri => name.startsWith('dart:') ? name : Uri(scheme: 'package', path: '$name/$path').normalizePath().toString();
 }
 
 class DartClass<T> extends DartDeclaration {
@@ -150,7 +152,16 @@ class DartClassRegister<T> {
 
   String empty(String prop, dynamic Function() getter) {
     assert(prop.isNotEmpty && prop.contains('.') && clazz.props[prop]?.getter == null, prop);
-    clazz.props[prop] = DartProperty(getter: getter, setter: clazz.props[prop]?.setter);
+    var propertyGetter = getter;
+    if (prop.endsWith('.class')) {
+      propertyGetter = () {
+        final superclass = getter() as ObjClass;
+        // 用泛型协变检查真实宿主类型关系，不依赖代理类名或临时对象身份
+        superclass.isDartSubtype = <S>() => <T>[] is List<S>;
+        return superclass;
+      };
+    }
+    clazz.props[prop] = DartProperty(getter: propertyGetter, setter: clazz.props[prop]?.setter);
     return '';
   }
 

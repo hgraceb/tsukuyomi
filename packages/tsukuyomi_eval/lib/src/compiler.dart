@@ -1,5 +1,7 @@
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/source/line_info.dart';
 
@@ -17,6 +19,20 @@ typedef _AssignmentTarget = ({int operandCount, void Function() read, void Funct
 extension on ClassDeclaration {
   bool get hasUnnamedConstructor {
     return members.whereType<ConstructorDeclaration>().isEmpty;
+  }
+
+  bool get hasUnsupportedTypeRelations {
+    // 尚未保存接口、mixin 和泛型关系，类型检查不能按普通父类链猜测
+    final hasInterfacesOrMixins = implementsClause != null || withClause != null;
+    final hasGenericTypes = typeParameters != null || extendsClause?.superclass.typeArguments != null;
+    return hasGenericTypes || hasInterfacesOrMixins;
+  }
+
+  String get superclassName {
+    final superclass = extendsClause!.superclass;
+    final className = '${superclass.name2.lexeme}.class';
+    final library = superclass.element?.library;
+    return library != null && library != declaredElement?.library ? '${library.source.uri}::$className' : className;
   }
 }
 
@@ -94,9 +110,9 @@ extension on NullShortableExpression {
 }
 
 extension on FunctionExpression {
-  String? get returnType {
+  DartType? get returnType {
     return switch (staticType) {
-      FunctionType type => type.returnType.element?.name,
+      FunctionType type => type.returnType,
       _ => null,
     };
   }
@@ -196,10 +212,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   Shorting? shorting;
 
-  late int scopeDepth;
-
-  late final List<Local> locals;
-
   final bool debug;
 
   final ObjFunction function;
@@ -207,6 +219,12 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   final _Compiler? enclosing;
 
   final upvalues = Stack<Upvalue>(MAX_UPVALUES);
+
+  late int scopeDepth;
+
+  late final List<Local> locals;
+
+  late final Map<Uri, Map<String, GenericTypeAlias>> typeAliasDeclarations = enclosing?.typeAliasDeclarations ?? {};
 
   Chunk get chunk => function.chunk;
 
@@ -358,8 +376,15 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
   }
 
-  void emitDefineClosure(String name, {String? returnType, bool? hasThis, _CompilerBody? body}) {
-    final function = ObjFunction(name.isNotEmpty ? name : 'anonymous', returnType: returnType ?? 'dynamic');
+  void emitDefineClosure(String name, {DartType? returnType, bool? hasThis, _CompilerBody? body}) {
+    final typeName = returnType?.element?.name;
+    final libraryUri = returnType?.element?.library?.source.uri;
+    final returnTypeName = typeName != null && libraryUri != null ? '$libraryUri::$typeName' : 'dynamic';
+    final function = ObjFunction(
+      name.isNotEmpty ? name : 'anonymous',
+      returnType: returnTypeName,
+      hasNullableReturnType: returnType?.nullabilitySuffix == NullabilitySuffix.question,
+    );
     final compiler = _Compiler(enclosing: this, function: function, debug: debug, hasThis: hasThis);
     emitCodes(OP_CLOSURE, addConstant(compiler.compile(body: body)));
     for (final upvalue in compiler.upvalues) {
@@ -614,10 +639,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       debugUpdateNode(catchClause);
       patchJump(trying!.blockOffset);
       beginScope();
-      if (catchClause.exceptionType case NamedType? type when '$type'.contains('<') != true) {
-        emitCodes(OP_CONSTANT, addConstant(type != null ? type.name2.lexeme : 'dynamic'));
+      if (catchClause.exceptionType case TypeAnnotation type) {
+        emitTypeCheck(type);
       } else {
-        error("Unsupported catch on type '${catchClause.exceptionType}'.");
+        emitCodes(OP_CONSTANT, addConstant(ObjTypeCheck('dynamic', libraryUri: 'dart:core')));
       }
       addLocal(catchClause.exceptionParameter?.name.lexeme ?? '');
       addLocal(catchClause.stackTraceParameter?.name.lexeme ?? '');
@@ -708,6 +733,34 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileCompilationUnit(CompilationUnit node) {
+    typeAliasDeclarations[node.declaredElement!.source.uri] = {
+      for (final declaration in node.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration,
+    };
+    final declarations = node.declarations.whereType<ClassDeclaration>();
+    final unsupportedClasses = declarations
+        .where((e) => e.hasUnsupportedTypeRelations || hasUnsupportedSuperclassAlias(e))
+        .map((e) => e.declaredElement)
+        .toSet();
+    // 先创建类型身份，类成员和静态初值仍按声明顺序执行
+    for (final declaration in declarations) {
+      debugUpdateNode(declaration);
+      final parents = declaration.declaredElement?.allSupertypes ?? [];
+      final hasUnsupportedParents = parents.any((e) => unsupportedClasses.contains(e.element));
+      final isTypeCheckSupported = !unsupportedClasses.contains(declaration.declaredElement) && !hasUnsupportedParents;
+      final typeName = declaration.name.lexeme;
+      emitCodes(OP_CLASS, addConstant(typeName));
+      emitCodes(isTypeCheckSupported ? 1 : 0);
+      emitCodes(OP_DEFINE_GLOBAL, addConstant('$typeName.class'));
+    }
+    // 先连接类型父类链，成员复制和实例初值仍由类体中的 OP_INHERIT 处理
+    final subclasses = declarations.where((e) => e.extendsClause != null).toList();
+    subclasses.sort((a, b) => a.declaredElement!.allSupertypes.length.compareTo(b.declaredElement!.allSupertypes.length));
+    for (final declaration in subclasses) {
+      debugUpdateNode(declaration.extendsClause);
+      emitCodes(OP_GET_GLOBAL, addConstant(declaration.superclassName));
+      emitCodes(OP_GET_GLOBAL, addConstant('${declaration.name.lexeme}.class'));
+      emitCodes(OP_LINK_SUPERCLASS);
+    }
     super.compileCompilationUnit(node);
 
     // TODO 重构程序入口调用方式
@@ -732,8 +785,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     assert(scopeDepth == 0);
     final typeName = node.name.lexeme;
     final className = '$typeName.class';
-    emitCodes(OP_CLASS, addConstant(typeName));
-    emitCodes(OP_DEFINE_GLOBAL, addConstant(className));
 
     if (node.hasUnnamedConstructor) {
       final function = ObjFunction('$typeName.new', returnType: 'void');
@@ -803,7 +854,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void compileExtendsClause(ExtendsClause node) {
     node.superclass.accept(this);
     final classDeclaration = node.parent as ClassDeclaration;
-    emitCodes(OP_GET_GLOBAL, addConstant('${node.superclass.name2.lexeme}.class'));
     emitCodes(OP_GET_GLOBAL, addConstant('${classDeclaration.name.lexeme}.class'));
     emitCodes(OP_INHERIT);
   }
@@ -847,7 +897,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void compileMethodDeclaration(MethodDeclaration node) {
     final className = node.className;
     final methodName = node.name.lexeme;
-    final returnType = node.returnType?.type?.element?.name;
+    final returnType = node.returnType?.type;
     emitDefineClosure('$className.$methodName', returnType: returnType, hasThis: true, body: (compiler) {
       compiler.addFormalParameters(node.parameters);
       node.body.accept(compiler);
@@ -942,18 +992,66 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     emitCodes(OP_POP);
   }
 
+  GenericTypeAlias? getTypeAliasDeclaration(TypeAliasElement element) {
+    // 解析后的类型已补齐 raw 实参，保留别名声明才能区分显式参数化目标
+    final source = element.source;
+    final declarations = typeAliasDeclarations.putIfAbsent(source.uri, () {
+      final unit = parseString(content: source.contents.data, throwIfDiagnostics: false).unit;
+      return {for (final declaration in unit.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration};
+    });
+    return declarations[element.name];
+  }
+
+  bool hasUnsupportedSuperclassAlias(ClassDeclaration declaration) {
+    final element = declaration.extendsClause?.superclass.element;
+    TypeAliasElement? alias = element is TypeAliasElement ? element : null;
+    while (alias != null) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      // 只检查声明中显式写出的实参，raw 类型的默认实参不影响支持状态
+      final hasExplicitArguments = target is NamedType && target.typeArguments != null;
+      if (alias.typeParameters.isNotEmpty || hasExplicitArguments) return true;
+      alias = alias.aliasedType.alias?.element;
+    }
+    return false;
+  }
+
+  void emitTypeCheck(TypeAnnotation type) {
+    final isSimpleNamedType = type is NamedType && type.typeArguments == null && type.importPrefix == null;
+    final resolvedType = type.type;
+    final isParameterOrFunctionType = resolvedType is TypeParameterType || resolvedType is FunctionType;
+    if (!isSimpleNamedType || isParameterOrFunctionType) {
+      error("Unsupported type check '$type'.");
+    }
+    final aliases = <String>[];
+    final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
+    final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
+    TypeAliasElement? alias = isResolvedAlias ? type.element as TypeAliasElement : null;
+    while (alias != null) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      final isSimpleTarget = target is NamedType && target.typeArguments == null && target.importPrefix == null;
+      if (alias.typeParameters.isNotEmpty || !isSimpleTarget) {
+        error("Unsupported type check '$type'.");
+      }
+      // 宿主别名可能有独立的 .with 入口，脚本中遮蔽的同名别名不能复用它
+      if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
+      alias = alias.aliasedType.alias?.element;
+    }
+    final nullableSuffix = resolvedType?.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
+    final typeName = switch (resolvedType) {
+      InterfaceType() when isResolvedAlias => '${resolvedType.element.name}$nullableSuffix',
+      DartType() when isResolvedAlias => resolvedType.getDisplayString(withNullability: true),
+      _ => type.toSource(),
+    };
+    final isScriptType = resolvedType is InterfaceType && resolvedType.element.library == library;
+    final isIntrinsicType = resolvedType is DynamicType || resolvedType is NeverType;
+    final libraryUri = isIntrinsicType ? 'dart:core' : resolvedType?.element?.library?.source.uri.toString();
+    final typeCheck = ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType, libraryUri: libraryUri);
+    emitCodes(OP_CONSTANT, addConstant(typeCheck));
+  }
+
   @override
   void compileNamedType(NamedType node) {
-    switch (node.parent) {
-      case IsExpression():
-        if ('$node'.contains('<')) {
-          error("Unsupported named type '${node.type}' for '${node.parent}'.");
-        } else {
-          emitCodes(OP_CONSTANT, addConstant(node.name2.lexeme));
-        }
-      default:
-        return;
-    }
+    // 声明中的类型注解不生成运行时代码，is/as/on T 单独编译
   }
 
   @override
@@ -965,11 +1063,18 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   @override
   void compileIsExpression(IsExpression node) {
     node.expression.accept(this);
-    node.type.accept(this);
+    emitTypeCheck(node.type);
     emitCodes(OP_IS);
     if (node.notOperator != null) {
       emitOperator1('!#');
     }
+  }
+
+  @override
+  void compileAsExpression(AsExpression node) {
+    node.expression.accept(this);
+    emitTypeCheck(node.type);
+    emitCodes(OP_AS);
   }
 
   @override
