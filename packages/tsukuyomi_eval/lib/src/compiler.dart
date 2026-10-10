@@ -207,19 +207,19 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   Shorting? shorting;
 
-  late int scopeDepth;
-
-  late final List<Local> locals;
-
   final bool debug;
 
   final ObjFunction function;
 
   final _Compiler? enclosing;
 
-  late final Map<Uri, Map<String, GenericTypeAlias>> typeAliasDeclarations = enclosing?.typeAliasDeclarations ?? {};
-
   final upvalues = Stack<Upvalue>(MAX_UPVALUES);
+
+  late int scopeDepth;
+
+  late final List<Local> locals;
+
+  late final Map<Uri, Map<String, GenericTypeAlias>> typeAliasDeclarations = enclosing?.typeAliasDeclarations ?? {};
 
   Chunk get chunk => function.chunk;
 
@@ -981,9 +981,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     if (!isSimpleNamedType || isParameterOrFunctionType) {
       error("Unsupported type check '$type'.");
     }
-    final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
-    final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
     final aliases = <String>[];
+    final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
+    final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
     TypeAliasElement? alias = isResolvedAlias ? type.element as TypeAliasElement : null;
     while (alias != null) {
       final target = getTypeAliasDeclaration(alias)?.type;
