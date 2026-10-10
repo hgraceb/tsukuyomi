@@ -804,6 +804,84 @@ void main() {
     });
   });
 
+  group('Bridge library URI identity', () {
+    for (final path in ['my types.dart', 'types#%.dart', '目录/类型.dart', 'folder/../host.dart']) {
+      final uri = Uri(scheme: 'package', path: 'bridge/$path').normalizePath();
+      final libraries = [_bridgeLibrary(path)];
+      _testBridgeLibrary(path, '$uri', libraries);
+    }
+
+    test('independent files in one package retain separate same-name matchers', () async {
+      const source = '''
+import 'package:bridge/bridge.dart';
+void main() {
+  print(first is First);
+  print(first is Second);
+  print(second is First);
+  print(second is Second);
+  print((first as First) == first);
+  print((second as Second) == second);
+}
+      ''';
+      final libraries = [
+        DartLibrary(
+          'bridge',
+          path: 'bridge.dart',
+          source: "export 'first.dart' show First, first; export 'second.dart' show Second, second;",
+          declarations: [],
+        ),
+        DartLibrary(
+          'bridge',
+          path: 'first.dart',
+          declarations: [
+            DartClass<_HostValue>(($) => '// ${$.alias('Host')}\nclass Host {} typedef First = Host;'),
+            DartVariable('first', _HostValue(), 'external Host get first;'),
+          ],
+        ),
+        DartLibrary(
+          'bridge',
+          path: 'second.dart',
+          declarations: [
+            DartClass<_NativeSibling>(($) => '// ${$.alias('Host')}\nclass Host {} typedef Second = Host;'),
+            DartVariable('second', _NativeSibling(), 'external Host get second;'),
+          ],
+        ),
+      ];
+      await expectLater(() => eval(source, libraries: libraries), println([true, false, false, true, true, true]));
+    });
+  });
+
+  group('Bridge part library identity', () {
+    for (final named in [false, true]) {
+      for (final reversed in [false, true]) {
+        final main = DartLibrary(
+          'bridge',
+          path: 'bridge.dart',
+          source: "${named ? 'library bridge;' : ''} part 'host.dart';",
+          declarations: [],
+        );
+        final part = _bridgeLibrary('host.dart', source: named ? 'part of bridge;' : "part of 'bridge.dart';");
+        final libraries = reversed ? [part, main] : [main, part];
+        _testBridgeLibrary(
+          '${named ? 'named' : 'URI'} part, ${reversed ? 'part first' : 'main first'}',
+          'package:bridge/bridge.dart',
+          libraries,
+        );
+      }
+    }
+
+    _testBridgeLibrary('encoded main and relative part paths', 'package:bridge/my%20types.dart', [
+      DartLibrary('bridge', path: 'my types.dart', source: "part 'parts/host%20types.dart';", declarations: []),
+      _bridgeLibrary('parts/host types.dart', source: "part of '../my%20types.dart';"),
+    ]);
+
+    _testBridgeLibrary('parts reached through a cyclic export graph', 'package:bridge/entry.dart', [
+      DartLibrary('bridge', path: 'entry.dart', source: "export 'bridge.dart';", declarations: []),
+      DartLibrary('bridge', path: 'bridge.dart', source: "export 'entry.dart'; part 'host.dart';", declarations: []),
+      _bridgeLibrary('host.dart', source: "part of 'bridge.dart';"),
+    ]);
+  });
+
   group('Imported core type names', () {
     for (final name in ['Null', 'Never', 'Object', 'Function']) {
       test('bridged $name uses its registered matcher for type checks', () async {
@@ -1699,6 +1777,46 @@ void main() { dynamic value = () => 0; print(value $operator Callback); }
   });
 }
 
+void _testBridgeLibrary(String name, String uri, List<DartLibrary> libraries) {
+  test('$name type checks and casts use the declaring library', () async {
+    final source =
+        '''
+import '$uri';
+void main() {
+  print(host is Host);
+  print(host is! Host);
+  print(0 is Host);
+  print(null is Host);
+  print((host as Host) == host);
+  print(null as Host?);
+  print(host is PublicHost);
+  print((host as PublicHost) == host);
+  try { throw host; }
+  on Host catch (error) { print(error == host); }
+  try { throw host; }
+  on PublicHost catch (error) { print(error == host); }
+}
+    ''';
+    await expectLater(() => eval(source, libraries: libraries), println([true, false, false, false, true, null, true, true, true, true]));
+  });
+
+  test('$name callback results use the declaring library', () async {
+    final source =
+        '''
+import '$uri';
+Host make(int value) => host;
+PublicHost makeAlias(int value) => host;
+Host? makeNullable(int value) => null;
+void main() {
+  print([0].map(make).first == host);
+  print([0].map(makeAlias).first == host);
+  print([0].map(makeNullable).first);
+}
+    ''';
+    await expectLater(() => eval(source, libraries: libraries), println([true, true, null]));
+  });
+}
+
 class _NativeParent {}
 
 class _NativeChild extends _NativeParent {}
@@ -1710,6 +1828,26 @@ class _HostValue {}
 class _NativeBase<T> {}
 
 class _AliasMarker {}
+
+DartLibrary _bridgeLibrary(String path, {String source = ''}) {
+  return DartLibrary(
+    'bridge',
+    path: path,
+    source: source,
+    declarations: [
+      DartClass<_HostValue>(
+        ($) =>
+            '''
+// ${$.alias('Host')}
+class Host {}
+// ${$.alias('PublicHost')}
+typedef PublicHost = Host;
+    ''',
+      ),
+      DartVariable('host', _HostValue(), 'external Host get host;'),
+    ],
+  );
+}
 
 DartLibrary _coreAliasesLibrary({String? type, bool exportHost = false}) {
   return DartLibrary(

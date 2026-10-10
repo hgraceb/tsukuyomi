@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/src/dart/analysis/experiments.dart';
@@ -14,6 +15,36 @@ import 'property.dart';
 Future<ResolvedUnitResult> resolve(String content, List<DartLibrary> libraries) {
   // TODO 判断是否可以通过每次都重新创建一个名称唯一的文件并在解析完成后清除以优化运行时间
   return _Resolver(libraries).resolve(content);
+}
+
+Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLibrary> libraries) {
+  final declarations = <String, DartLibrary>{};
+  for (final library in libraries) {
+    final path = resolved.session.uriConverter.uriToPath(Uri.parse(library.uri));
+    if (path != null) declarations[path] = library;
+  }
+  final props = libraries.props;
+  final visited = <LibraryElement>{};
+
+  void registerLibrary(LibraryElement library) {
+    if (!visited.add(library)) return;
+    // 主文件和 part 的匹配器都使用 analyzer 解析出的所属库身份
+    for (final unit in library.units) {
+      final declaration = declarations[unit.source.fullName];
+      if (declaration == null) continue;
+      for (final entry in declaration.props.entries) {
+        if (entry.key.endsWith('.with')) {
+          props['${library.source.uri}::${entry.key}'] = entry.value;
+        }
+      }
+    }
+    for (final dependency in [...library.importedLibraries, ...library.exportedLibraries]) {
+      registerLibrary(dependency);
+    }
+  }
+
+  registerLibrary(resolved.libraryElement);
+  return props;
 }
 
 class _Resolver with ResourceProviderMixin {
