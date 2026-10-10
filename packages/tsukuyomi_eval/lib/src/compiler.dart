@@ -737,13 +737,16 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       for (final declaration in node.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration,
     };
     final declarations = node.declarations.whereType<ClassDeclaration>();
-    final unsupportedClasses = declarations.where((e) => e.hasUnsupportedTypeRelations).map((e) => e.declaredElement).toSet();
+    final unsupportedClasses = declarations
+        .where((e) => e.hasUnsupportedTypeRelations || hasUnsupportedSuperclassAlias(e))
+        .map((e) => e.declaredElement)
+        .toSet();
     // 先创建类型身份，类成员和静态初值仍按声明顺序执行
     for (final declaration in declarations) {
       debugUpdateNode(declaration);
       final parents = declaration.declaredElement?.allSupertypes ?? [];
       final hasUnsupportedParents = parents.any((e) => unsupportedClasses.contains(e.element));
-      final isTypeCheckSupported = !declaration.hasUnsupportedTypeRelations && !hasUnsupportedParents;
+      final isTypeCheckSupported = !unsupportedClasses.contains(declaration.declaredElement) && !hasUnsupportedParents;
       final typeName = declaration.name.lexeme;
       emitCodes(OP_CLASS, addConstant(typeName));
       emitCodes(isTypeCheckSupported ? 1 : 0);
@@ -851,7 +854,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void compileExtendsClause(ExtendsClause node) {
     node.superclass.accept(this);
     final classDeclaration = node.parent as ClassDeclaration;
-    emitCodes(OP_GET_GLOBAL, addConstant(classDeclaration.superclassName));
     emitCodes(OP_GET_GLOBAL, addConstant('${classDeclaration.name.lexeme}.class'));
     emitCodes(OP_INHERIT);
   }
@@ -998,6 +1000,19 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       return {for (final declaration in unit.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration};
     });
     return declarations[element.name];
+  }
+
+  bool hasUnsupportedSuperclassAlias(ClassDeclaration declaration) {
+    final element = declaration.extendsClause?.superclass.element;
+    TypeAliasElement? alias = element is TypeAliasElement ? element : null;
+    while (alias != null) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      // 只检查声明中显式写出的实参，raw 类型的默认实参不影响支持状态
+      final hasExplicitArguments = target is NamedType && target.typeArguments != null;
+      if (alias.typeParameters.isNotEmpty || hasExplicitArguments) return true;
+      alias = alias.aliasedType.alias?.element;
+    }
+    return false;
   }
 
   void emitTypeCheck(TypeAnnotation type) {

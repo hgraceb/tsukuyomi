@@ -987,6 +987,78 @@ void main() {
     }
   });
 
+  group('Bridged superclass bindings', () {
+    test('factory members retain each subclass binding', () async {
+      var count = 0;
+      final library = _bindingLibrary(() {
+        final origin = ++count == 1 ? 'first' : 'second';
+        final clazz = ObjClass('NativeParent');
+        clazz.props['origin'] = DartProperty(getter: (_) => origin);
+        return clazz;
+      });
+      const source = '''
+import 'package:binding_types/binding_types.dart';
+class First extends NativeParent {}
+class Second extends NativeParent {}
+void main() {
+  final first = First();
+  final second = Second();
+  print(first.origin);
+  print(second.origin);
+  print(first is NativeParent);
+  print(second is NativeParent);
+}
+      ''';
+      await expectLater(() => eval(source, libraries: [library]), println(['first', 'second', true, true]));
+    });
+
+    for (final shared in [false, true]) {
+      test('${shared ? 'shared' : 'fresh'} proxy metadata remains bound between static initialization and main', () async {
+        var count = 0;
+        final proxy = ObjClass('NativeParent');
+        final library = _bindingLibrary(() {
+          final clazz = shared ? proxy : ObjClass('NativeParent');
+          clazz.isTypeCheckSupported = ++count == 1;
+          return clazz;
+        });
+        const source = '''
+import 'package:binding_types/binding_types.dart';
+class Before { static final Child? child = null as Child?; }
+class Child extends NativeParent {}
+void main() {
+  print(Before.child);
+  print(null as Child?);
+  final value = Child();
+  print(value is NativeParent);
+  print((value as Child) == value);
+  try { throw value; }
+  on NativeParent catch (error) { print(error == value); }
+}
+        ''';
+        await expectLater(() => eval(source, libraries: [library]), println([null, null, true, true, true]));
+      });
+    }
+
+    for (final isStatic in [true, false]) {
+      test('an unsupported bridge remains unsupported in ${isStatic ? 'static initialization' : 'main'}', () async {
+        final library = _bindingLibrary(() => ObjClass('NativeParent', isTypeCheckSupported: false));
+        final initializer = isStatic ? 'static final Child? child = null as Child?;' : '';
+        final body = isStatic ? 'print(Before.child);' : 'print(null as Child?);';
+        final source =
+            '''
+import 'package:binding_types/binding_types.dart';
+class Before { $initializer }
+class Child extends NativeParent {}
+void main() { $body }
+        ''';
+        await expectLater(
+          eval(source, libraries: [library]),
+          throwsA(isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains('Unsupported type check'))),
+        );
+      });
+    }
+  });
+
   group('Imported core type names', () {
     for (final name in ['Null', 'Never', 'Object', 'Function']) {
       test('bridged $name uses its registered matcher for type checks', () async {
@@ -1126,6 +1198,62 @@ void main() { $body }
         ''';
         await expectLater(() => eval(source, libraries: [_genericLibrary()]), println([true, false, false, null]));
       });
+    }
+  });
+
+  group('Superclass alias type boundaries', () {
+    for (final entry in [
+      (name: 'direct explicit arguments', parent: 'NativeBase<int>', supported: false),
+      (name: 'raw alias', parent: 'RawBase', supported: true),
+      (name: 'raw alias chain', parent: 'RawChain', supported: true),
+      (name: 'hidden explicit arguments', parent: 'AppliedBase', supported: false),
+      (name: 'hidden explicit argument chain', parent: 'AppliedChain', supported: false),
+      (name: 'hidden explicit dynamic', parent: 'DynamicBase', supported: false),
+      (name: 'generic alias declaration', parent: 'GenericBase', supported: false),
+    ]) {
+      for (final target in ['Parent', 'Child']) {
+        for (final operation in [
+          (
+            name: 'is',
+            body: 'print(null is $target?); print(null is $target); print(null is! $target?); print($target() is $target);',
+            output: [true, false, false, true],
+          ),
+          (
+            name: 'as',
+            body: 'print(null as $target?); final value = $target(); print((value as $target) == value);',
+            output: [null, true],
+          ),
+          (
+            name: 'typed catch',
+            body: 'final value = $target(); try { throw value; } on $target catch (error) { print(error == value); }',
+            output: [true],
+          ),
+        ]) {
+          for (final isStatic in [true, false]) {
+            final location = isStatic ? 'static initializer' : 'main';
+            test('${entry.name}, $target, ${operation.name} in $location', () async {
+              final initializer = isStatic ? 'static final checked = inspect();' : '';
+              final body = isStatic ? 'final checked = Parent.checked;' : 'inspect();';
+              final source =
+                  '''
+import 'package:generic_types/generic_types.dart';
+dynamic inspect() { ${operation.body} return null; }
+class Child extends Parent {}
+class Parent extends ${entry.parent} { $initializer }
+void main() { $body }
+              ''';
+              if (entry.supported) {
+                await expectLater(() => eval(source, libraries: [_genericLibrary()]), println(operation.output));
+              } else {
+                await expectLater(
+                  eval(source, libraries: [_genericLibrary()]),
+                  throwsA(isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains('Unsupported type check'))),
+                );
+              }
+            });
+          }
+        }
+      }
     }
   });
 
@@ -2039,6 +2167,23 @@ typedef Target = $name;
   );
 }
 
+DartLibrary _bindingLibrary(ObjClass Function() superclass) {
+  return DartLibrary(
+    'binding_types',
+    path: 'binding_types.dart',
+    declarations: [
+      DartClass<_NativeParent>(
+        ($) =>
+            '''
+// ${$.alias('NativeParent')}
+// ${$.empty('NativeParent.class', superclass)}
+class NativeParent { external String get origin; }
+    ''',
+      ),
+    ],
+  );
+}
+
 DartLibrary _genericLibrary() {
   return DartLibrary(
     'generic_types',
@@ -2050,6 +2195,18 @@ DartLibrary _genericLibrary() {
 // ${$.alias('NativeBase')}
 // ${$.empty('NativeBase.class', () => ObjClass('NativeBase'))}
 class NativeBase<T> {}
+// ${$.empty('RawBase.class', () => ObjClass('NativeBase'))}
+typedef RawBase = NativeBase;
+// ${$.empty('RawChain.class', () => ObjClass('NativeBase'))}
+typedef RawChain = RawBase;
+// ${$.empty('AppliedBase.class', () => ObjClass('NativeBase'))}
+typedef AppliedBase = NativeBase<int>;
+// ${$.empty('AppliedChain.class', () => ObjClass('NativeBase'))}
+typedef AppliedChain = AppliedBase;
+// ${$.empty('DynamicBase.class', () => ObjClass('NativeBase'))}
+typedef DynamicBase = NativeBase<dynamic>;
+// ${$.empty('GenericBase.class', () => ObjClass('NativeBase'))}
+typedef GenericBase<T> = NativeBase;
     ''',
       ),
     ],

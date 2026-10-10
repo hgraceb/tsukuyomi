@@ -522,12 +522,12 @@ class _VM implements VM {
             subclass.isTypeCheckSupported = subclass.isTypeCheckSupported && superclass.isTypeCheckSupported;
           case OP_INHERIT:
             final subclass = pop() as ObjClass;
-            final superclass = peek();
-            if (superclass is! ObjClass) {
-              throw EvalRuntimeError('Superclass must be a class.');
+            final superclass = subclass.superclass;
+            if (superclass == null) {
+              throw EvalRuntimeError('Superclass must be linked.');
             }
-            subclass.superclass = superclass;
-            subclass.isTypeCheckSupported = subclass.isTypeCheckSupported && superclass.isTypeCheckSupported;
+            // 复用预链接父类，保留 super 局部槽位，不再次调用桥接 getter 或覆盖关系
+            push(superclass);
             subclass.props.addAll(superclass.props);
             subclass.initializers.addAll(superclass.initializers);
           case OP_GET_SUPER:
