@@ -21,14 +21,10 @@ extension on ClassDeclaration {
 
   bool get isTypeCheckSupported {
     // 尚未保存接口、mixin 和泛型关系，类型检查不能按普通父类链猜测
-    final hasGenericTypes = typeParameters != null || extendsClause?.superclass.typeArguments != null;
     final hasInterfacesOrMixins = implementsClause != null || withClause != null;
-    final element = declaredElement;
-    final scriptParents = element?.allSupertypes.where((type) => type.element.library == element.library) ?? const <InterfaceType>[];
-    final hasUnsupportedParents = scriptParents.any((type) {
-      final parent = type.element;
-      return parent.typeParameters.isNotEmpty || parent.interfaces.isNotEmpty || parent.mixins.isNotEmpty;
-    });
+    final hasGenericTypes = typeParameters != null || extendsClause?.superclass.typeArguments != null;
+    final parents = declaredElement?.allSupertypes.where((e) => e.element.library == declaredElement?.library).map((e) => e.element) ?? [];
+    final hasUnsupportedParents = parents.any((e) => e.typeParameters.isNotEmpty || e.interfaces.isNotEmpty || e.mixins.isNotEmpty);
     return !hasGenericTypes && !hasInterfacesOrMixins && !hasUnsupportedParents;
   }
 }
