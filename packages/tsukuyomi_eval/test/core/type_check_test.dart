@@ -882,6 +882,111 @@ void main() {
     ]);
   });
 
+  group('Bridged superclass library identity', () {
+    for (final reversed in [false, true]) {
+      final libraries = _sameNameBaseLibraries(reversed: reversed);
+      for (final forward in [false, true]) {
+        for (final isStatic in [false, true]) {
+          for (final entry in [
+            (
+              name: 'type checks',
+              body:
+                  'final value = Example(); print(value is Base); print(value is FirstAlias); print(value is SecondAlias); print(value is! SecondAlias);',
+              output: [true, true, false, true],
+            ),
+            (
+              name: 'casts',
+              body: '''
+final value = Example();
+try { value as SecondAlias; print('accepted'); }
+on TypeError { print('rejected'); }
+print((value as Base) == value);
+print((value as FirstAlias) == value);
+              ''',
+              output: ['rejected', true, true],
+            ),
+            (
+              name: 'typed catches',
+              body:
+                  "try { throw Example(); } on SecondAlias { print('second'); } on Base { print('first'); } catch (_) { print('other'); }",
+              output: ['first'],
+            ),
+          ]) {
+            test('${entry.name}, ${forward ? 'forward' : 'direct'} parent, ${isStatic ? 'static' : 'main'}, reversed=$reversed', () async {
+              final source =
+                  '''
+import 'package:base_types/entry.dart';
+dynamic inspect() { ${entry.body} return null; }
+class Example extends ${forward ? 'Parent' : 'Base'} { ${isStatic ? 'static final checked = inspect();' : ''} }
+${forward ? 'class Parent extends Base {}' : ''}
+void main() { ${isStatic ? '' : 'inspect();'} }
+              ''';
+              await expectLater(() => eval(source, libraries: libraries), println(entry.output));
+            });
+          }
+        }
+      }
+
+      for (final isStatic in [false, true]) {
+        test('inherited members, ${isStatic ? 'static' : 'main'}, reversed=$reversed', () async {
+          final source =
+              '''
+import 'package:base_types/entry.dart';
+dynamic check() { print(Example().origin); return null; }
+class Example extends Base {
+  ${isStatic ? 'static final checked = check();' : ''}
+}
+void main() { ${isStatic ? '' : 'check();'} }
+          ''';
+          await expectLater(() => eval(source, libraries: libraries), println(['first']));
+        });
+      }
+
+      test('an encoded part keeps its superclass under the owning library, reversed=$reversed', () async {
+        const source = '''
+import 'package:base_types/entry.dart';
+class Example extends Base {}
+void main() {
+  final value = Example();
+  print(value is Base);
+  print(value is SecondAlias);
+  print((value as Base) == value);
+  try { value as SecondAlias; print('accepted'); }
+  on TypeError { print('rejected'); }
+  try { throw value; }
+  on SecondAlias { print('second'); }
+  on Base { print('first'); }
+  print(value.origin);
+}
+        ''';
+        await expectLater(
+          () => eval(source, libraries: _sameNameBaseLibraries(reversed: reversed, part: true)),
+          println([true, false, true, 'rejected', 'first', 'first']),
+        );
+      });
+
+      test('a script parent keeps its own identity, reversed=$reversed', () async {
+        const source = '''
+import 'package:base_types/entry.dart';
+class Base {}
+class Example extends Base {}
+void main() {
+  final value = Example();
+  print(value is Base);
+  print(value is FirstAlias);
+  print(value is SecondAlias);
+  print((value as Base) == value);
+  try { throw value; }
+  on SecondAlias { print('second'); }
+  on FirstAlias { print('first'); }
+  on Base { print('script'); }
+}
+        ''';
+        await expectLater(() => eval(source, libraries: libraries), println([true, false, false, true, 'script']));
+      });
+    }
+  });
+
   group('Imported core type names', () {
     for (final name in ['Null', 'Never', 'Object', 'Function']) {
       test('bridged $name uses its registered matcher for type checks', () async {
@@ -1847,6 +1952,55 @@ typedef PublicHost = Host;
       DartVariable('host', _HostValue(), 'external Host get host;'),
     ],
   );
+}
+
+List<DartLibrary> _sameNameBaseLibraries({required bool reversed, bool part = false}) {
+  final firstPath = part ? 'first base.dart' : 'first.dart';
+  final firstUri = Uri(path: firstPath);
+  final first = DartLibrary(
+    'base_types',
+    path: firstPath,
+    source: part ? "part 'parts/first%20base.dart';" : '',
+    declarations: [if (!part) ..._baseDeclarations<_HostValue>('first', 'FirstAlias')],
+  );
+  final second = DartLibrary('base_types', path: 'second.dart', declarations: _baseDeclarations<_AliasMarker>('second', 'SecondAlias'));
+  final firstLibraries = [
+    first,
+    if (part)
+      DartLibrary(
+        'base_types',
+        path: 'parts/first base.dart',
+        source: "part of '../$firstUri';",
+        declarations: _baseDeclarations<_HostValue>('first', 'FirstAlias'),
+      ),
+  ];
+  return [
+    DartLibrary(
+      'base_types',
+      path: 'entry.dart',
+      source: "export '$firstUri' show Base, FirstAlias; export 'second.dart' show SecondAlias;",
+      declarations: [],
+    ),
+    ...(reversed ? [second, ...firstLibraries] : [...firstLibraries, second]),
+  ];
+}
+
+List<DartDeclaration> _baseDeclarations<T>(String origin, String alias) {
+  return [
+    DartClass<T>(
+      ($) =>
+          '''
+// ${$.alias('Base')}
+// ${$.empty('Base.class', () {
+            final clazz = ObjClass('Base');
+            clazz.props['origin'] = DartProperty(getter: (_) => origin);
+            return clazz;
+          })}
+class Base { external String get origin; }
+typedef $alias = Base;
+    ''',
+    ),
+  ];
 }
 
 DartLibrary _coreAliasesLibrary({String? type, bool exportHost = false}) {

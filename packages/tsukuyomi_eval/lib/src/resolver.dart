@@ -28,12 +28,12 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
 
   void registerLibrary(LibraryElement library) {
     if (!visited.add(library)) return;
-    // 主文件和 part 的匹配器都使用 analyzer 解析出的所属库身份
+    // 主文件和 part 的匹配器、桥接父类都使用 analyzer 解析出的所属库身份
     for (final unit in library.units) {
       final declaration = declarations[unit.source.fullName];
       if (declaration == null) continue;
       for (final entry in declaration.props.entries) {
-        if (entry.key.endsWith('.with')) {
+        if (entry.key.endsWith('.with') || entry.key.endsWith('.class')) {
           props['${library.source.uri}::${entry.key}'] = entry.value;
         }
       }

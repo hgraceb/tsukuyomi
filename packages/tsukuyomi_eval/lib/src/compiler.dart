@@ -27,6 +27,13 @@ extension on ClassDeclaration {
     final hasGenericTypes = typeParameters != null || extendsClause?.superclass.typeArguments != null;
     return hasGenericTypes || hasInterfacesOrMixins;
   }
+
+  String get superclassName {
+    final superclass = extendsClause!.superclass;
+    final className = '${superclass.name2.lexeme}.class';
+    final library = superclass.element?.library;
+    return library != null && library != declaredElement?.library ? '${library.source.uri}::$className' : className;
+  }
 }
 
 extension on FieldDeclaration {
@@ -747,8 +754,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     subclasses.sort((a, b) => a.declaredElement!.allSupertypes.length.compareTo(b.declaredElement!.allSupertypes.length));
     for (final declaration in subclasses) {
       debugUpdateNode(declaration.extendsClause);
-      final superclass = declaration.extendsClause!.superclass.name2.lexeme;
-      emitCodes(OP_GET_GLOBAL, addConstant('$superclass.class'));
+      emitCodes(OP_GET_GLOBAL, addConstant(declaration.superclassName));
       emitCodes(OP_GET_GLOBAL, addConstant('${declaration.name.lexeme}.class'));
       emitCodes(OP_LINK_SUPERCLASS);
     }
@@ -845,7 +851,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void compileExtendsClause(ExtendsClause node) {
     node.superclass.accept(this);
     final classDeclaration = node.parent as ClassDeclaration;
-    emitCodes(OP_GET_GLOBAL, addConstant('${node.superclass.name2.lexeme}.class'));
+    emitCodes(OP_GET_GLOBAL, addConstant(classDeclaration.superclassName));
     emitCodes(OP_GET_GLOBAL, addConstant('${classDeclaration.name.lexeme}.class'));
     emitCodes(OP_INHERIT);
   }
