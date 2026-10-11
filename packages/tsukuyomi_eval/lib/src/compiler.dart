@@ -737,10 +737,8 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       for (final declaration in node.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration,
     };
     final declarations = node.declarations.whereType<ClassDeclaration>();
-    final unsupportedClasses = declarations
-        .where((e) => e.hasUnsupportedTypeRelations || hasUnsupportedSuperclassAlias(e))
-        .map((e) => e.declaredElement)
-        .toSet();
+    final unsupportedDeclarations = declarations.where((e) => e.hasUnsupportedTypeRelations || hasUnsupportedSuperclassAlias(e));
+    final unsupportedClasses = unsupportedDeclarations.map((e) => e.declaredElement).toSet();
     // 先创建类型身份，类成员和静态初值仍按声明顺序执行
     for (final declaration in declarations) {
       debugUpdateNode(declaration);
