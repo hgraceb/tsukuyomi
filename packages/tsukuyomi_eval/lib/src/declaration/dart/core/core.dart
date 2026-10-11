@@ -10,7 +10,9 @@ part 'bool.dart';
 part 'date_time.dart';
 part 'double.dart';
 part 'duration.dart';
+part 'errors.dart';
 part 'exceptions.dart';
+part 'function.dart';
 part 'int.dart';
 part 'iterable.dart';
 part 'iterator.dart';
@@ -43,8 +45,10 @@ export 'dart:async' show Future, Stream;
     ...$bool,
     ...$double,
     ...$duration,
+    ...$errors,
     ...$exceptions,
     ...$dateTime,
+    ...$function,
     ...$int,
     ...$iterable,
     ...$iterator,

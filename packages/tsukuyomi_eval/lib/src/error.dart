@@ -29,3 +29,12 @@ class EvalPermissionError extends EvalError {
   @override
   final String _name = 'EvalPermissionError';
 }
+
+class EvalTypeError extends TypeError {
+  EvalTypeError(this._message);
+
+  final String _message;
+
+  @override
+  String toString() => 'TypeError: $_message';
+}

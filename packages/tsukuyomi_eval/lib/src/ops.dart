@@ -48,27 +48,29 @@ const OP_SET_PROPERTY = 22;
 
 const OP_INHERIT = 23;
 
-const OP_GET_SUPER = 24;
+const OP_LINK_SUPERCLASS = 24;
 
-const OP_SET_SUPER = 25;
+const OP_GET_SUPER = 25;
 
-const OP_PEEK = 26;
+const OP_SET_SUPER = 26;
 
-const OP_ROTATE = 27;
+const OP_PEEK = 27;
 
-const OP_DEFINE_GLOBAL_GETTER = 28;
+const OP_ROTATE = 28;
 
-const OP_DEFINE_GLOBAL_SETTER = 29;
+const OP_DEFINE_GLOBAL_GETTER = 29;
 
-const OP_CLASS_FIELD = 30;
+const OP_DEFINE_GLOBAL_SETTER = 30;
 
-const OP_CLASS_INITIALIZER = 31;
+const OP_CLASS_FIELD = 31;
 
-const OP_CLASS_GETTER = 32;
+const OP_CLASS_INITIALIZER = 32;
 
-const OP_CLASS_SETTER = 33;
+const OP_CLASS_GETTER = 33;
 
-const OP_CLASS_METHOD = 34;
+const OP_CLASS_SETTER = 34;
+
+const OP_CLASS_METHOD = 35;
 
 const OP_CONCAT_STRING = 40;
 
@@ -92,11 +94,13 @@ const OP_AWAIT = 51;
 
 const OP_IS = 52;
 
-const OP_OPERATOR_1 = 53;
+const OP_AS = 53;
 
-const OP_OPERATOR_2 = 54;
+const OP_OPERATOR_1 = 54;
 
-const OP_OPERATOR_3 = 55;
+const OP_OPERATOR_2 = 55;
+
+const OP_OPERATOR_3 = 56;
 
 const OP_SET = 60;
 

@@ -77,4 +77,45 @@ Example main() => Example();
     expect(instance.props['getStorage'], same(property));
     expect(await host.delegate.invoke('load', null), 'script');
   });
+
+  test('Script sources recognize bridged ancestors while casts preserve the delegate', () async {
+    const source = '''
+import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+
+class Example extends HttpSource {
+  final String name = 'Example';
+  final String baseUrl = 'https://example.com';
+}
+
+class Child extends Example {}
+
+dynamic main() {
+  final value = Child();
+  final base = value as Source;
+  try {
+    throw value;
+  } on Source catch (error) {
+    return <String, dynamic>{
+      'checks': <bool>[
+        value is Child,
+        value is Example,
+        value is HttpSource,
+        value is Source,
+        (value as HttpSource) == value,
+        base == value,
+        base is Child,
+        error == value,
+      ],
+      'delegate': value,
+    };
+  }
+}
+    ''';
+    final result = await eval(source, libraries: evalLibraries) as Map;
+    expect(result['checks'], [true, true, true, true, true, true, true, true]);
+    final instance = result['delegate'] as ObjInstance;
+    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    expect(host.name, 'Example');
+    expect(instance.clazz.name, 'Child');
+  });
 }
