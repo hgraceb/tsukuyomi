@@ -30,8 +30,10 @@ extension on ClassDeclaration {
 
   String get superclassName {
     final superclass = extendsClause!.superclass;
-    final className = '${superclass.name2.lexeme}.class';
-    final library = superclass.element?.library;
+    final type = superclass.type;
+    final element = type is InterfaceType ? type.element : superclass.element;
+    final className = '${element?.name ?? superclass.name2.lexeme}.class';
+    final library = element?.library;
     return library != null && library != declaredElement?.library ? '${library.source.uri}::$className' : className;
   }
 }
@@ -763,7 +765,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     subclasses.sort((a, b) => a.declaredElement!.allSupertypes.length.compareTo(b.declaredElement!.allSupertypes.length));
     for (final declaration in subclasses) {
       debugUpdateNode(declaration.extendsClause);
-      emitCodes(OP_GET_GLOBAL, addConstant(declaration.superclassName));
+      final names = getSuperclassNames(declaration);
+      final hasAliases = names.length > 1;
+      final operand = hasAliases ? names : names.single;
+      emitCodes(hasAliases ? OP_CONSTANT : OP_GET_GLOBAL, addConstant(operand));
       emitCodes(OP_GET_GLOBAL, addConstant('${declaration.name.lexeme}.class'));
       emitCodes(OP_LINK_SUPERCLASS);
     }
@@ -1013,6 +1018,25 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       yield alias;
       alias = alias.aliasedType.alias?.element;
     }
+  }
+
+  List<String> getSuperclassNames(ClassDeclaration declaration) {
+    final superclass = declaration.extendsClause!.superclass;
+    final element = superclass.element;
+    final aliases = getTypeAliases(element is TypeAliasElement ? element : null).toList();
+    final hasNullableAlias = aliases.any((alias) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      return target is NamedType && target.question != null;
+    });
+    if (superclass.question != null || hasNullableAlias) {
+      error("Superclass '$superclass' must be a non-nullable class.");
+    }
+    final library = declaration.declaredElement?.library;
+    return [
+      for (final alias in aliases)
+        if (alias.library != library) '${alias.library.source.uri}::${alias.name}.class',
+      declaration.superclassName,
+    ];
   }
 
   bool hasUnsupportedSuperclassAlias(ClassDeclaration declaration) {
