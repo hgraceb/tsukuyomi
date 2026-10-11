@@ -95,7 +95,7 @@ Row(
 );
 ```
 
-- 尽量在使用 ?: 表达式的时候内联过长的判断或者处理导致多余的格式化换行，如：
+- 在使用 ?: 表达式的时候尽量避免内联过长的判断或者处理导致多余的格式化换行，如：
 
 ```dart
 // Bad
@@ -108,3 +108,16 @@ final isInTryBody = handler.start <= ip && ip < handler.end;
 final catching = isInTryBody ? handler.catchings.firstWhereOrNull((catching) => catching.match(exit.error)) : null;
 ```
 
+- 在使用链式表达式的时候尽量避免内联过长的判断或者处理导致多余的格式化换行，如：
+
+```dart
+// Bad
+final unsupportedClasses = declarations
+    .where((e) => e.hasUnsupportedTypeRelations || hasUnsupportedSuperclassAlias(e))
+    .map((e) => e.declaredElement)
+    .toSet();
+
+// Good
+final unsupportedDeclarations = declarations.where((e) => e.hasUnsupportedTypeRelations || hasUnsupportedSuperclassAlias(e));
+final unsupportedClasses = unsupportedDeclarations.map((e) => e.declaredElement).toSet();
+```
