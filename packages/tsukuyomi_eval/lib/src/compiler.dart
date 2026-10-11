@@ -784,6 +784,16 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   @override
+  void compileImportDirective(ImportDirective node) {
+    // 导入已由 resolver 处理，URI 不应占用运行时局部槽位
+  }
+
+  @override
+  void compileExportDirective(ExportDirective node) {
+    // 导出已由 resolver 处理，URI 不应占用运行时局部槽位
+  }
+
+  @override
   void compileFunctionDeclaration(FunctionDeclaration node) {
     final name = node.name.lexeme;
     addLocalIfNeeded(name);
