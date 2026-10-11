@@ -66,8 +66,12 @@ class ObjUpvalue extends Obj {
 }
 
 class ObjFunction extends Obj {
-  ObjFunction(this.name, {required this.returnType, this.returnTypeAliases = const [], this.hasNullableReturnType = false})
-    : chunk = Chunk(name);
+  ObjFunction(
+    this.name, {
+    required this.returnType,
+    this.returnTypeAliases = const [],
+    this.hasNullableReturnType = false,
+  }) : chunk = Chunk(name);
 
   int upvalueCount = 0;
 
