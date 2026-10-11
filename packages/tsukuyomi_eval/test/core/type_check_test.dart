@@ -988,15 +988,17 @@ void main() {
   });
 
   group('Bridged superclass bindings', () {
-    test('factory members retain each subclass binding', () async {
-      var count = 0;
-      final library = _bindingLibrary(() {
-        final origin = ++count == 1 ? 'first' : 'second';
-        final clazz = ObjClass('NativeParent');
-        clazz.props['origin'] = DartProperty(getter: (_) => origin);
-        return clazz;
-      });
-      const source = '''
+    for (final shared in [false, true]) {
+      test('${shared ? 'shared' : 'fresh'} proxy members retain each subclass binding', () async {
+        var count = 0;
+        final proxy = ObjClass('NativeParent');
+        final library = _bindingLibrary(() {
+          final origin = ++count == 1 ? 'first' : 'second';
+          final clazz = shared ? proxy : ObjClass('NativeParent');
+          clazz.props['origin'] = DartProperty(getter: (_) => origin);
+          return clazz;
+        });
+        const source = '''
 import 'package:binding_types/binding_types.dart';
 class First extends NativeParent {}
 class Second extends NativeParent {}
@@ -1008,9 +1010,91 @@ void main() {
   print(first is NativeParent);
   print(second is NativeParent);
 }
-      ''';
-      await expectLater(() => eval(source, libraries: [library]), println(['first', 'second', true, true]));
-    });
+        ''';
+        await expectLater(() => eval(source, libraries: [library]), println(['first', 'second', true, true]));
+        expect(count, 2);
+      });
+
+      test('${shared ? 'shared' : 'fresh'} proxy initializers retain each subclass binding', () async {
+        final prototypes = <ObjClass>[];
+        for (final origin in ['first', 'second']) {
+          final source = '''
+class NativeParent { final origin = '$origin'; }
+dynamic main() => NativeParent();
+          ''';
+          final instance = await eval(source) as ObjInstance;
+          prototypes.add(instance.clazz);
+        }
+        var count = 0;
+        final proxy = ObjClass('NativeParent');
+        final library = _bindingLibrary(() {
+          final prototype = prototypes[count++];
+          final clazz = shared ? proxy : ObjClass('NativeParent');
+          clazz.props.addAll(prototype.props);
+          clazz.initializers.clear();
+          clazz.initializers.addAll(prototype.initializers);
+          return clazz;
+        });
+        const source = '''
+import 'package:binding_types/binding_types.dart';
+class First extends NativeParent {}
+class Second extends NativeParent {}
+void main() {
+  print(First().origin);
+  print(Second().origin);
+}
+        ''';
+        await expectLater(() => eval(source, libraries: [library]), println(['first', 'second']));
+        expect(count, prototypes.length);
+      });
+
+      for (final reversed in [false, true]) {
+        for (final isStatic in [false, true]) {
+          test('${shared ? 'shared' : 'fresh'} host identities, reversed=$reversed, ${isStatic ? 'static' : 'main'}', () async {
+            var count = 0;
+            final proxy = ObjClass('Proxy');
+            final library = _multipleBindingLibrary(() {
+              count++;
+              return shared ? proxy : ObjClass('Proxy');
+            });
+            final firstInitializer = isStatic ? 'static final checked = inspect(First());' : '';
+            final secondInitializer = isStatic ? 'static final checked = inspect(Second());' : '';
+            final first = 'class First extends NativeChild { $firstInitializer }';
+            final second = 'class Second extends NativeSibling { $secondInitializer }';
+            final source =
+                '''
+import 'package:binding_types/multiple_types.dart';
+dynamic inspect(dynamic value) {
+  print(value is NativeChild);
+  print(value is NativeSibling);
+  print(value is NativeParent);
+  try { print((value as NativeChild) == value); }
+  on TypeError { print('not child'); }
+  try { print((value as NativeSibling) == value); }
+  on TypeError { print('not sibling'); }
+  try { throw value; }
+  on NativeChild { print('child'); }
+  on NativeSibling { print('sibling'); }
+  return null;
+}
+${reversed ? '$second\n$first' : '$first\n$second'}
+class Descendant extends First {}
+void main() {
+  ${isStatic ? '' : 'inspect(First()); inspect(Second());'}
+  final descendant = Descendant();
+  inspect(descendant);
+  print(descendant is First);
+}
+            ''';
+            const firstOutput = [true, false, true, true, 'not sibling', 'child'];
+            const secondOutput = [false, true, true, 'not child', true, 'sibling'];
+            final output = isStatic && reversed ? [...secondOutput, ...firstOutput] : [...firstOutput, ...secondOutput];
+            await expectLater(() => eval(source, libraries: [library]), println([...output, ...firstOutput, true]));
+            expect(count, 2);
+          });
+        }
+      }
+    }
 
     for (final shared in [false, true]) {
       test('${shared ? 'shared' : 'fresh'} proxy metadata remains bound between static initialization and main', () async {
@@ -2178,6 +2262,38 @@ DartLibrary _bindingLibrary(ObjClass Function() superclass) {
 // ${$.alias('NativeParent')}
 // ${$.empty('NativeParent.class', superclass)}
 class NativeParent { external String get origin; }
+    ''',
+      ),
+    ],
+  );
+}
+
+DartLibrary _multipleBindingLibrary(ObjClass Function() superclass) {
+  return DartLibrary(
+    'binding_types',
+    path: 'multiple_types.dart',
+    declarations: [
+      DartClass<_NativeParent>(
+        ($) =>
+            '''
+// ${$.alias('NativeParent')}
+class NativeParent {}
+    ''',
+      ),
+      DartClass<_NativeChild>(
+        ($) =>
+            '''
+// ${$.alias('NativeChild')}
+// ${$.empty('NativeChild.class', superclass)}
+class NativeChild extends NativeParent {}
+    ''',
+      ),
+      DartClass<_NativeSibling>(
+        ($) =>
+            '''
+// ${$.alias('NativeSibling')}
+// ${$.empty('NativeSibling.class', superclass)}
+class NativeSibling extends NativeParent {}
     ''',
       ),
     ],

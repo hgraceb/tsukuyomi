@@ -156,9 +156,14 @@ class DartClassRegister<T> {
     if (prop.endsWith('.class')) {
       propertyGetter = () {
         final superclass = getter() as ObjClass;
+        // 保存本次绑定，避免共享代理的后续修改影响成员和类型判定
+        final binding = ObjClass(superclass.name, isTypeCheckSupported: superclass.isTypeCheckSupported);
+        binding.superclass = superclass.superclass;
         // 用泛型协变检查真实宿主类型关系，不依赖代理类名或临时对象身份
-        superclass.isDartSubtype = <S>() => <T>[] is List<S>;
-        return superclass;
+        binding.isDartSubtype = <S>() => <T>[] is List<S>;
+        binding.props.addAll(superclass.props);
+        binding.initializers.addAll(superclass.initializers);
+        return binding;
       };
     }
     clazz.props[prop] = DartProperty(getter: propertyGetter, setter: clazz.props[prop]?.setter);
