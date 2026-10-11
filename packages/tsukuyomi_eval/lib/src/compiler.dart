@@ -1033,8 +1033,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
     final library = declaration.declaredElement?.library;
     return [
-      for (final alias in aliases)
-        if (alias.library != library) '${alias.library.source.uri}::${alias.name}.class',
+      for (final alias in aliases) if (alias.library != library) '${alias.library.source.uri}::${alias.name}.class',
       declaration.superclassName,
     ];
   }
