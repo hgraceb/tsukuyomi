@@ -519,7 +519,14 @@ class _VM implements VM {
             setter(instance, value);
           case OP_LINK_SUPERCLASS:
             final subclass = pop() as ObjClass;
-            final superclass = pop();
+            var superclass = pop();
+            if (superclass is List<String>) {
+              final names = superclass;
+              final name = names.firstWhereOrNull((name) => globals[name]?.getter != null) ?? names.last;
+              final getter = globals[name]?.getter;
+              if (getter == null) throw EvalRuntimeError("Undefined getter for '$name'.");
+              superclass = getter();
+            }
             if (superclass is! ObjClass) {
               throw EvalRuntimeError('Superclass must be a class.');
             }
