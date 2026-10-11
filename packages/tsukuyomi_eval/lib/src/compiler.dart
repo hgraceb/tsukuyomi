@@ -380,9 +380,17 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final typeName = returnType?.element?.name;
     final libraryUri = returnType?.element?.library?.source.uri;
     final returnTypeName = typeName != null && libraryUri != null ? '$libraryUri::$typeName' : 'dynamic';
+    final aliases = getTypeAliases(returnType?.alias?.element).toList();
+    final hasSimpleAliases = aliases.every((alias) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      // 回调沿用既有泛型注解行为，仅补存普通别名；raw 的隐式实参不影响判断
+      return alias.typeParameters.isEmpty && target is NamedType && target.typeArguments == null;
+    });
+    final returnTypeAliases = hasSimpleAliases ? [for (final alias in aliases) '${alias.library.source.uri}::${alias.name}'] : <String>[];
     final function = ObjFunction(
       name.isNotEmpty ? name : 'anonymous',
       returnType: returnTypeName,
+      returnTypeAliases: returnTypeAliases,
       hasNullableReturnType: returnType?.nullabilitySuffix == NullabilitySuffix.question,
     );
     final compiler = _Compiler(enclosing: this, function: function, debug: debug, hasThis: hasThis);
@@ -1000,6 +1008,13 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     return declarations[element.name];
   }
 
+  Iterable<TypeAliasElement> getTypeAliases(TypeAliasElement? alias) sync* {
+    while (alias != null) {
+      yield alias;
+      alias = alias.aliasedType.alias?.element;
+    }
+  }
+
   bool hasUnsupportedSuperclassAlias(ClassDeclaration declaration) {
     final element = declaration.extendsClause?.superclass.element;
     TypeAliasElement? alias = element is TypeAliasElement ? element : null;
@@ -1023,8 +1038,8 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final aliases = <String>[];
     final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
     final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
-    TypeAliasElement? alias = isResolvedAlias ? type.element as TypeAliasElement : null;
-    while (alias != null) {
+    final element = isResolvedAlias ? type.element as TypeAliasElement : null;
+    for (final alias in getTypeAliases(element)) {
       final target = getTypeAliasDeclaration(alias)?.type;
       final isSimpleTarget = target is NamedType && target.typeArguments == null && target.importPrefix == null;
       if (alias.typeParameters.isNotEmpty || !isSimpleTarget) {
@@ -1032,7 +1047,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       }
       // 宿主别名可能有独立的 .with 入口，脚本中遮蔽的同名别名不能复用它
       if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
-      alias = alias.aliasedType.alias?.element;
     }
     final nullableSuffix = resolvedType?.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
     final typeName = switch (resolvedType) {

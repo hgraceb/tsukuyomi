@@ -103,6 +103,10 @@ class _VM implements VM {
     return getter.call(function);
   }
 
+  String? registeredTypeAlias(List<String> aliases) {
+    return aliases.firstWhereOrNull((alias) => globals['$alias.with']?.getter != null);
+  }
+
   bool matchInstance(ObjInstance instance, bool Function(ObjClass) match) {
     if (!instance.clazz.isTypeCheckSupported) {
       throw EvalRuntimeError("Unsupported type check for class '${instance.clazz.name}'.");
@@ -129,7 +133,7 @@ class _VM implements VM {
   bool Function(Object?) typeMatcher(ObjTypeCheck type) {
     final isNullable = type.name.endsWith('?');
     final name = isNullable ? type.name.substring(0, type.name.length - 1) : type.name;
-    final alias = type.aliases.firstWhereOrNull((alias) => globals['$alias.with']?.getter != null);
+    final alias = registeredTypeAlias(type.aliases);
     final nativeName = type.libraryUri != null ? '${type.libraryUri}::$name' : name;
     final bool Function(Object?) match;
     if (type.isScriptType) {
@@ -182,7 +186,8 @@ class _VM implements VM {
     if (count > 2) {
       throw EvalRuntimeError("Unsupported delegate '$closure' with $count parameters greater than 2.");
     }
-    return withOrThrow(function.returnType, <T>() {
+    final returnType = registeredTypeAlias(function.returnTypeAliases) ?? function.returnType;
+    return withOrThrow(returnType, <T>() {
       Function delegate<R>() {
         const $ = ObjParameter;
         return ([$0 = $, $1 = $]) {
