@@ -686,7 +686,11 @@ class _VM implements VM {
             arguments.named[Symbol(name)] = arguments.delegate(value);
           case OP_INSTANTIATE:
             final instantiation = readConstant(frame) as ObjInstantiation;
-            push(instantiate(pop() as Function, instantiation));
+            final callee = peek();
+            if (callee is Function) {
+              pop();
+              push(instantiate(callee, instantiation));
+            }
           case OP_ASYNC:
             final closure = peek() as ObjClosure;
             closure.function.isAsync = true;
