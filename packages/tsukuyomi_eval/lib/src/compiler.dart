@@ -980,11 +980,59 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     } else {
       emitGetVariable(methodName);
     }
+    emitHostInstantiation(node);
     emitCodes(OP_ARGUMENT_LIST);
     node.typeArguments?.accept(this);
     node.argumentList.accept(this);
     emitCodes(OP_CALL);
     endShorting(node);
+  }
+
+  void emitHostInstantiation(MethodInvocation node) {
+    final method = node.methodName.staticElement;
+    final className = method?.enclosingElement?.name;
+    final isCoreCollection = method?.library?.source.uri.toString() == 'dart:core' && ['Iterable', 'List', 'Set'].contains(className);
+    final isSupportedMethod = ['whereType', 'cast', 'map'].contains(node.methodName.name);
+    if (!isCoreCollection || !isSupportedMethod) return;
+    if (node.typeArguments != null && node.typeArguments!.arguments.length != 1) {
+      error("Unsupported host type argument '${node.typeArguments}'.");
+    }
+    final arguments = node.typeArgumentTypes;
+    final argument = arguments?.length == 1 ? arguments!.single : null;
+    final explicitType = node.typeArguments?.arguments.single;
+    final library = node.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
+    final type = argument != null ? hostTypeArgument(argument, library, syntax: explicitType) : null;
+    if (type == null) {
+      // 推断的复杂类型保持原调用路径，显式实参不能被静默忽略
+      if (node.typeArguments != null) error("Unsupported host type argument '${node.typeArguments}'.");
+      return;
+    }
+    final instantiation = ObjInstantiation(node.methodName.name, type, isExplicit: node.typeArguments != null);
+    emitCodes(OP_INSTANTIATE, addConstant(instantiation));
+  }
+
+  ObjTypeCheck? hostTypeArgument(DartType type, LibraryElement? library, {TypeAnnotation? syntax}) {
+    if (syntax is NamedType && syntax.typeArguments != null) return null;
+    if (type is InterfaceType) {
+      final isScriptType = type.element.library == library;
+      final hasNestedArguments = type.typeArguments.any((argument) => argument is! DynamicType);
+      // 显式 raw 名称可能自动补入非 dynamic 的 bound，不能据此误判为嵌套实参
+      if (isScriptType || (syntax == null && hasNestedArguments)) return null;
+    } else if (type is! DynamicType && type is! NeverType) {
+      return null;
+    }
+    final aliases = <String>[];
+    for (final alias in getTypeAliases(type.alias?.element)) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      final isRawTarget = target is NamedType && target.typeArguments == null;
+      if (alias.typeParameters.isNotEmpty || !isRawTarget) return null;
+      if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
+    }
+    final typeName = type.element?.name ?? type.getDisplayString(withNullability: false);
+    final nullableSuffix = type.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
+    final isIntrinsicType = type is DynamicType || type is NeverType;
+    final libraryUri = isIntrinsicType ? 'dart:core' : type.element?.library?.source.uri.toString();
+    return ObjTypeCheck('$typeName$nullableSuffix', aliases: aliases, libraryUri: libraryUri);
   }
 
   @override

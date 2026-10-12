@@ -107,6 +107,28 @@ class _VM implements VM {
     return aliases.firstWhereOrNull((alias) => globals['$alias.with']?.getter != null);
   }
 
+  Function instantiate(Function callee, ObjInstantiation instantiation) {
+    final type = instantiation.typeArgument;
+    final isNullable = type.name.endsWith('?');
+    final name = isNullable ? type.name.substring(0, type.name.length - 1) : type.name;
+    final nativeName = type.libraryUri != null ? '${type.libraryUri}::$name' : name;
+    final alias = registeredTypeAlias(type.aliases);
+    final matcherName = alias ?? nativeName;
+    // 未注册的推断类型沿用原调用，不改变已可执行的宿主回调
+    if (!instantiation.isExplicit && globals['$matcherName.with']?.getter == null) return callee;
+    return withOrThrow(matcherName, <T>() {
+      Function bind<R>() {
+        if (instantiation.method == 'map') {
+          final method = callee as Iterable<E> Function<E>(E Function(dynamic));
+          return method<R>;
+        }
+        final method = callee as Iterable<E> Function<E>();
+        return method<R>;
+      }
+      return isNullable ? bind<T?>() : bind<T>();
+    });
+  }
+
   bool matchInstance(ObjInstance instance, bool Function(ObjClass) match) {
     if (!instance.clazz.isTypeCheckSupported) {
       throw EvalRuntimeError("Unsupported type check for class '${instance.clazz.name}'.");
@@ -662,6 +684,9 @@ class _VM implements VM {
             final name = pop() as String;
             final arguments = peek() as ObjArguments;
             arguments.named[Symbol(name)] = arguments.delegate(value);
+          case OP_INSTANTIATE:
+            final instantiation = readConstant(frame) as ObjInstantiation;
+            push(instantiate(pop() as Function, instantiation));
           case OP_ASYNC:
             final closure = peek() as ObjClosure;
             closure.function.isAsync = true;

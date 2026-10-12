@@ -121,6 +121,19 @@ class ObjTypeCheck extends Obj {
   String toString() => name;
 }
 
+class ObjInstantiation extends Obj {
+  ObjInstantiation(this.method, this.typeArgument, {required this.isExplicit});
+
+  final String method;
+
+  final ObjTypeCheck typeArgument;
+
+  final bool isExplicit;
+
+  @override
+  String toString() => '$method<$typeArgument>';
+}
+
 class ObjClass extends Obj {
   ObjClass(this.name, {this.isTypeCheckSupported = true});
 
