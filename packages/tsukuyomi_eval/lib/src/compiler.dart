@@ -381,7 +381,11 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void emitDefineClosure(String name, {DartType? returnType, bool? hasThis, _CompilerBody? body}) {
     final typeName = returnType?.element?.name;
     final libraryUri = returnType?.element?.library?.source.uri;
-    final returnTypeName = typeName != null && libraryUri != null ? '$libraryUri::$typeName' : 'dynamic';
+    final returnTypeName = switch (returnType) {
+      FunctionType() => 'dart:core::Function',
+      NeverType() => 'dart:core::Never',
+      _ => typeName != null && libraryUri != null ? '$libraryUri::$typeName' : 'dynamic',
+    };
     final aliases = getTypeAliases(returnType?.alias?.element).toList();
     final hasSimpleAliases = aliases.every((alias) {
       final target = getTypeAliasDeclaration(alias)?.type;
