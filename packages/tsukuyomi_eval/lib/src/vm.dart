@@ -10,6 +10,8 @@ import 'ops.dart';
 import 'property.dart';
 import 'stack.dart';
 
+typedef _FunctionValues = ({Map<Obj, Function> native, Map<Function, Obj> script});
+
 abstract class VM {
   factory VM({required bool debug, required Map<String, Property> globals}) = _VM;
 
@@ -24,6 +26,12 @@ class _VM implements VM {
   final bool debug;
 
   final Map<String, Property> globals;
+
+  late final _FunctionValues functionValues = getFunctionValues();
+
+  Map<Obj, Function> get nativeFunctions => functionValues.native;
+
+  Map<Function, Obj> get scriptFunctions => functionValues.script;
 
   ObjContinuation continuation = ObjContinuation();
 
@@ -41,12 +49,21 @@ class _VM implements VM {
 
   set openUpvalues(ObjUpvalue? value) => continuation.openUpvalues = value;
 
+  _FunctionValues getFunctionValues() {
+    // 同一 eval 上下文创建的新 VM 仍需还原函数身份，包括 ObjInstance.invoke
+    final property = globals.putIfAbsent('#function values', () {
+      final values = (native: Map<Obj, Function>.identity(), script: Map<Function, Obj>.identity());
+      return DartProperty(getter: () => values);
+    });
+    return property.getter!() as _FunctionValues;
+  }
+
   dynamic pop() {
     return stack.pop();
   }
 
   void push(dynamic value) {
-    stack.push(value);
+    stack.push(value is Function ? scriptFunctions[value] ?? value : value);
   }
 
   dynamic peek([int distance = 0]) {
@@ -211,6 +228,8 @@ class _VM implements VM {
     final returnType = registeredTypeAlias(function.returnTypeAliases) ?? function.returnType;
     return withOrThrow(returnType, <T>() {
       Function delegate<R>() {
+        final cached = nativeFunctions[callee];
+        if (cached is R Function([dynamic, dynamic])) return cached;
         const $ = ObjParameter;
         return ([$0 = $, $1 = $]) {
           final previous = continuation;
@@ -222,8 +241,8 @@ class _VM implements VM {
             callValue(callee, count);
             final value = execute();
             final isScriptFunction = value is ObjClosure || value is ObjBoundMethod;
-            final returnsFunction = <Function>[] is List<R> && <R>[] is List<Function?>;
-            return (returnsFunction && isScriptFunction ? delegateArgument(value) : value) as R;
+            final acceptsFunction = <Function>[] is List<R>;
+            return (acceptsFunction && isScriptFunction ? nativeFunctionValue(value) : value) as R;
           } finally {
             resume(previous);
           }
@@ -239,6 +258,32 @@ class _VM implements VM {
       ObjClosure() || ObjBoundMethod() => delegateFunction(argument),
       _ => throw EvalRuntimeError("Unsupported delegate '$argument' of type '${argument.runtimeType}'."),
     };
+  }
+
+  dynamic nativeFunctionValue(dynamic value) {
+    if (value is! ObjClosure && value is! ObjBoundMethod) return value;
+    final callee = value as Obj;
+    final cached = nativeFunctions[callee];
+    if (cached != null) return cached;
+    final closure = value is ObjClosure ? value : (value as ObjBoundMethod).method;
+    final function = closure.function;
+    final returnType = registeredTypeAlias(function.returnTypeAliases) ?? function.returnType;
+    final hasReturnType = globals['$returnType.with']?.getter != null;
+    final hasSupportedParameters = closure.parameters.length <= 2 && closure.parameters.every((parameter) => parameter.isPositional);
+    final Function native;
+    if (hasReturnType && hasSupportedParameters) {
+      native = delegateFunction(callee);
+    } else {
+      // 函数作为集合值时不提前校验签名，实际宿主调用仍遵守既有委托限制
+      const $ = ObjParameter;
+      native = ([$0 = $, $1 = $]) {
+        final arguments = [if ($0 != $) $0, if ($1 != $) $1];
+        return Function.apply(delegateFunction(callee), arguments);
+      };
+    }
+    nativeFunctions[callee] = native;
+    scriptFunctions[native] = callee;
+    return native;
   }
 
   ObjUpvalue captureUpvalue(int local) {
@@ -486,8 +531,10 @@ class _VM implements VM {
           case OP_CALL:
             final arguments = pop() as ObjArguments;
             final callee = peek();
-            if (callee is Function) {
-              push(Function.apply(pop(), arguments.positional, arguments.named));
+            final function = callee is ObjNativeCall ? callee.function : callee;
+            if (function is Function) {
+              pop();
+              push(Function.apply(function, arguments.positional, arguments.named));
             } else {
               callValue(callee, arguments.forEach(callee, push));
             }
@@ -528,7 +575,17 @@ class _VM implements VM {
             if (getter == null) {
               throw EvalRuntimeError("Undefined getter for '$name'.");
             }
-            push(getter(instance));
+            final value = getter(instance);
+            final isValueMethod = ['add', 'contains', 'remove', 'lookup', 'indexOf', 'lastIndexOf', 'insert'].contains(name);
+            final isDirectCall = frame.chunk.codeAt(frame.ip) == OP_ARGUMENT_LIST;
+            if (instance is Iterable && value is Function && isValueMethod && isDirectCall) {
+              push(ObjNativeCall(value, (argument) {
+                final isScriptFunction = argument is ObjClosure || argument is ObjBoundMethod;
+                return isScriptFunction ? nativeFunctionValue(argument) : delegateArgument(argument);
+              }));
+            } else {
+              push(value);
+            }
           case OP_SET_PROPERTY:
             final value = pop();
             final instance = pop();
@@ -673,7 +730,11 @@ class _VM implements VM {
             stack.removeRange(stack.size - paramCount, stack.size);
           case OP_ARGUMENT_LIST:
             final callee = peek();
-            final delegate = callee is Function ? delegateArgument : ($) => $;
+            final delegate = switch (callee) {
+              ObjNativeCall() => callee.delegate,
+              Function() => delegateArgument,
+              _ => ($) => $,
+            };
             push(ObjArguments(delegate));
           case OP_ARGUMENT_POSITIONAL:
             final value = pop();
@@ -728,8 +789,9 @@ class _VM implements VM {
             if (getter == null) {
               throw EvalRuntimeError("Undefined binary operator getter for '$operator'.");
             }
-            final rightOperand = pop();
+            var rightOperand = pop();
             final leftOperand = pop();
+            if (operator == '[]' && leftOperand is Map) rightOperand = nativeFunctionValue(rightOperand);
             push(getter(leftOperand, rightOperand));
           case OP_OPERATOR_3:
             final operator = readString(frame);
@@ -737,9 +799,13 @@ class _VM implements VM {
             if (getter == null) {
               throw EvalRuntimeError("Undefined ternary operator getter for '$operator'.");
             }
-            final p3 = pop();
-            final p2 = pop();
+            var p3 = pop();
+            var p2 = pop();
             final p1 = pop();
+            if (operator == '[]=' && (p1 is List || p1 is Map)) {
+              p3 = nativeFunctionValue(p3);
+              if (p1 is Map) p2 = nativeFunctionValue(p2);
+            }
             push(getter(p1, p2, p3));
           case OP_SET:
             final type = pop() as String;
@@ -755,11 +821,11 @@ class _VM implements VM {
             withOrThrow(type, <E>() => push(<E>[]));
           case OP_COLLECTION_ADD:
             final distance = readCode(frame);
-            final value = pop();
+            final value = nativeFunctionValue(pop());
             peek(distance).add(value);
           case OP_COLLECTION_ADD_ENTRY:
-            final value = pop();
-            final key = pop();
+            final value = nativeFunctionValue(pop());
+            final key = nativeFunctionValue(pop());
             (peek() as Map)[key] = value;
           case OP_COLLECTION_CHECK_SPREAD:
             final isMap = readCode(frame) == 1;

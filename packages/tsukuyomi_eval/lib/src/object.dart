@@ -194,6 +194,17 @@ class ObjParameter extends Obj {
   String toString() => '<parameter>';
 }
 
+class ObjNativeCall extends Obj {
+  ObjNativeCall(this.function, this.delegate);
+
+  final Function function;
+
+  final Function(dynamic) delegate;
+
+  @override
+  String toString() => '<native call>';
+}
+
 class ObjArguments extends Obj {
   ObjArguments(this.delegate);
 
