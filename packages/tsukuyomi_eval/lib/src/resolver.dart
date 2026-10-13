@@ -4,13 +4,17 @@ import 'dart:convert';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/src/dart/analysis/experiments.dart';
 import 'package:analyzer/src/test_utilities/package_config_file_builder.dart';
 import 'package:analyzer/src/test_utilities/resource_provider_mixin.dart';
 
+import 'object.dart';
 import 'property.dart';
+
+typedef _DartMethodParameters = ({bool Function(Object?) accepts, DartParameters parameters});
 
 Future<ResolvedUnitResult> resolve(String content, List<DartLibrary> libraries) {
   // TODO 判断是否可以通过每次都重新创建一个名称唯一的文件并在解析完成后清除以优化运行时间
@@ -44,7 +48,68 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
   }
 
   registerLibrary(resolved.libraryElement);
+  final methods = <String, List<_DartMethodParameters>>{};
+  for (final library in visited) {
+    final types = <String, InterfaceElement>{
+      for (final unit in library.units) ...{
+        for (final type in unit.classes) type.name: type,
+        for (final alias in unit.typeAliases)
+          if (alias.aliasedType case final InterfaceType type) alias.name: type.element,
+      },
+    };
+    for (final unit in library.units) {
+      final declaration = declarations[unit.source.fullName];
+      if (declaration == null) continue;
+      for (final entry in declaration.props.entries) {
+        if (!entry.key.endsWith('.with')) continue;
+        final name = entry.key.substring(0, entry.key.length - '.with'.length);
+        final type = types[name];
+        final accepts = entry.value.typeMatcher;
+        if (type == null || accepts == null) continue;
+        for (final method in type.methods) {
+          if (method.isStatic) continue;
+          final key = method.isOperator ? method.name : '.${method.name}';
+          final parameters = _resolveParameters(method.parameters);
+          methods.putIfAbsent(key, () => []).add((accepts: accepts, parameters: parameters));
+        }
+      }
+    }
+  }
+  for (final entry in methods.entries) {
+    final property = props[entry.key];
+    if (property is! DartProperty) continue;
+    props[entry.key] = DartProperty(
+      getter: property.getter,
+      setter: property.setter,
+      parameters: _resolveMethodParameters(entry.value),
+    );
+  }
   return props;
+}
+
+DartParameters _resolveParameters(List<ParameterElement> parameters) {
+  final positional = parameters.where((parameter) => parameter.isPositional).toList();
+  return (
+    positionalCallbacks: {
+      for (var i = 0; i < positional.length; i++)
+        if (positional[i].type is FunctionType) i,
+    },
+    namedCallbacks: {
+      for (final parameter in parameters)
+        if (parameter.isNamed && parameter.type is FunctionType) Symbol(parameter.name),
+    },
+  );
+}
+
+DartParameters? Function(Object?) _resolveMethodParameters(List<_DartMethodParameters> methods) {
+  // 运行时只保留宿主匹配器和参数角色，避免闭包携带 analyzer 状态进入 isolate
+  return (receiver) {
+    if (receiver is Obj) return null;
+    for (final method in methods.reversed) {
+      if (method.accepts(receiver)) return method.parameters;
+    }
+    return null;
+  };
 }
 
 class _Resolver with ResourceProviderMixin {
