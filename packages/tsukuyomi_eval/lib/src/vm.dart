@@ -594,12 +594,13 @@ class _VM implements VM {
             final value = pop();
             final instance = pop();
             final name = readString(frame);
-            final setter = getInstanceProperty(instance, name)?.setter;
+            final property = getInstanceProperty(instance, name);
+            final setter = property?.setter;
             if (setter == null) {
               throw EvalRuntimeError("Undefined setter for '$name'.");
             }
             push(value);
-            setter(instance, value);
+            setter(instance, property is DartProperty ? nativeFunctionValue(value) : value);
           case OP_LINK_SUPERCLASS:
             final subclass = pop() as ObjClass;
             var superclass = pop();
