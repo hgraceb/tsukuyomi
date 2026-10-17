@@ -1,6 +1,6 @@
 import 'package:tsukuyomi_eval/src/property.dart';
 
-// 参数角色来自对应的运算符声明，执行仍使用各自注册的 getter
+// != 按 == 的规则转换参数，仍调用自己的实现
 const operatorParameterSources = {'!=': '=='};
 
 List<DartClass> get $operator {
