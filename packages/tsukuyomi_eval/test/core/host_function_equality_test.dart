@@ -55,6 +55,49 @@ void main() {
       await expectLater(() => eval(source, libraries: [_library(equality)]), println([false, 1]));
       expect(equality.calls, 1);
     });
+
+    for (final overrideEquality in [false, true]) {
+      test('independently registered operators keep their getters, equality=$overrideEquality', () async {
+        final equality = _Equality(true);
+        final operators = <String>[];
+        final functions = <bool>[];
+        final library = DartLibrary(
+          'custom_operators',
+          path: 'operators.dart',
+          declarations: [
+            DartClass.operator(
+              ($) => [
+                if (overrideEquality) ...[
+                  $.binary('==', (left, right) {
+                    operators.add('==');
+                    functions.add(right is Function);
+                    return left == right;
+                  }),
+                ],
+                $.binary('!=', (left, right) {
+                  operators.add('!=');
+                  functions.add(right is Function);
+                  return left != right;
+                }),
+              ],
+            ),
+          ],
+        );
+        const source = '''
+import 'package:function_equality/equality.dart';
+import 'package:custom_operators/operators.dart';
+void main() {
+  final function = ({int number = 1}) => number;
+  print(value == function);
+  print(value != function);
+}
+        ''';
+        await expectLater(() => eval(source, libraries: [_library(equality), library]), println([true, false]));
+        expect(operators, [if (overrideEquality) '==', '!=']);
+        expect(functions, [if (overrideEquality) true, true]);
+        expect(equality.calls, 2);
+      });
+    }
   });
 }
 

@@ -11,6 +11,7 @@ import 'package:analyzer/src/dart/analysis/experiments.dart';
 import 'package:analyzer/src/test_utilities/package_config_file_builder.dart';
 import 'package:analyzer/src/test_utilities/resource_provider_mixin.dart';
 
+import 'declaration/operator.dart';
 import 'object.dart';
 import 'property.dart';
 
@@ -79,6 +80,10 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
       }
     }
   }
+  for (final entry in operatorParameterSources.entries) {
+    final source = methods[entry.value];
+    if (source != null) methods[entry.key] = source;
+  }
   for (final entry in methods.entries) {
     final property = props[entry.key];
     if (property is! DartProperty) continue;
@@ -87,12 +92,6 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
       setter: property.setter,
       parameters: _resolveMethodParameters(_orderMethodParameters(entry.value)),
     );
-  }
-  final equality = props['=='];
-  final inequality = props['!='];
-  if (equality is DartProperty && inequality is DartProperty) {
-    // Dart 的 != 由 == 推导，两者使用同一份参数角色及覆写优先级
-    props['!='] = DartProperty(getter: inequality.getter, setter: inequality.setter, parameters: equality.parameters);
   }
   return props;
 }
