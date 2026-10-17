@@ -10,7 +10,7 @@ import 'ops.dart';
 import 'property.dart';
 import 'stack.dart';
 
-typedef _FunctionValues = ({Map<Obj, Function> native, Map<Function, Obj> script, Map<Function, DartParameters> parameters});
+typedef _FunctionValues = ({Expando<Function> native, Expando<Obj> script, Expando<DartParameters> parameters});
 
 abstract class VM {
   factory VM({required bool debug, required Map<String, Property> globals}) = _VM;
@@ -29,11 +29,11 @@ class _VM implements VM {
 
   late final _FunctionValues functionValues = getFunctionValues();
 
-  Map<Obj, Function> get nativeFunctions => functionValues.native;
+  Expando<Function> get nativeFunctions => functionValues.native;
 
-  Map<Function, Obj> get scriptFunctions => functionValues.script;
+  Expando<Obj> get scriptFunctions => functionValues.script;
 
-  Map<Function, DartParameters> get nativeParameters => functionValues.parameters;
+  Expando<DartParameters> get nativeParameters => functionValues.parameters;
 
   ObjContinuation continuation = ObjContinuation();
 
@@ -55,9 +55,10 @@ class _VM implements VM {
     // 同一 eval 上下文创建的新 VM 仍需还原函数身份，包括 ObjInstance.invoke
     final property = globals.putIfAbsent('#function values', () {
       final values = (
-        native: Map<Obj, Function>.identity(),
-        script: Map<Function, Obj>.identity(),
-        parameters: Map<Function, DartParameters>.identity(),
+        // 弱关联不延长键的生命周期，函数与适配器之间的循环引用也可一并回收
+        native: Expando<Function>(),
+        script: Expando<Obj>(),
+        parameters: Expando<DartParameters>(),
       );
       return DartProperty(getter: () => values);
     });
