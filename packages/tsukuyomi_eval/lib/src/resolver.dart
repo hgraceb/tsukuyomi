@@ -53,8 +53,9 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
     final types = <String, InterfaceElement>{
       for (final unit in library.units) ...{
         for (final type in unit.classes) type.name: type,
-        for (final alias in unit.typeAliases)
+        for (final alias in unit.typeAliases) ...{
           if (alias.aliasedType case final InterfaceType type) alias.name: type.element,
+        },
       },
     };
     for (final unit in library.units) {
@@ -91,12 +92,14 @@ DartParameters _resolveParameters(List<ParameterElement> parameters) {
   final positional = parameters.where((parameter) => parameter.isPositional).toList();
   return (
     positionalCallbacks: {
-      for (var i = 0; i < positional.length; i++)
+      for (var i = 0; i < positional.length; i++) ...{
         if (positional[i].type is FunctionType) i,
+      },
     },
     namedCallbacks: {
-      for (final parameter in parameters)
+      for (final parameter in parameters) ...{
         if (parameter.isNamed && parameter.type is FunctionType) Symbol(parameter.name),
+      },
     },
   );
 }
