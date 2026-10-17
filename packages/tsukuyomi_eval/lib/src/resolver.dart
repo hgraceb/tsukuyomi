@@ -88,6 +88,12 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
       parameters: _resolveMethodParameters(_orderMethodParameters(entry.value)),
     );
   }
+  final equality = props['=='];
+  final inequality = props['!='];
+  if (equality is DartProperty && inequality is DartProperty) {
+    // Dart 的 != 由 == 推导，两者使用同一份参数角色及覆写优先级
+    props['!='] = DartProperty(getter: inequality.getter, setter: inequality.setter, parameters: equality.parameters);
+  }
   return props;
 }
 
