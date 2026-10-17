@@ -16,6 +16,8 @@ import 'property.dart';
 
 typedef _DartMethodParameters = ({bool Function(Object?) accepts, DartParameters parameters});
 
+typedef _DartMethodDeclaration = ({InterfaceElement type, _DartMethodParameters method});
+
 Future<ResolvedUnitResult> resolve(String content, List<DartLibrary> libraries) {
   // TODO 判断是否可以通过每次都重新创建一个名称唯一的文件并在解析完成后清除以优化运行时间
   return _Resolver(libraries).resolve(content);
@@ -48,7 +50,7 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
   }
 
   registerLibrary(resolved.libraryElement);
-  final methods = <String, List<_DartMethodParameters>>{};
+  final methods = <String, List<_DartMethodDeclaration>>{};
   for (final library in visited) {
     final types = <String, InterfaceElement>{
       for (final unit in library.units) ...{
@@ -71,7 +73,8 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
           if (method.isStatic) continue;
           final key = method.isOperator ? method.name : '.${method.name}';
           final parameters = _resolveParameters(method.parameters);
-          methods.putIfAbsent(key, () => []).add((accepts: accepts, parameters: parameters));
+          final methodParameters = (accepts: accepts, parameters: parameters);
+          methods.putIfAbsent(key, () => []).add((type: type, method: methodParameters));
         }
       }
     }
@@ -82,7 +85,7 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
     props[entry.key] = DartProperty(
       getter: property.getter,
       setter: property.setter,
-      parameters: _resolveMethodParameters(entry.value),
+      parameters: _resolveMethodParameters(_orderMethodParameters(entry.value)),
     );
   }
   return props;
@@ -104,11 +107,22 @@ DartParameters _resolveParameters(List<ParameterElement> parameters) {
   );
 }
 
+List<_DartMethodParameters> _orderMethodParameters(List<_DartMethodDeclaration> declarations) {
+  final ordered = <_DartMethodDeclaration>[];
+  for (final declaration in declarations.reversed) {
+    final supertypes = declaration.type.allSupertypes.map((type) => type.element).toSet();
+    // 子类覆写优先于父类，其他声明保留原来的匹配顺序
+    final index = ordered.indexWhere((other) => supertypes.contains(other.type));
+    ordered.insert(index < 0 ? ordered.length : index, declaration);
+  }
+  return [for (final declaration in ordered) declaration.method];
+}
+
 DartParameters? Function(Object?) _resolveMethodParameters(List<_DartMethodParameters> methods) {
   // 运行时只保留宿主匹配器和参数角色，避免闭包携带 analyzer 状态进入 isolate
   return (receiver) {
     if (receiver is Obj) return null;
-    for (final method in methods.reversed) {
+    for (final method in methods) {
       if (method.accepts(receiver)) return method.parameters;
     }
     return null;
