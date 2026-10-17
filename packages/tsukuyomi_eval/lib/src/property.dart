@@ -6,6 +6,9 @@ typedef PropertySetter = Function;
 
 typedef DynamicProperties = Map<String, (Function(dynamic), Function(dynamic, dynamic))>;
 
+// 函数签名参数作为回调，其余参数中的脚本函数作为普通值
+typedef DartParameters = ({Set<int> positionalCallbacks, Set<Symbol> namedCallbacks});
+
 abstract class Property {
   PropertyGetter? get getter;
 
@@ -45,7 +48,12 @@ class EvalProperty extends Property {
 }
 
 class DartProperty extends Property {
-  DartProperty({this.getter, this.setter});
+  DartProperty({this.getter, this.setter, this.typeMatcher, this.parameters});
+
+  // 在注册时保存原生类型匹配器，解析参数角色时无需调用 .with getter
+  final bool Function(Object?)? typeMatcher;
+
+  final DartParameters? Function(Object?)? parameters;
 
   @override
   PropertyGetter? getter;
@@ -92,7 +100,7 @@ class DartClass<T> extends DartDeclaration {
   DartClass(String Function(DartClassRegister<T> $) declare) {
     assert(<dynamic>[] is! List<T>, T);
     source = declare(DartClassRegister<T>(this));
-    props['${'$T'.split('<').first}.with'] ??= DartProperty(getter: (Function<T>() $) => $<T>());
+    props['${'$T'.split('<').first}.with'] ??= DartProperty(getter: (Function<T>() $) => $<T>(), typeMatcher: (value) => value is T);
   }
 
   DartClass.operator(Iterable<dynamic> Function(DartOperatorRegister $) declare) : source = '' {
@@ -146,7 +154,7 @@ class DartClassRegister<T> {
 
   String alias(String alias) {
     assert(alias.isNotEmpty && !alias.contains('.') && clazz.props['$alias.with']?.getter == null, alias);
-    clazz.props['$alias.with'] = DartProperty(getter: (Function<T>() $) => $<T>());
+    clazz.props['$alias.with'] = DartProperty(getter: (Function<T>() $) => $<T>(), typeMatcher: (value) => value is T);
     return '';
   }
 

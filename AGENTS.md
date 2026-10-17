@@ -95,6 +95,38 @@ Row(
 );
 ```
 
+- 优先使用 ...{} 语法与代码内部的 if 进行配合使用对齐代码，增强代码的可阅读性，如：
+
+```dart
+// Bad: for 和 if 的层级不易于阅读
+return (
+  positionalCallbacks: {
+    for (var i = 0; i < positional.length; i++)
+      if (positional[i].type is FunctionType) i,
+  },
+);
+
+// Bad: 没有触发换行规则的时候为 i 添加了多余的 ...{} 层级显示
+return (
+  positionalCallbacks: {
+    for (var i = 0; i < positional.length; i++) ...{
+      if (positional[i].type is FunctionType) ...{
+        i,
+      },
+    },
+  },
+);
+
+// Good: 使用 ...{} 语法显示正确的层级
+return (
+  positionalCallbacks: {
+    for (var i = 0; i < positional.length; i++) ...{
+      if (positional[i].type is FunctionType) i,
+    },
+  },
+);
+```
+
 - 在使用 ?: 表达式的时候尽量避免内联过长的判断或者处理导致多余的格式化换行，如：
 
 ```dart

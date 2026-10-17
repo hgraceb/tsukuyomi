@@ -381,7 +381,11 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void emitDefineClosure(String name, {DartType? returnType, bool? hasThis, _CompilerBody? body}) {
     final typeName = returnType?.element?.name;
     final libraryUri = returnType?.element?.library?.source.uri;
-    final returnTypeName = typeName != null && libraryUri != null ? '$libraryUri::$typeName' : 'dynamic';
+    final returnTypeName = switch (returnType) {
+      FunctionType() => 'dart:core::Function',
+      NeverType() => 'dart:core::Never',
+      _ => typeName != null && libraryUri != null ? '$libraryUri::$typeName' : 'dynamic',
+    };
     final aliases = getTypeAliases(returnType?.alias?.element).toList();
     final hasSimpleAliases = aliases.every((alias) {
       final target = getTypeAliasDeclaration(alias)?.type;
@@ -400,6 +404,62 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     for (final upvalue in compiler.upvalues) {
       emitCodes(upvalue.isLocal ? 1 : 0, upvalue.index);
     }
+  }
+
+  void emitHostInstantiation(MethodInvocation node) {
+    final method = node.methodName.staticElement;
+    final className = method?.enclosingElement?.name;
+    final isCoreCollection = method?.library?.source.uri.toString() == 'dart:core' && ['Iterable', 'List', 'Set'].contains(className);
+    final isSupportedMethod = ['whereType', 'cast', 'map'].contains(node.methodName.name);
+    if (!isCoreCollection || !isSupportedMethod) return;
+    if (node.typeArguments != null && node.typeArguments!.arguments.length != 1) {
+      error("Unsupported host type argument '${node.typeArguments}'.");
+    }
+    final arguments = node.typeArgumentTypes;
+    final argument = arguments?.length == 1 ? arguments!.single : null;
+    final explicitType = node.typeArguments?.arguments.single;
+    final library = node.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
+    final type = argument != null ? hostTypeArgument(argument, library, syntax: explicitType) : null;
+    if (type == null) {
+      // 推断的复杂类型保持原调用路径，显式实参不能被静默忽略
+      if (node.typeArguments != null) error("Unsupported host type argument '${node.typeArguments}'.");
+      return;
+    }
+    final instantiation = ObjInstantiation(node.methodName.name, type, isExplicit: node.typeArguments != null);
+    emitCodes(OP_INSTANTIATE, addConstant(instantiation));
+  }
+
+  void emitTypeCheck(TypeAnnotation type) {
+    final isSimpleNamedType = type is NamedType && type.typeArguments == null && type.importPrefix == null;
+    final resolvedType = type.type;
+    final isParameterOrFunctionType = resolvedType is TypeParameterType || resolvedType is FunctionType;
+    if (!isSimpleNamedType || isParameterOrFunctionType) {
+      error("Unsupported type check '$type'.");
+    }
+    final aliases = <String>[];
+    final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
+    final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
+    final element = isResolvedAlias ? type.element as TypeAliasElement : null;
+    for (final alias in getTypeAliases(element)) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      final isSimpleTarget = target is NamedType && target.typeArguments == null && target.importPrefix == null;
+      if (alias.typeParameters.isNotEmpty || !isSimpleTarget) {
+        error("Unsupported type check '$type'.");
+      }
+      // 宿主别名可能有独立的 .with 入口，脚本中遮蔽的同名别名不能复用它
+      if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
+    }
+    final nullableSuffix = resolvedType?.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
+    final typeName = switch (resolvedType) {
+      InterfaceType() when isResolvedAlias => '${resolvedType.element.name}$nullableSuffix',
+      DartType() when isResolvedAlias => resolvedType.getDisplayString(withNullability: true),
+      _ => type.toSource(),
+    };
+    final isScriptType = resolvedType is InterfaceType && resolvedType.element.library == library;
+    final isIntrinsicType = resolvedType is DynamicType || resolvedType is NeverType;
+    final libraryUri = isIntrinsicType ? 'dart:core' : resolvedType?.element?.library?.source.uri.toString();
+    final typeCheck = ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType, libraryUri: libraryUri);
+    emitCodes(OP_CONSTANT, addConstant(typeCheck));
   }
 
   void emitSetVariable(String name) {
@@ -675,6 +735,78 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   void endTrying() {
     trying = trying!.enclosing;
+  }
+
+  GenericTypeAlias? getTypeAliasDeclaration(TypeAliasElement element) {
+    // 解析后的类型已补齐 raw 实参，保留别名声明才能区分显式参数化目标
+    final source = element.source;
+    final declarations = typeAliasDeclarations.putIfAbsent(source.uri, () {
+      final unit = parseString(content: source.contents.data, throwIfDiagnostics: false).unit;
+      return {for (final declaration in unit.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration};
+    });
+    return declarations[element.name];
+  }
+
+  Iterable<TypeAliasElement> getTypeAliases(TypeAliasElement? alias) sync* {
+    while (alias != null) {
+      yield alias;
+      alias = alias.aliasedType.alias?.element;
+    }
+  }
+
+  List<String> getSuperclassNames(ClassDeclaration declaration) {
+    final superclass = declaration.extendsClause!.superclass;
+    final element = superclass.element;
+    final aliases = getTypeAliases(element is TypeAliasElement ? element : null).toList();
+    final hasNullableAlias = aliases.any((alias) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      return target is NamedType && target.question != null;
+    });
+    if (superclass.question != null || hasNullableAlias) {
+      error("Superclass '$superclass' must be a non-nullable class.");
+    }
+    final library = declaration.declaredElement?.library;
+    return [
+      for (final alias in aliases) if (alias.library != library) '${alias.library.source.uri}::${alias.name}.class',
+      declaration.superclassName,
+    ];
+  }
+
+  bool hasUnsupportedSuperclassAlias(ClassDeclaration declaration) {
+    final element = declaration.extendsClause?.superclass.element;
+    TypeAliasElement? alias = element is TypeAliasElement ? element : null;
+    while (alias != null) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      // 只检查声明中显式写出的实参，raw 类型的默认实参不影响支持状态
+      final hasExplicitArguments = target is NamedType && target.typeArguments != null;
+      if (alias.typeParameters.isNotEmpty || hasExplicitArguments) return true;
+      alias = alias.aliasedType.alias?.element;
+    }
+    return false;
+  }
+
+  ObjTypeCheck? hostTypeArgument(DartType type, LibraryElement? library, {TypeAnnotation? syntax}) {
+    if (syntax is NamedType && syntax.typeArguments != null) return null;
+    if (type is InterfaceType) {
+      final isScriptType = type.element.library == library;
+      final hasNestedArguments = type.typeArguments.any((argument) => argument is! DynamicType);
+      // 显式 raw 名称可能自动补入非 dynamic 的 bound，不能据此误判为嵌套实参
+      if (isScriptType || (syntax == null && hasNestedArguments)) return null;
+    } else if (type is! DynamicType && type is! NeverType) {
+      return null;
+    }
+    final aliases = <String>[];
+    for (final alias in getTypeAliases(type.alias?.element)) {
+      final target = getTypeAliasDeclaration(alias)?.type;
+      final isRawTarget = target is NamedType && target.typeArguments == null;
+      if (alias.typeParameters.isNotEmpty || !isRawTarget) return null;
+      if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
+    }
+    final typeName = type.element?.name ?? type.getDisplayString(withNullability: false);
+    final nullableSuffix = type.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
+    final isIntrinsicType = type is DynamicType || type is NeverType;
+    final libraryUri = isIntrinsicType ? 'dart:core' : type.element?.library?.source.uri.toString();
+    return ObjTypeCheck('$typeName$nullableSuffix', aliases: aliases, libraryUri: libraryUri);
   }
 
   void assign(CompoundAssignmentExpression assignment, Expression expression, void Function(_AssignmentTarget) accept) {
@@ -980,6 +1112,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     } else {
       emitGetVariable(methodName);
     }
+    emitHostInstantiation(node);
     emitCodes(OP_ARGUMENT_LIST);
     node.typeArguments?.accept(this);
     node.argumentList.accept(this);
@@ -1011,87 +1144,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void compileExpressionStatement(ExpressionStatement node) {
     super.compileExpressionStatement(node);
     emitCodes(OP_POP);
-  }
-
-  GenericTypeAlias? getTypeAliasDeclaration(TypeAliasElement element) {
-    // 解析后的类型已补齐 raw 实参，保留别名声明才能区分显式参数化目标
-    final source = element.source;
-    final declarations = typeAliasDeclarations.putIfAbsent(source.uri, () {
-      final unit = parseString(content: source.contents.data, throwIfDiagnostics: false).unit;
-      return {for (final declaration in unit.declarations.whereType<GenericTypeAlias>()) declaration.name.lexeme: declaration};
-    });
-    return declarations[element.name];
-  }
-
-  Iterable<TypeAliasElement> getTypeAliases(TypeAliasElement? alias) sync* {
-    while (alias != null) {
-      yield alias;
-      alias = alias.aliasedType.alias?.element;
-    }
-  }
-
-  List<String> getSuperclassNames(ClassDeclaration declaration) {
-    final superclass = declaration.extendsClause!.superclass;
-    final element = superclass.element;
-    final aliases = getTypeAliases(element is TypeAliasElement ? element : null).toList();
-    final hasNullableAlias = aliases.any((alias) {
-      final target = getTypeAliasDeclaration(alias)?.type;
-      return target is NamedType && target.question != null;
-    });
-    if (superclass.question != null || hasNullableAlias) {
-      error("Superclass '$superclass' must be a non-nullable class.");
-    }
-    final library = declaration.declaredElement?.library;
-    return [
-      for (final alias in aliases) if (alias.library != library) '${alias.library.source.uri}::${alias.name}.class',
-      declaration.superclassName,
-    ];
-  }
-
-  bool hasUnsupportedSuperclassAlias(ClassDeclaration declaration) {
-    final element = declaration.extendsClause?.superclass.element;
-    TypeAliasElement? alias = element is TypeAliasElement ? element : null;
-    while (alias != null) {
-      final target = getTypeAliasDeclaration(alias)?.type;
-      // 只检查声明中显式写出的实参，raw 类型的默认实参不影响支持状态
-      final hasExplicitArguments = target is NamedType && target.typeArguments != null;
-      if (alias.typeParameters.isNotEmpty || hasExplicitArguments) return true;
-      alias = alias.aliasedType.alias?.element;
-    }
-    return false;
-  }
-
-  void emitTypeCheck(TypeAnnotation type) {
-    final isSimpleNamedType = type is NamedType && type.typeArguments == null && type.importPrefix == null;
-    final resolvedType = type.type;
-    final isParameterOrFunctionType = resolvedType is TypeParameterType || resolvedType is FunctionType;
-    if (!isSimpleNamedType || isParameterOrFunctionType) {
-      error("Unsupported type check '$type'.");
-    }
-    final aliases = <String>[];
-    final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
-    final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
-    final element = isResolvedAlias ? type.element as TypeAliasElement : null;
-    for (final alias in getTypeAliases(element)) {
-      final target = getTypeAliasDeclaration(alias)?.type;
-      final isSimpleTarget = target is NamedType && target.typeArguments == null && target.importPrefix == null;
-      if (alias.typeParameters.isNotEmpty || !isSimpleTarget) {
-        error("Unsupported type check '$type'.");
-      }
-      // 宿主别名可能有独立的 .with 入口，脚本中遮蔽的同名别名不能复用它
-      if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
-    }
-    final nullableSuffix = resolvedType?.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
-    final typeName = switch (resolvedType) {
-      InterfaceType() when isResolvedAlias => '${resolvedType.element.name}$nullableSuffix',
-      DartType() when isResolvedAlias => resolvedType.getDisplayString(withNullability: true),
-      _ => type.toSource(),
-    };
-    final isScriptType = resolvedType is InterfaceType && resolvedType.element.library == library;
-    final isIntrinsicType = resolvedType is DynamicType || resolvedType is NeverType;
-    final libraryUri = isIntrinsicType ? 'dart:core' : resolvedType?.element?.library?.source.uri.toString();
-    final typeCheck = ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType, libraryUri: libraryUri);
-    emitCodes(OP_CONSTANT, addConstant(typeCheck));
   }
 
   @override
