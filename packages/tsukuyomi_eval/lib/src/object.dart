@@ -71,6 +71,7 @@ class ObjFunction extends Obj {
     required this.returnType,
     this.returnTypeAliases = const [],
     this.hasNullableReturnType = false,
+    this.fallbackToDynamicReturn = false,
   }) : chunk = Chunk(name);
 
   int upvalueCount = 0;
@@ -86,6 +87,8 @@ class ObjFunction extends Obj {
   final List<String> returnTypeAliases;
 
   final bool hasNullableReturnType;
+
+  final bool fallbackToDynamicReturn;
 
   @override
   String toString() => '<fn $name>';
@@ -119,6 +122,19 @@ class ObjTypeCheck extends Obj {
 
   @override
   String toString() => name;
+}
+
+class ObjInstantiation extends Obj {
+  ObjInstantiation(this.method, this.typeArgument, {required this.isExplicit});
+
+  final String method;
+
+  final ObjTypeCheck typeArgument;
+
+  final bool isExplicit;
+
+  @override
+  String toString() => '$method<$typeArgument>';
 }
 
 class ObjClass extends Obj {
@@ -184,7 +200,7 @@ class ObjParameter extends Obj {
 class ObjArguments extends Obj {
   ObjArguments(this.delegate);
 
-  final Function(dynamic) delegate;
+  final dynamic Function(dynamic, int?, Symbol?) delegate;
 
   final List<dynamic> positional = [];
 

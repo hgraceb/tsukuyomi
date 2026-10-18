@@ -88,6 +88,8 @@ const OP_ARGUMENT_POSITIONAL = 46;
 
 const OP_ARGUMENT_NAMED = 47;
 
+const OP_INSTANTIATE = 48;
+
 const OP_ASYNC = 50;
 
 const OP_AWAIT = 51;

@@ -124,6 +124,7 @@ int disassembleInstruction(Chunk chunk, int offset) {
     OP_ARGUMENT_LIST => _simpleInstruction('OP_ARGUMENT_LIST', offset),
     OP_ARGUMENT_POSITIONAL => _simpleInstruction('OP_ARGUMENT_POSITIONAL', offset),
     OP_ARGUMENT_NAMED => _simpleInstruction('OP_ARGUMENT_NAMED', offset),
+    OP_INSTANTIATE => _constantInstruction('OP_INSTANTIATE', chunk, offset),
     OP_ASYNC => _simpleInstruction('OP_ASYNC', offset),
     OP_AWAIT => _simpleInstruction('OP_AWAIT', offset),
     OP_IS => _simpleInstruction('OP_IS', offset),
