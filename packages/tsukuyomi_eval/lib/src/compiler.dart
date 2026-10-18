@@ -437,35 +437,58 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   }
 
   void emitTypeCheck(TypeAnnotation type) {
-    final isSimpleNamedType = type is NamedType && type.typeArguments == null && type.importPrefix == null;
+    final isNamedType = type is NamedType && type.importPrefix == null;
     final resolvedType = type.type;
     final isParameterOrFunctionType = resolvedType is TypeParameterType || resolvedType is FunctionType;
-    if (!isSimpleNamedType || isParameterOrFunctionType) {
+    if (!isNamedType || isParameterOrFunctionType) {
       error("Unsupported type check '$type'.");
     }
     final aliases = <String>[];
     final library = type.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
     final isResolvedAlias = type is NamedType && type.element is TypeAliasElement && resolvedType != null && resolvedType is! InvalidType;
     final element = isResolvedAlias ? type.element as TypeAliasElement : null;
+    var arguments = type is NamedType ? type.typeArguments : null;
     for (final alias in getTypeAliases(element)) {
       final target = getTypeAliasDeclaration(alias)?.type;
-      final isSimpleTarget = target is NamedType && target.typeArguments == null && target.importPrefix == null;
-      if (alias.typeParameters.isNotEmpty || !isSimpleTarget) {
+      final isNamedTarget = target is NamedType && target.importPrefix == null;
+      if (alias.typeParameters.isNotEmpty || !isNamedTarget) {
         error("Unsupported type check '$type'.");
       }
+      arguments ??= target is NamedType ? target.typeArguments : null;
       // 宿主别名可能有独立的 .with 入口，脚本中遮蔽的同名别名不能复用它
       if (alias.library != library) aliases.add('${alias.library.source.uri}::${alias.name}');
     }
+    final typeArguments = <ObjTypeCheck>[];
+    if (arguments != null) {
+      final collection = resolvedType is InterfaceType ? resolvedType : null;
+      final isCoreCollection = collection?.element.library.source.uri.toString() == 'dart:core';
+      final isSupportedCollection = ['List', 'Iterable', 'Set', 'Map'].contains(collection?.element.name);
+      final hasExpectedArguments = arguments.arguments.length == collection?.typeArguments.length;
+      if (!isCoreCollection || !isSupportedCollection || !hasExpectedArguments) {
+        error("Unsupported type check '$type'.");
+      }
+      for (var index = 0; index < arguments.arguments.length; index++) {
+        final argument = hostTypeArgument(collection!.typeArguments[index], library, syntax: arguments.arguments[index]);
+        if (argument == null) error("Unsupported type check '$type'.");
+        typeArguments.add(argument!);
+      }
+    }
     final nullableSuffix = resolvedType?.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
     final typeName = switch (resolvedType) {
-      InterfaceType() when isResolvedAlias => '${resolvedType.element.name}$nullableSuffix',
+      InterfaceType() when isResolvedAlias || typeArguments.isNotEmpty => '${resolvedType.element.name}$nullableSuffix',
       DartType() when isResolvedAlias => resolvedType.getDisplayString(withNullability: true),
       _ => type.toSource(),
     };
     final isScriptType = resolvedType is InterfaceType && resolvedType.element.library == library;
     final isIntrinsicType = resolvedType is DynamicType || resolvedType is NeverType;
     final libraryUri = isIntrinsicType ? 'dart:core' : resolvedType?.element?.library?.source.uri.toString();
-    final typeCheck = ObjTypeCheck(typeName, aliases: aliases, isScriptType: isScriptType, libraryUri: libraryUri);
+    final typeCheck = ObjTypeCheck(
+      typeName,
+      aliases: aliases,
+      isScriptType: isScriptType,
+      libraryUri: libraryUri,
+      typeArguments: typeArguments,
+    );
     emitCodes(OP_CONSTANT, addConstant(typeCheck));
   }
 

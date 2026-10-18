@@ -348,11 +348,15 @@ void main() { print(<int>[0].map((value) => <int>[value]).toList()); }
       await expectLater(() => eval(source), println(['[[0]]']));
     });
 
-    test('parameterized type checks remain deferred independently of generic calls', () async {
+    test('parameterized type checks recognize instantiated map results', () async {
       const source = '''
-void main() { dynamic values = <int>[0].map((value) => value).toList(); values as List<int>; }
+void main() {
+  dynamic values = <int>[0].map((value) => value).toList();
+  print(values is List<int>);
+  print((values as List<int>) == values);
+}
       ''';
-      await expectLater(() => eval(source), throwsA(isA<EvalCompileError>()));
+      await expectLater(() => eval(source), println([true, true]));
     });
   });
 }

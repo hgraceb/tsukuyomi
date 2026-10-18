@@ -180,13 +180,36 @@ class _VM implements VM {
     });
   }
 
+  bool Function(Object?) collectionTypeMatcher(ObjTypeCheck type) {
+    R bind<R>(ObjTypeCheck argument, R Function<T>() function) {
+      final isNullable = argument.name.endsWith('?');
+      final name = isNullable ? argument.name.substring(0, argument.name.length - 1) : argument.name;
+      final nativeName = argument.libraryUri != null ? '${argument.libraryUri}::$name' : name;
+      final alias = registeredTypeAlias(argument.aliases);
+      return withOrThrow(alias ?? nativeName, <T>() => isNullable ? function<T?>() : function<T>());
+    }
+
+    return bind(type.typeArguments.first, <T>() {
+      final name = type.name.endsWith('?') ? type.name.substring(0, type.name.length - 1) : type.name;
+      return switch (name) {
+        'List' => (Object? value) => value is List<T>,
+        'Iterable' => (Object? value) => value is Iterable<T>,
+        'Set' => (Object? value) => value is Set<T>,
+        'Map' => bind(type.typeArguments.last, <V>() => (Object? value) => value is Map<T, V>),
+        _ => throw EvalRuntimeError("Unsupported type check '$type'."),
+      };
+    });
+  }
+
   bool Function(Object?) typeMatcher(ObjTypeCheck type) {
     final isNullable = type.name.endsWith('?');
     final name = isNullable ? type.name.substring(0, type.name.length - 1) : type.name;
     final alias = registeredTypeAlias(type.aliases);
     final nativeName = type.libraryUri != null ? '${type.libraryUri}::$name' : name;
     final bool Function(Object?) match;
-    if (type.isScriptType) {
+    if (type.typeArguments.isNotEmpty) {
+      match = collectionTypeMatcher(type);
+    } else if (type.isScriptType) {
       final clazz = globals['$name.class']?.getter?.call();
       if (clazz is! ObjClass) {
         throw EvalRuntimeError("Undefined getter for '$name.class'.");

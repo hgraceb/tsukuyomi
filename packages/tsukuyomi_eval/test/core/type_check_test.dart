@@ -1992,12 +1992,7 @@ void main() {
 
   group('Unsupported type checks', () {
     for (final entry in [
-      (name: 'parameterized alias', declaration: 'typedef Target = List<int>;'),
       (name: 'nested parameterized alias', declaration: 'typedef Target = List<List<int>>;'),
-      (name: 'parameterized alias chain', declaration: 'typedef IntList = List<int>; typedef Target = IntList;'),
-      (name: 'explicit dynamic alias', declaration: 'typedef Target = List<dynamic>;'),
-      (name: 'explicit dynamic map alias', declaration: 'typedef Target = Map<dynamic, dynamic>;'),
-      (name: 'explicit dynamic alias chain', declaration: 'typedef Values = List<dynamic>; typedef Target = Values;'),
       (name: 'generic alias declaration', declaration: 'typedef Target<T> = List;'),
     ]) {
       for (final operator in ['is', 'as', 'on']) {
@@ -2013,13 +2008,14 @@ void main() {
     }
 
     for (final operator in ['is', 'as', 'on']) {
-      test('registered explicit parameterized aliases remain rejected for $operator', () async {
-        final body = operator == 'on' ? 'try { throw value; } on ExplicitValues {}' : 'print(value $operator ExplicitValues);';
-        final source = "import 'package:alias_types/alias_types.dart'; void main() { dynamic value = null; $body }";
-        await expectLater(
-          eval(source, libraries: [_aliasLibrary()]),
-          throwsA(isA<EvalCompileError>().having((error) => error.toString(), 'message', contains('type check'))),
-        );
+      test('registered parameterized collection aliases retain their target for $operator', () async {
+        final body = switch (operator) {
+          'on' => 'try { throw value; } on ExplicitValues catch (error) { print(error == value); }',
+          'as' => 'print((value as ExplicitValues) == value);',
+          _ => 'print(value is ExplicitValues);',
+        };
+        final source = "import 'package:alias_types/alias_types.dart'; void main() { dynamic value = <int>[]; $body }";
+        await expectLater(() => eval(source, libraries: [_aliasLibrary()]), println([true]));
       });
     }
 
@@ -2037,13 +2033,10 @@ void main() { dynamic value = () => 0; print(value $operator Callback); }
     }
 
     for (final entry in [
-      (name: 'parameterized is', body: 'print(value is List<int>);'),
-      (name: 'parameterized as', body: 'print(value as List<int>);'),
       (name: 'nested generic is', body: 'print(value is List<List<int>>);'),
       (name: 'nested generic as', body: 'print(value as List<List<int>>);'),
       (name: 'function signature is', body: 'print(value is int Function());'),
       (name: 'function signature as', body: 'print(value as int Function());'),
-      (name: 'parameterized catch', body: 'try { throw value; } on List<int> {}'),
     ]) {
       test('${entry.name} is rejected before execution', () async {
         final source = 'void main() { dynamic value = null; ${entry.body} }';
