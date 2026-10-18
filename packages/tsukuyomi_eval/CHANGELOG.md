@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Support single-level native List, Iterable, Set, and Map targets in `is`, `as`, and typed catches, checking reified type arguments without copying or scanning collection contents.
 * Declare the Pattern and Match interfaces needed to resolve indexed regular expression capture groups.
 * Support synchronous collection-for elements in List, Set, and Map literals, preserving loop bindings and surrounding expression operands across nested loops and await.
 * Build List, Set, and Map literals incrementally, supporting spread, null-aware spread, and collection-if with ordered evaluation and per-element type checks.

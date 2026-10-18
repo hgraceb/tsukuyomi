@@ -108,7 +108,7 @@ class ObjClosure extends Obj {
 }
 
 class ObjTypeCheck extends Obj {
-  ObjTypeCheck(this.name, {this.aliases = const [], this.isScriptType = false, this.libraryUri});
+  ObjTypeCheck(this.name, {this.aliases = const [], this.isScriptType = false, this.libraryUri, this.typeArguments = const []});
 
   final String name;
 
@@ -118,10 +118,17 @@ class ObjTypeCheck extends Obj {
 
   final String? libraryUri;
 
+  final List<ObjTypeCheck> typeArguments;
+
   bool get isCoreType => libraryUri == 'dart:core';
 
   @override
-  String toString() => name;
+  String toString() {
+    if (typeArguments.isEmpty) return name;
+    final isNullable = name.endsWith('?');
+    final typeName = isNullable ? name.substring(0, name.length - 1) : name;
+    return '$typeName<${typeArguments.join(', ')}>${isNullable ? '?' : ''}';
+  }
 }
 
 class ObjInstantiation extends Obj {
