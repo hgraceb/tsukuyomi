@@ -20,13 +20,13 @@ abstract class HttpSource extends Source {
   external SourceProtoMessage parseProto(List<int> buffer, SourceProtoFields fields);
 
   // ${$.debug('fetchJson', ($, $$) => $.fetchJson)}
-  external Future<dynamic> fetchJson(String url, {String? method});
+  external Future<dynamic> fetchJson(String url, {String? method, Map<String, String>? headers});
 
   // ${$.debug('fetchHtml', ($, $$) => $.fetchHtml)}
   external Future<Document> fetchHtml(String url, {String? method});
 
   // ${$.debug('fetchBytes', ($, $$) => $.fetchBytes)}
-  external Future<List<int>> fetchBytes(String url, {String? method});
+  external Future<HttpSourceBytes> fetchBytes(String url, {String? method});
 
   // ${$.debug('fetchProto', ($, $$) => $.fetchProto)}
   external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {String? method});
@@ -65,7 +65,7 @@ abstract class HttpSource extends Source {
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter);
 
   // ${$.debug('getImageBytes', ($, $$) => $.getImageBytes)}
-  external Future<List<int>> getImageBytes(HttpSourceImage image);
+  external Future<HttpSourceBytes> getImageBytes(HttpSourceImage image);
 
   // ${$.debug('getRepaintBytes', ($, $$) => $.getRepaintBytes)}
   external Future<HttpSourceBytes> getRepaintBytes(HttpSourceBytes bytes);
@@ -89,12 +89,18 @@ class HttpSourceBytes extends SourceBytes {
   HttpSourceBytes({
     required super.type,
     required super.data,
+    required super.statusCode,
+    required super.responseHeaders,
+    super.extra,
   });
 
   // ${$.debug('copyWith', ($, $$) => $.copyWith)}
   external HttpSourceBytes copyWith({
     String? type,
     List<int>? data,
+    int? statusCode,
+    Headers? responseHeaders,
+    dynamic extra,
   });
 }
 ''');

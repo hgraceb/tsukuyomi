@@ -22,6 +22,7 @@ part 'never.dart';
 part 'null.dart';
 part 'num.dart';
 part 'object.dart';
+part 'pattern.dart';
 part 'print.dart';
 part 'regexp.dart';
 part 'set.dart';
@@ -58,6 +59,7 @@ export 'dart:async' show Future, Stream;
     ...$null,
     ...$num,
     ...$object,
+    ...$pattern,
     ...$print,
     ...$regexp,
     ...$set,

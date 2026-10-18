@@ -115,7 +115,10 @@ sealed class SourceImage {
   });
 
   // ${$.debug('url', ($, $$) => $.url)}
-  abstract final String url;
+  final String url;
+
+  // ${$.debug('extra', ($, $$) => $.extra)}
+  final dynamic extra;
 }
 ''');
 
