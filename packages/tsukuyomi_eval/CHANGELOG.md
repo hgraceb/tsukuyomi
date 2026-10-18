@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Declare the Pattern and Match interfaces needed to resolve indexed regular expression capture groups.
 * Support synchronous collection-for elements in List, Set, and Map literals, preserving loop bindings and surrounding expression operands across nested loops and await.
 * Build List, Set, and Map literals incrementally, supporting spread, null-aware spread, and collection-if with ordered evaluation and per-element type checks.
 * Support arithmetic and bitwise compound assignment and short-circuiting `??=`, evaluating assignment targets once and reusing existing getter/setter, null-aware, and async paths.
