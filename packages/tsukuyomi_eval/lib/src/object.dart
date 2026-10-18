@@ -71,6 +71,7 @@ class ObjFunction extends Obj {
     required this.returnType,
     this.returnTypeAliases = const [],
     this.hasNullableReturnType = false,
+    this.fallbackToDynamicReturn = false,
   }) : chunk = Chunk(name);
 
   int upvalueCount = 0;
@@ -86,6 +87,8 @@ class ObjFunction extends Obj {
   final List<String> returnTypeAliases;
 
   final bool hasNullableReturnType;
+
+  final bool fallbackToDynamicReturn;
 
   @override
   String toString() => '<fn $name>';

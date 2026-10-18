@@ -378,7 +378,13 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     }
   }
 
-  void emitDefineClosure(String name, {DartType? returnType, bool? hasThis, _CompilerBody? body}) {
+  void emitDefineClosure(
+    String name, {
+    DartType? returnType,
+    bool fallbackToDynamicReturn = false,
+    bool? hasThis,
+    _CompilerBody? body,
+  }) {
     final typeName = returnType?.element?.name;
     final libraryUri = returnType?.element?.library?.source.uri;
     final returnTypeName = switch (returnType) {
@@ -398,6 +404,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       returnType: returnTypeName,
       returnTypeAliases: returnTypeAliases,
       hasNullableReturnType: returnType?.nullabilitySuffix == NullabilitySuffix.question,
+      fallbackToDynamicReturn: fallbackToDynamicReturn,
     );
     final compiler = _Compiler(enclosing: this, function: function, debug: debug, hasThis: hasThis);
     emitCodes(OP_CLOSURE, addConstant(compiler.compile(body: body)));
@@ -1050,11 +1057,17 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   void compileMethodDeclaration(MethodDeclaration node) {
     final className = node.className;
     final methodName = node.name.lexeme;
-    final returnType = node.returnType?.type;
-    emitDefineClosure('$className.$methodName', returnType: returnType, hasThis: true, body: (compiler) {
-      compiler.addFormalParameters(node.parameters);
-      node.body.accept(compiler);
-    });
+    final returnType = node.returnType?.type ?? node.declaredElement?.returnType;
+    emitDefineClosure(
+      '$className.$methodName',
+      returnType: returnType,
+      fallbackToDynamicReturn: node.returnType == null,
+      hasThis: true,
+      body: (compiler) {
+        compiler.addFormalParameters(node.parameters);
+        node.body.accept(compiler);
+      },
+    );
     emitAsyncIfNeeded(node.body);
     node.returnType?.accept(this);
     node.typeParameters?.accept(this);

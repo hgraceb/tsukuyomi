@@ -221,6 +221,13 @@ class _VM implements VM {
     return (value) => (isNullable && value == null) || match(value);
   }
 
+  String delegateReturnType(ObjFunction function) {
+    final type = registeredTypeAlias(function.returnTypeAliases) ?? function.returnType;
+    final isRegistered = globals['$type.with']?.getter != null;
+    // 未写返回类型且推断类型未注册时，沿用原来的 dynamic 委托
+    return !isRegistered && function.fallbackToDynamicReturn ? 'dynamic' : type;
+  }
+
   Function delegateFunction(Obj callee) {
     final closure = switch (callee) {
       ObjClosure() => callee,
@@ -236,7 +243,7 @@ class _VM implements VM {
     if (count > 2) {
       throw EvalRuntimeError("Unsupported delegate '$closure' with $count parameters greater than 2.");
     }
-    final returnType = registeredTypeAlias(function.returnTypeAliases) ?? function.returnType;
+    final returnType = delegateReturnType(function);
     return withOrThrow(returnType, <T>() {
       Function delegate<R>() {
         final cached = nativeFunctions[callee];
@@ -279,7 +286,7 @@ class _VM implements VM {
     if (cached != null) return cached;
     final closure = value is ObjClosure ? value : (value as ObjBoundMethod).method;
     final function = closure.function;
-    final returnType = registeredTypeAlias(function.returnTypeAliases) ?? function.returnType;
+    final returnType = delegateReturnType(function);
     final hasReturnType = globals['$returnType.with']?.getter != null;
     final hasSupportedParameters = closure.parameters.length <= 2 && closure.parameters.every((parameter) => parameter.isPositional);
     final Function native;
