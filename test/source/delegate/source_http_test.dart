@@ -31,6 +31,26 @@ dynamic main() => Example();
     expect(await compute((instance) => instance.get('name'), instance), 'Example');
   });
 
+  test('Host request headers use optional script parameter defaults', () async {
+    const source = '''
+import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+
+class Example extends HttpSource {
+  final String name = 'Example';
+  final String baseUrl = 'https://example.com';
+
+  Map<String, String> getRequestHeaders([String token = 'default']) => <String, String>{'token': token};
+}
+
+dynamic main() => Example();
+    ''';
+    final instance = await eval(source, libraries: evalLibraries) as ObjInstance;
+    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    expect(host.getRequestHeaders(), {'token': 'default'});
+    expect(instance.invoke('getRequestHeaders', ['provided']), {'token': 'provided'});
+    expect(host.getRequestHeaders(), {'token': 'default'});
+  });
+
   test('Sources from the same script class bind callbacks to their own host', () async {
     const source = '''
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';

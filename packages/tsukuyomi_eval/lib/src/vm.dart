@@ -970,8 +970,10 @@ class _VM implements VM {
 
   @override
   dynamic apply(Obj callee, List<dynamic>? positionalArguments) {
-    [callee, ...?positionalArguments].forEach(push);
-    callValue(callee, positionalArguments?.length ?? 0);
+    final arguments = ObjArguments((value, position, name) => value);
+    arguments.positional.addAll(positionalArguments ?? []);
+    push(callee);
+    callValue(callee, arguments.forEach(callee, push));
     return execute();
   }
 
