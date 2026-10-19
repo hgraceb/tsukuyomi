@@ -26,6 +26,16 @@ class EvalProperty extends Property {
     setter = property?.setter;
   }
 
+  EvalProperty.globalGetter(ObjClosure closure, [Property? property]) : this.getter(() => ObjAccessor(closure), property);
+
+  EvalProperty.globalSetter(ObjClosure closure, [Property? property]) : this.setter((value) => ObjAccessor(closure), property);
+
+  EvalProperty.instanceGetter(ObjClosure closure, [Property? property])
+      : this.getter((instance) => ObjAccessor(ObjBoundMethod(receiver: instance, method: closure)), property);
+
+  EvalProperty.instanceSetter(ObjClosure closure, [Property? property])
+      : this.setter((instance, value) => ObjAccessor(ObjBoundMethod(receiver: instance, method: closure)), property);
+
   EvalProperty.method(ObjClosure method) {
     getter = (instance) => ObjBoundMethod(receiver: instance, method: method);
   }

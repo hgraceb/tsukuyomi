@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
@@ -9,6 +10,25 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+  });
+
+  test('Source getters work after initialization in compute', () async {
+    const source = '''
+import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+
+String get sourceName => 'Example';
+class Example extends HttpSource {
+  String get name => sourceName;
+  String get baseUrl => 'https://example.com';
+}
+
+dynamic main() => Example();
+    ''';
+    final instance = await compute((source) => eval(source, libraries: evalLibraries), source) as ObjInstance;
+    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    expect(host.name, 'Example');
+    expect(host.baseUrl, 'https://example.com');
+    expect(await compute((instance) => instance.get('name'), instance), 'Example');
   });
 
   test('Sources from the same script class bind callbacks to their own host', () async {

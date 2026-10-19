@@ -15,7 +15,7 @@ typedef _FunctionValues = ({Expando<Function> native, Expando<Obj> script, Expan
 abstract class VM {
   factory VM({required bool debug, required Map<String, Property> globals}) = _VM;
 
-  dynamic apply(ObjBoundMethod bound, List<dynamic>? positionalArguments);
+  dynamic apply(Obj callee, List<dynamic>? positionalArguments);
 
   dynamic interpret(ObjFunction fn);
 }
@@ -118,6 +118,16 @@ class _VM implements VM {
       default:
         throw EvalRuntimeError('Can only call functions and classes.');
     }
+  }
+
+  bool callAccessor(dynamic value, {List<dynamic> arguments = const [], bool hasReturn = true}) {
+    if (value is! ObjAccessor) return false;
+    // 属性包装只返回访问器，实际调用使用当前 VM 的栈与帧
+    push(value.callee);
+    arguments.forEach(push);
+    callValue(value.callee, arguments.length);
+    frames.last.hasReturn = hasReturn;
+    return true;
   }
 
   R withOrThrow<R>(String type, R Function<T>() function) {
@@ -540,14 +550,22 @@ class _VM implements VM {
             if (getter == null) {
               throw EvalRuntimeError("Undefined getter for '$name'.");
             }
-            push(getter());
+            final value = getter();
+            if (callAccessor(value)) {
+              frame = frames.last;
+            } else {
+              push(value);
+            }
           case OP_SET_GLOBAL:
             final name = readString(frame);
             final setter = globals[name]?.setter;
             if (setter == null) {
               throw EvalRuntimeError("Undefined setter for '$name'.");
             }
-            setter(peek());
+            final value = peek();
+            if (callAccessor(setter(value), arguments: [value], hasReturn: false)) {
+              frame = frames.last;
+            }
           case OP_DEFINE_GLOBAL:
             final name = readString(frame);
             final property = EvalProperty.variable(pop());
@@ -620,7 +638,11 @@ class _VM implements VM {
               final parameters = property.parameters?.call(instance);
               if (parameters != null) nativeParameters[value] = parameters;
             }
-            push(value);
+            if (callAccessor(value)) {
+              frame = frames.last;
+            } else {
+              push(value);
+            }
           case OP_SET_PROPERTY:
             final value = pop();
             final instance = pop();
@@ -631,7 +653,10 @@ class _VM implements VM {
               throw EvalRuntimeError("Undefined setter for '$name'.");
             }
             push(value);
-            setter(instance, property is DartProperty ? nativeFunctionValue(value) : value);
+            final result = setter(instance, property is DartProperty ? nativeFunctionValue(value) : value);
+            if (callAccessor(result, arguments: [value], hasReturn: false)) {
+              frame = frames.last;
+            }
           case OP_LINK_SUPERCLASS:
             final subclass = pop() as ObjClass;
             var superclass = pop();
@@ -665,7 +690,12 @@ class _VM implements VM {
             if (getter == null) {
               throw EvalRuntimeError("Undefined getter '$name' in superclass '${superclass.name}'.");
             }
-            push(getter(instance));
+            final value = getter(instance);
+            if (callAccessor(value)) {
+              frame = frames.last;
+            } else {
+              push(value);
+            }
           case OP_SET_SUPER:
             final name = readString(frame);
             final value = pop();
@@ -676,7 +706,9 @@ class _VM implements VM {
               throw EvalRuntimeError("Undefined setter '$name' in superclass '${superclass.name}'.");
             }
             push(value);
-            setter(instance, value);
+            if (callAccessor(setter(instance, value), arguments: [value], hasReturn: false)) {
+              frame = frames.last;
+            }
           case OP_PEEK:
             final distance = readCode(frame);
             push(peek(distance));
@@ -692,21 +724,11 @@ class _VM implements VM {
           case OP_DEFINE_GLOBAL_GETTER:
             final name = readString(frame);
             final closure = pop() as ObjClosure;
-            globals[name] = EvalProperty.getter(() {
-              push(closure);
-              call(closure, 0);
-              frame = frames.last;
-              return pop();
-            }, globals[name]);
+            globals[name] = EvalProperty.globalGetter(closure, globals[name]);
           case OP_DEFINE_GLOBAL_SETTER:
             final name = readString(frame);
             final closure = pop() as ObjClosure;
-            globals[name] = EvalProperty.setter((value) {
-              push(closure);
-              push(value);
-              call(closure, 1);
-              frame = frames.last..hasReturn = false;
-            }, globals[name]);
+            globals[name] = EvalProperty.globalSetter(closure, globals[name]);
           case OP_CLASS_FIELD:
             final name = readString(frame);
             final clazz = peek() as ObjClass;
@@ -722,22 +744,12 @@ class _VM implements VM {
             final name = readString(frame);
             final closure = pop() as ObjClosure;
             final props = (peek() as ObjClass).props;
-            props[name] = EvalProperty.getter((instance) {
-              push(instance);
-              call(closure, 0);
-              frame = frames.last;
-              return pop();
-            }, props[name]);
+            props[name] = EvalProperty.instanceGetter(closure, props[name]);
           case OP_CLASS_SETTER:
             final name = readString(frame);
             final closure = pop() as ObjClosure;
             final props = (peek() as ObjClass).props;
-            props[name] = EvalProperty.setter((instance, value) {
-              push(instance);
-              push(value);
-              call(closure, 1);
-              frame = frames.last..hasReturn = false;
-            }, props[name]);
+            props[name] = EvalProperty.instanceSetter(closure, props[name]);
           case OP_CLASS_METHOD:
             final name = readString(frame);
             final method = pop();
@@ -957,9 +969,9 @@ class _VM implements VM {
   }
 
   @override
-  dynamic apply(ObjBoundMethod bound, List<dynamic>? positionalArguments) {
-    [bound.receiver, ...?positionalArguments].forEach(push);
-    callValue(bound, positionalArguments?.length ?? 0);
+  dynamic apply(Obj callee, List<dynamic>? positionalArguments) {
+    [callee, ...?positionalArguments].forEach(push);
+    callValue(callee, positionalArguments?.length ?? 0);
     return execute();
   }
 
