@@ -191,6 +191,12 @@ class ObjBoundMethod extends Obj {
   String toString() => '<bound ${method.function.name}>';
 }
 
+class ObjAccessor extends Obj {
+  ObjAccessor(this.callee);
+
+  final Obj callee;
+}
+
 class ObjParameter extends Obj {
   ObjParameter(this.name, {required this.isPositional});
 
@@ -314,7 +320,11 @@ extension ObjInstanceExtension on ObjInstance {
   }
 
   dynamic get(String field) {
-    return props[field]!.getter!(this);
+    final value = props[field]!.getter!(this);
+    if (value is ObjAccessor) {
+      return VM(debug: context.debug, globals: context.globals).apply(value.callee, null);
+    }
+    return value;
   }
 
   dynamic invoke(String method, List<dynamic>? positionalArguments) {
