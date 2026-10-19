@@ -321,10 +321,7 @@ extension ObjInstanceExtension on ObjInstance {
 
   dynamic get(String field) {
     final value = props[field]!.getter!(this);
-    if (value is ObjAccessor) {
-      return VM(debug: context.debug, globals: context.globals).apply(value.callee, null);
-    }
-    return value;
+    return value is ObjAccessor ? VM(debug: context.debug, globals: context.globals).apply(value.callee, null) : value;
   }
 
   dynamic invoke(String method, List<dynamic>? positionalArguments) {
