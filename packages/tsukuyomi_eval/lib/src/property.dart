@@ -26,18 +26,32 @@ class EvalProperty extends Property {
     setter = property?.setter;
   }
 
-  EvalProperty.globalGetter(ObjClosure closure, [Property? property]) : this.getter(() => ObjAccessor(closure), property);
+  EvalProperty.globalGetter(ObjClosure closure, [Property? property]) {
+    assert(property is EvalProperty?, property);
+    getter = () => ObjAccessor(closure);
+    setter = property?.setter;
+  }
 
-  EvalProperty.globalSetter(ObjClosure closure, [Property? property]) : this.setter((value) => ObjAccessor(closure), property);
+  EvalProperty.globalSetter(ObjClosure closure, [Property? property]) {
+    assert(property is EvalProperty?, property);
+    getter = property?.getter;
+    setter = (value) => ObjAccessor(closure);
+  }
 
-  EvalProperty.instanceGetter(ObjClosure closure, [Property? property])
-      : this.getter((instance) => ObjAccessor(ObjBoundMethod(receiver: instance, method: closure)), property);
+  EvalProperty.instanceGetter(ObjClosure closure, [Property? property]) {
+    assert(property is EvalProperty?, property);
+    getter = (ObjInstance instance) => ObjAccessor(ObjBoundMethod(receiver: instance, method: closure));
+    setter = property?.setter;
+  }
 
-  EvalProperty.instanceSetter(ObjClosure closure, [Property? property])
-      : this.setter((instance, value) => ObjAccessor(ObjBoundMethod(receiver: instance, method: closure)), property);
+  EvalProperty.instanceSetter(ObjClosure closure, [Property? property]) {
+    assert(property is EvalProperty?, property);
+    getter = property?.getter;
+    setter = (ObjInstance instance, value) => ObjAccessor(ObjBoundMethod(receiver: instance, method: closure));
+  }
 
   EvalProperty.method(ObjClosure method) {
-    getter = (instance) => ObjBoundMethod(receiver: instance, method: method);
+    getter = (ObjInstance instance) => ObjBoundMethod(receiver: instance, method: method);
   }
 
   EvalProperty.field(String name) {
