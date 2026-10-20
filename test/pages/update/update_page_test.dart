@@ -19,6 +19,8 @@ import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
 
+import '../../fixtures/update_fixtures.dart';
+
 final _downloadedProvider = StateProvider<Set<String>>(
   (ref) => {'chapter-title-1', 'chapter-title-2', 'chapter-title-7', 'removed-chapter'},
 );
@@ -49,7 +51,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.byIcon(Icons.stop_outlined), findsOneWidget);
 
-    final report = _report(phase: UpdatePhase.running, items: [_item(1)]);
+    final report = updateReportFixture(phase: UpdatePhase.running, items: [updateReportItemFixture(1)]);
     await container.read(updateReportStoreProvider.notifier).save(report);
     await tester.pumpAndSettle();
     expect(find.text('0 · 0 · 1 / 2'), findsOneWidget);
@@ -75,12 +77,12 @@ void main() {
       tester,
       manager: _Manager(),
       textScale: 1.3,
-      chapterStream: (id) => Stream.value(id == 2 ? [] : _chapters(id)),
-      report: _report(
+      chapterStream: (id) => Stream.value(id == 2 ? [] : chaptersFixture(id)),
+      report: updateReportFixture(
         phase: UpdatePhase.running,
         items: [
-          _item(1).copyWith(outcome: UpdateOutcome.enqueueFailed, message: 'queue-error', sourceCount: 8),
-          _item(2).copyWith(outcome: UpdateOutcome.chaptersEmpty, sourceCount: 0),
+          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.enqueueFailed, message: 'queue-error', sourceCount: 8),
+          updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersEmpty, sourceCount: 0),
         ],
       ),
     );
@@ -107,7 +109,7 @@ void main() {
     final container = await _pumpPage(
       tester,
       manager: manager,
-      report: _report(message: 'query-error').copyWith(totalTargets: 0),
+      report: updateReportFixture(message: 'query-error').copyWith(totalTargets: 0),
     );
     final summaryIcon = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
     Color? iconColor() => IconTheme.of(tester.element(summaryIcon)).color;
@@ -116,7 +118,7 @@ void main() {
     expect(iconColor(), colors.error);
     expect(find.byType(ListTile), findsNothing);
 
-    await container.read(updateReportStoreProvider.notifier).save(_report().copyWith(totalTargets: 0));
+    await container.read(updateReportStoreProvider.notifier).save(updateReportFixture().copyWith(totalTargets: 0));
     manager._fail(StateError('save-error'));
     await tester.pumpAndSettle();
     expect(iconColor(), colors.error);
@@ -131,12 +133,12 @@ void main() {
   testWidgets('Public chapter downloads update live after scanning without rewriting the report', (tester) async {
     final chapters = StreamController<List<DatabaseChapter>>();
     addTearDown(chapters.close);
-    chapters.add(_chapters(1));
+    chapters.add(chaptersFixture(1));
     final container = await _pumpPage(
       tester,
       manager: _Manager(),
       chapterStream: (_) => chapters.stream,
-      report: _report(items: [_item(1)]).copyWith(totalTargets: 1),
+      report: updateReportFixture(items: [updateReportItemFixture(1)]).copyWith(totalTargets: 1),
     );
     final report = container.read(updateReportStoreProvider);
     expect(find.text('2 / 5'), findsOneWidget);
@@ -146,7 +148,7 @@ void main() {
     expect(find.text('5 / 5'), findsOneWidget);
     expect(_progress(tester, 'manga-title-1'), 1.0);
 
-    chapters.add(_chapters(1, publicCount: 6));
+    chapters.add(chaptersFixture(1, publicCount: 6));
     await tester.pumpAndSettle();
     expect(find.text('6 / 6'), findsOneWidget);
     expect(_progress(tester, 'manga-title-1'), 1.0);
@@ -156,7 +158,7 @@ void main() {
 
   testWidgets('Long names and chapter counts remain readable in both languages on narrow screens', (tester) async {
     _narrowScreen(tester);
-    final item = _item(1).copyWith(
+    final item = updateReportItemFixture(1).copyWith(
       mangaTitle: '这是一部名称很长的示例漫画 A manga with a very long title',
       sourceName: '名称很长的示例漫画源 A source with a very long name',
       sourceCount: 1002,
@@ -168,9 +170,9 @@ void main() {
         manager: _Manager(),
         locale: locale,
         textScale: 1.3,
-        chapterStream: (id) => Stream.value(_chapters(id, total: 1002, publicCount: 1000)),
+        chapterStream: (id) => Stream.value(chaptersFixture(id, total: 1002, publicCount: 1000)),
         downloaded: {for (var id = 1; id <= 999; id++) 'chapter-title-$id', 'chapter-title-1002'},
-        report: _report(items: [item]).copyWith(totalTargets: 1),
+        report: updateReportFixture(items: [item]).copyWith(totalTargets: 1),
       );
       expect(find.text(item.mangaTitle), findsOneWidget);
       expect(find.text('999 / 1000'), findsOneWidget);
@@ -184,11 +186,82 @@ void main() {
     }
   });
 
+  testWidgets('Delayed local progress resolves independently for each manga', (tester) async {
+    final first = Completer<Set<String>>();
+    final second = Completer<Set<String>>();
+    final report = updateReportFixture(items: [updateReportItemFixture(1), updateReportItemFixture(2)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      chapterStream: (id) => Stream.value(chaptersFixture(id, total: id == 1 ? 5 : 9, publicCount: id == 1 ? 3 : 7)),
+      downloadedForManga: (id) => id == 1 ? first.future : second.future,
+    );
+
+    second.complete({for (var id = 1; id <= 6; id++) 'chapter-title-$id'});
+    await tester.pumpAndSettle();
+    expect(first.isCompleted, isFalse);
+    expect(_progress(tester, 'manga-title-2'), 6 / 7);
+
+    first.complete({'chapter-title-1', 'chapter-title-5', 'removed-chapter'});
+    await tester.pumpAndSettle();
+    expect(_progress(tester, 'manga-title-1'), 1 / 3);
+    expect(_progress(tester, 'manga-title-2'), 6 / 7);
+    expect(container.read(updateReportStoreProvider), report);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A local progress error leaves other manga and scan results observable', (tester) async {
+    final error = StateError('fixture-directory-error');
+    final report = updateReportFixture(items: [updateReportItemFixture(1), updateReportItemFixture(2)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      downloadedForManga: (id) {
+        if (id == 1) throw error;
+        return {'chapter-title-1', 'chapter-title-2', 'chapter-title-3'};
+      },
+    );
+
+    final firstIcon = find.descendant(
+      of: find.widgetWithText(ListTile, 'manga-title-1'),
+      matching: find.byType(AnimatedProgressCircleIcon),
+    );
+    final colors = Theme.of(tester.element(firstIcon)).colorScheme;
+    expect(container.read(updateDownloadedChaptersProvider(1)).error, same(error));
+    expect(IconTheme.of(tester.element(firstIcon)).color, colors.error);
+    expect(_progress(tester, 'manga-title-2'), 0.6);
+    expect(container.read(updateReportStoreProvider), report);
+    expect(report.failureCount, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A large offline report retains different public progress after scrolling', (tester) async {
+    final report = updateReportFixture(totalTargets: 40, items: [for (var id = 1; id <= 40; id++) updateReportItemFixture(id)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      chapterStream: (id) => Stream.value(chaptersFixture(id, total: id + 2, publicCount: id)),
+      downloadedForManga: (id) => {for (var chapter = 1; chapter <= id ~/ 2; chapter++) 'chapter-title-$chapter'},
+    );
+
+    expect(_progress(tester, 'manga-title-1'), 0.0);
+    expect(_progress(tester, 'manga-title-2'), 0.5);
+    await tester.scrollUntilVisible(find.text('manga-title-40'), 500.0, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.text('20 / 40'), findsOneWidget);
+    expect(_progress(tester, 'manga-title-40'), 0.5);
+    expect(container.read(updateReportStoreProvider), report);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('The last result can scroll above the floating scan button', (tester) async {
     await _pumpPage(
       tester,
       manager: _Manager(),
-      report: _report(items: [for (var id = 1; id <= 12; id++) _item(id)]).copyWith(totalTargets: 12),
+      report: updateReportFixture(items: [for (var id = 1; id <= 12; id++) updateReportItemFixture(id)]).copyWith(totalTargets: 12),
     );
     await tester.drag(find.byType(CustomScrollView), const Offset(0.0, -1600.0));
     await tester.pumpAndSettle();
@@ -207,6 +280,7 @@ Future<ProviderContainer> _pumpPage(
   Locale locale = const Locale('en'),
   Stream<List<DatabaseChapter>> Function(int)? chapterStream,
   Set<String>? downloaded,
+  FutureOr<Set<String>> Function(int)? downloadedForManga,
 }) async {
   SharedPreferences.setMockInitialValues({if (report != null) UpdateReportStore.reportKey: jsonEncode(report.toJson())});
   final preferences = await SharedPreferences.getInstance();
@@ -216,8 +290,8 @@ Future<ProviderContainer> _pumpPage(
       updateManagerProvider.overrideWith(() => manager),
       if (downloaded != null) _downloadedProvider.overrideWith((ref) => downloaded),
       for (final id in {1, ...?report?.items.map((item) => item.mangaId)}) ...[
-        chaptersStreamByMangaProvider(id).overrideWith((ref) => chapterStream?.call(id) ?? Stream.value(_chapters(id))),
-        updateDownloadedChaptersProvider(id).overrideWith((ref) async => ref.watch(_downloadedProvider)),
+        chaptersStreamByMangaProvider(id).overrideWith((ref) => chapterStream?.call(id) ?? Stream.value(chaptersFixture(id))),
+        updateDownloadedChaptersProvider(id).overrideWith((ref) async => downloadedForManga?.call(id) ?? ref.watch(_downloadedProvider)),
       ],
     ],
   );
@@ -254,50 +328,6 @@ double _progress(WidgetTester tester, String title) => tester
       find.descendant(of: find.widgetWithText(ListTile, title), matching: find.byType(AnimatedProgressCircleIcon)),
     )
     .progress;
-
-List<DatabaseChapter> _chapters(int mangaId, {int total = 7, int publicCount = 5}) => [
-  for (var id = 1; id <= total; id++)
-    DatabaseChapter(
-      id: id,
-      manga: mangaId,
-      index: id,
-      title: 'chapter-title-$id',
-      url: 'chapter-url-$id',
-      date: 'chapter-date',
-      public: id <= publicCount,
-      images: 0,
-      progress: 0,
-    ),
-];
-
-UpdateReport _report({UpdatePhase phase = UpdatePhase.finished, List<UpdateReportItem> items = const [], String? message}) => UpdateReport(
-  version: UpdateReport.currentVersion,
-  phase: phase,
-  scanKind: UpdateScanKind.full,
-  sessionId: 'scan-session',
-  totalTargets: 2,
-  items: items,
-  startedAt: DateTime(2026, 10, 7, 18),
-  message: message,
-);
-
-UpdateReportItem _item(int id) => UpdateReportItem(
-  sourceId: 1,
-  sourceName: 'source-name',
-  mangaId: id,
-  mangaTitle: 'manga-title-$id',
-  outcome: UpdateOutcome.updated,
-  insertCount: 1,
-  deleteCount: 0,
-  updateCount: 0,
-  sourceCount: 7,
-  enqueuedCount: 2,
-  enqueueFailedCount: 0,
-  skippedDownloaded: 2,
-  skippedQueued: 1,
-  skippedUnavailable: 2,
-  failedChapters: [],
-);
 
 class _Manager extends UpdateManager {
   int _scans = 0;

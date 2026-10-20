@@ -18,8 +18,9 @@ import 'package:tsukuyomi/providers/update/update_manager.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_service.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
-import 'package:tsukuyomi/source/delegate/source_stub.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+
+import '../../fixtures/update_fixtures.dart';
 
 const _manga = DatabaseManga(
   id: 1,
@@ -41,7 +42,7 @@ void main() {
 
   test('Detail refresh saves a single-manga report and only auto-downloads favorite auto manga', () async {
     for (final manga in [_manga, _manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
-      final source = _Source();
+      final source = UpdateSourceFixture();
       final sync = _Sync(_unchanged);
       final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 2));
       final manager = _Manager();
@@ -77,7 +78,7 @@ void main() {
 
   test('Detail refresh records source failures without syncing or enqueueing', () async {
     final error = TimeoutException('network-error');
-    final source = _Source(error: error);
+    final source = UpdateSourceFixture(error: error);
     final sync = _Sync(_unchanged);
     final downloads = _Downloads(const DownloadEnqueueResult());
     final container = await _createContainer(
@@ -98,8 +99,54 @@ void main() {
     expect(report.items.single.message, error.toString());
   });
 
+  test('Delayed offline source responses do not sync or enqueue before completion', () async {
+    for (final error in [null, TimeoutException('fixture-network-error')]) {
+      final pending = Completer<void>();
+      final source = UpdateSourceFixture(pending: pending.future, error: error);
+      final sync = _Sync(_unchanged);
+      final downloads = _Downloads(const DownloadEnqueueResult());
+      final container = await _createContainer(source, sync, downloads);
+
+      final update = container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
+      await source.requested;
+      expect(sync.chapters, isNull);
+      expect(downloads.calls, 0);
+      expect(container.read(updateReportStoreProvider), isNull);
+
+      pending.complete();
+      final item = await update;
+      if (error == null) {
+        expect(sync.chapters, [_chapter]);
+        expect(downloads.calls, 1);
+        expect(item.outcome, UpdateOutcome.noUpdate);
+      } else {
+        expect(sync.chapters, isNull);
+        expect(downloads.calls, 0);
+        expect(item.outcome, UpdateOutcome.networkError);
+        expect(item.message, error.toString());
+      }
+      expect(container.read(updateReportStoreProvider)!.items, [item]);
+      expect(source.calls, 1);
+    }
+  });
+
+  test('Empty offline source responses keep the chapter warning visible', () async {
+    final source = UpdateSourceFixture(chapters: const []);
+    final sync = _Sync(const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0));
+    final downloads = _Downloads(const DownloadEnqueueResult());
+    final container = await _createContainer(source, sync, downloads);
+
+    final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
+
+    expect(sync.chapters, isEmpty);
+    expect(item.outcome, UpdateOutcome.chaptersEmpty);
+    expect(item.sourceCount, 0);
+    expect(item.enqueuedCount, 0);
+    expect(container.read(updateReportStoreProvider)!.warningCount, 1);
+  });
+
   test('Unchanged chapters can enqueue downloads and save the complete result', () async {
-    final source = _Source();
+    final source = UpdateSourceFixture();
     final sync = _Sync(_unchanged);
     final downloads = _Downloads(
       const DownloadEnqueueResult(
@@ -148,7 +195,7 @@ void main() {
         UpdateOutcome.updated,
       ),
     ]) {
-      final source = _Source();
+      final source = UpdateSourceFixture();
       final sync = _Sync(result);
       final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
       final container = await _createContainer(source, sync, downloads, manga: manga);
@@ -168,7 +215,7 @@ void main() {
       (const ChapterSyncResult(insertCount: 0, deleteCount: 2, updateCount: 0, sourceCount: 0), UpdateOutcome.chaptersEmpty),
       (const ChapterSyncResult(insertCount: 0, deleteCount: 2, updateCount: 1, sourceCount: 1), UpdateOutcome.chaptersReduced),
     ]) {
-      final source = _Source();
+      final source = UpdateSourceFixture();
       final sync = _Sync(result);
       final downloads = _Downloads(DownloadEnqueueResult(enqueuedCount: result.sourceCount));
       final container = await _createContainer(source, sync, downloads);
@@ -183,7 +230,7 @@ void main() {
   });
 
   test('Enqueue failures retain successful downloads, sync counts and error details', () async {
-    final source = _Source();
+    final source = UpdateSourceFixture();
     final sync = _Sync(const ChapterSyncResult(insertCount: 0, deleteCount: 2, updateCount: 1, sourceCount: 1));
     final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1, failedChapters: {'chapter-url': 'insert-error'}));
     final container = await _createContainer(source, sync, downloads);
@@ -200,7 +247,7 @@ void main() {
   });
 
   test('Enqueue errors retain sync counts and save a failed report', () async {
-    final source = _Source();
+    final source = UpdateSourceFixture();
     final sync = _Sync(_unchanged);
     final error = StateError('enqueue-error');
     final downloads = _Downloads(const DownloadEnqueueResult(), errors: {_manga.id: error});
@@ -226,7 +273,7 @@ void main() {
       <String, String>{},
       {'chapter-url': 'insert-error'},
     ]) {
-      final source = _Source();
+      final source = UpdateSourceFixture();
       final sync = _Sync(_unchanged);
       final downloads = _Downloads(
         DownloadEnqueueResult(
@@ -262,7 +309,7 @@ void main() {
   });
 
   test('Queued chapters start downloads even without new entries', () async {
-    final source = _Source();
+    final source = UpdateSourceFixture();
     final sync = _Sync(_unchanged);
     final downloads = _Downloads(const DownloadEnqueueResult(skippedQueued: 2));
     final manager = _Manager();
@@ -279,7 +326,7 @@ void main() {
   test('Scan continues to the next manga after an enqueue or start error', () async {
     for (final failEnqueue in [true, false]) {
       final nextManga = _manga.copyWith(id: 2, url: 'next-manga-url', title: 'next-manga-title');
-      final source = _Source();
+      final source = UpdateSourceFixture();
       final sync = _Sync(_unchanged);
       final error = StateError(failEnqueue ? 'enqueue-error' : 'start-error');
       final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1), errors: failEnqueue ? {_manga.id: error} : {});
@@ -324,7 +371,7 @@ void main() {
       (TimeoutException('network-error'), UpdateOutcome.networkError),
       (const FormatException('parse-error'), UpdateOutcome.parseError),
     ]) {
-      final source = _Source(error: error);
+      final source = UpdateSourceFixture(error: error);
       final sync = _Sync(_unchanged);
       final downloads = _Downloads(const DownloadEnqueueResult());
       final container = await _createContainer(source, sync, downloads);
@@ -341,7 +388,7 @@ void main() {
   });
 
   test('Local sync failures are storage errors and do not enqueue', () async {
-    final source = _Source();
+    final source = UpdateSourceFixture();
     final sync = _Sync(_unchanged, error: StateError('storage-error'));
     final downloads = _Downloads(const DownloadEnqueueResult());
     final container = await _createContainer(source, sync, downloads);
@@ -355,7 +402,7 @@ void main() {
   });
 
   test('Check time write failure retains sync counts and does not enqueue', () async {
-    final source = _Source();
+    final source = UpdateSourceFixture();
     final sync = _Sync(_unchanged);
     final downloads = _Downloads(const DownloadEnqueueResult());
     final mangas = _Mangas(error: StateError('check-time-error'));
@@ -379,7 +426,7 @@ Future<void> _refreshManga(ProviderContainer container, DatabaseManga manga) asy
 }
 
 Future<ProviderContainer> _createContainer(
-  _Source source,
+  UpdateSourceFixture source,
   _Sync sync,
   _Downloads downloads, {
   DatabaseManga manga = _manga,
@@ -401,22 +448,6 @@ Future<ProviderContainer> _createContainer(
   );
   addTearDown(container.dispose);
   return container;
-}
-
-class _Source extends NoInstalledSource {
-  _Source({this.error}) : super(1);
-  final Object? error;
-  int calls = 0;
-
-  @override
-  String get name => 'source-name';
-
-  @override
-  Future<Iterable<SourceChapter>> getMangaChapters(SourceManga manga) async {
-    calls++;
-    if (error != null) throw error!;
-    return [_chapter];
-  }
 }
 
 class _MangaController extends MangaController {
