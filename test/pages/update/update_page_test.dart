@@ -140,7 +140,9 @@ void main() {
       await store.save(report.copyWith(items: completed));
       await tester.pumpAndSettle();
       expect(find.text('1 · 2 · 7 / 10'), findsOneWidget);
-      expect(tester.widget<AnimatedProgressCircleIcon>(summaryIcon).progress, 1.0);
+      final summaryCheck = find.descendant(of: find.byType(SliverAppBar), matching: find.byIcon(Icons.check_circle_outline));
+      expect(summaryCheck, findsOneWidget);
+      expect(summaryIcon, findsNothing);
 
       for (final total in [10, 0]) {
         await store.save(report.copyWith(items: [], totalTargets: total));
@@ -148,6 +150,51 @@ void main() {
         expect(find.text('0 · 0 · 0 / $total'), findsOneWidget);
         expect(tester.widget<AnimatedProgressCircleIcon>(summaryIcon).progress, 0.0);
       }
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+  });
+
+  testWidgets('Scan completion checks retain outcome colors and require a fully finished scan', (tester) async {
+    for (final outcome in [UpdateOutcome.updated, UpdateOutcome.chaptersEmpty, UpdateOutcome.networkError]) {
+      final manager = _Manager();
+      final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1).copyWith(outcome: outcome)]);
+      final container = await _pumpPage(tester, manager: manager, report: report);
+      final store = container.read(updateReportStoreProvider.notifier);
+      final summaryCheck = find.descendant(of: find.byType(SliverAppBar), matching: find.byIcon(Icons.check_circle_outline));
+      final summaryProgress = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
+      expect(summaryCheck, findsOneWidget);
+      expect(_completionIcon('manga-title-1'), findsNothing);
+      final colors = Theme.of(tester.element(summaryCheck)).colorScheme;
+      final color = switch (outcome) {
+        UpdateOutcome.chaptersEmpty => colors.tertiary,
+        UpdateOutcome.networkError => colors.error,
+        _ => colors.onSurface,
+      };
+      expect(tester.widget<Icon>(summaryCheck).color, color);
+
+      for (final phase in [UpdatePhase.running, UpdatePhase.cancelled, UpdatePhase.interrupted]) {
+        if (phase == UpdatePhase.running) {
+          await manager.scan();
+        } else {
+          manager._finish();
+        }
+        await store.save(report.copyWith(phase: phase));
+        await tester.pumpAndSettle();
+        expect(summaryCheck, findsNothing);
+        expect(tester.widget<AnimatedProgressCircleIcon>(summaryProgress).progress, 1.0);
+      }
+
+      await store.save(report.copyWith(totalTargets: 2));
+      await tester.pumpAndSettle();
+      expect(summaryCheck, findsNothing);
+      expect(tester.widget<AnimatedProgressCircleIcon>(summaryProgress).progress, 0.5);
+
+      await store.save(report.copyWith(message: 'fixture-scan-error'));
+      await tester.pumpAndSettle();
+      expect(summaryCheck, findsNothing);
+      expect(IconTheme.of(tester.element(summaryProgress)).color, colors.error);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
@@ -228,9 +275,9 @@ void main() {
       manager: _Manager(),
       report: report,
       chapterStream: (id) => Stream.value(chaptersFixture(id, publicCount: id == 5 ? 0 : 5)),
-      downloadedForManga: (id) => {
-        for (var chapter = 1; chapter <= (id == 4 ? 4 : 7); chapter++) 'chapter-title-$chapter',
-        'removed-chapter',
+      downloadedForManga: (id) {
+        final count = id == 4 ? 4 : 7;
+        return {for (var chapter = 1; chapter <= count; chapter++) 'chapter-title-$chapter', 'removed-chapter'};
       },
     );
     final colors = Theme.of(tester.element(find.text('Request failed'))).colorScheme;
@@ -573,8 +620,10 @@ void _narrowScreen(WidgetTester tester) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
-Finder _completionIcon(String title) =>
-    find.descendant(of: find.widgetWithText(ListTile, title), matching: find.byIcon(Icons.check_circle_outline));
+Finder _completionIcon(String title) {
+  final tile = find.widgetWithText(ListTile, title);
+  return find.descendant(of: tile, matching: find.byIcon(Icons.check_circle_outline));
+}
 
 double _progress(WidgetTester tester, String title) => tester
     .widget<AnimatedProgressCircleIcon>(
