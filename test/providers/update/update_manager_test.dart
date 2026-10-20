@@ -15,16 +15,7 @@ import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/source/delegate/source_stub.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
-DatabaseManga _manga(int id, {int source = 1}) => DatabaseManga(
-  id: id,
-  source: source,
-  url: 'manga-url-$id',
-  title: 'manga-title-$id',
-  cover: 'manga-cover',
-  favorite: true,
-  auto: true,
-  lastCheckAt: null,
-);
+import '../../fixtures/update_fixtures.dart';
 
 void main() {
   test('Empty scan saves a finished report and ignores a repeated start', () async {
@@ -52,7 +43,7 @@ void main() {
   });
 
   test('Two source groups run concurrently, each group serially, with saved progress', () async {
-    final library = _Library([_manga(4, source: 3), _manga(2), _manga(3, source: 2), _manga(1)]);
+    final library = _Library([mangaFixture(4, source: 3), mangaFixture(2), mangaFixture(3, source: 2), mangaFixture(1)]);
     final updates = _Updates(pendingIds: [1, 2, 3, 4]);
     final sourceCalls = <int>[];
     final container = _createContainer(library, updates, sourceCalls: sourceCalls);
@@ -85,8 +76,50 @@ void main() {
     expect(report.items.every((item) => item.enqueuedCount == 1), isTrue);
   });
 
+  test('Mixed offline outcomes are saved without stopping later manga', () async {
+    final items = [
+      updateReportItemFixture(1),
+      updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.noUpdate, insertCount: 0, enqueuedCount: 0),
+      updateReportItemFixture(3).copyWith(
+        outcome: UpdateOutcome.chaptersEmpty,
+        insertCount: 0,
+        sourceCount: 0,
+        enqueuedCount: 0,
+        skippedDownloaded: 0,
+        skippedQueued: 0,
+        skippedUnavailable: 0,
+      ),
+      updateReportItemFixture(4).copyWith(
+        outcome: UpdateOutcome.networkError,
+        insertCount: 0,
+        sourceCount: 0,
+        enqueuedCount: 0,
+        skippedDownloaded: 0,
+        skippedQueued: 0,
+        skippedUnavailable: 0,
+        message: 'fixture-network-error',
+      ),
+      updateReportItemFixture(5),
+    ];
+    final updates = _Updates(results: {for (final item in items) item.mangaId: item});
+    final container = _createContainer(_Library([for (final item in items) mangaFixture(item.mangaId)]), updates);
+
+    await container.read(updateManagerProvider.notifier).scan();
+
+    final report = container.read(updateReportStoreProvider)!;
+    expect(report.items, items);
+    expect(report.totalTargets, 5);
+    expect(report.failureCount, 1);
+    expect(report.warningCount, 1);
+    expect(report.phase, UpdatePhase.finished);
+    expect(updates.calls, [1, 2, 3, 4, 5]);
+    expect(container.read(updateManagerProvider).hasError, isFalse);
+    final preferences = container.read(sharedPreferencesProvider) as _Preferences;
+    expect(UpdateReport.fromJson(jsonDecode(preferences.value!) as Map<String, dynamic>), report);
+  });
+
   test('Stop waits for current manga and leaves remaining targets unstarted', () async {
-    final library = _Library([_manga(1), _manga(2), _manga(3, source: 2), _manga(4, source: 3)]);
+    final library = _Library([mangaFixture(1), mangaFixture(2), mangaFixture(3, source: 2), mangaFixture(4, source: 3)]);
     final updates = _Updates(pendingIds: [1, 2, 3, 4]);
     final container = _createContainer(library, updates);
     final manager = container.read(updateManagerProvider.notifier);
@@ -116,7 +149,7 @@ void main() {
     final scan = manager.scan();
     await library.queried.future;
     manager.stop();
-    library.pending!.complete([_manga(1)]);
+    library.pending!.complete([mangaFixture(1)]);
     await scan;
 
     expect(sourceCalls, isEmpty);
@@ -125,7 +158,7 @@ void main() {
   });
 
   test('Source initialization failure records its manga and other sources continue', () async {
-    final library = _Library([_manga(1), _manga(2), _manga(3, source: 2)]);
+    final library = _Library([mangaFixture(1), mangaFixture(2), mangaFixture(3, source: 2)]);
     final updates = _Updates();
     final sourceCalls = <int>[];
     final container = _createContainer(
@@ -169,7 +202,7 @@ void main() {
   });
 
   test('Progress save failure waits for active work before releasing the scan', () async {
-    final library = _Library([_manga(1), _manga(2), _manga(3, source: 2)]);
+    final library = _Library([mangaFixture(1), mangaFixture(2), mangaFixture(3, source: 2)]);
     final updates = _Updates(pendingIds: [1, 2, 3]);
     final preferences = _Preferences()..failOnSave = 3;
     final container = _createContainer(library, updates, preferences: preferences);
@@ -244,12 +277,13 @@ class _Library implements LibraryRepository {
 }
 
 class _Updates implements UpdateService {
-  _Updates({Iterable<int> pendingIds = const []}) {
+  _Updates({Iterable<int> pendingIds = const [], this.results = const {}}) {
     for (final id in pendingIds) {
       pending[id] = Completer<void>();
     }
   }
   final calls = <int>[];
+  final Map<int, UpdateReportItem> results;
   final sources = <int, Source>{};
   final pending = <int, Completer<void>>{};
   final _started = <int, Completer<void>>{};
@@ -269,6 +303,8 @@ class _Updates implements UpdateService {
     if (++active > maxActive) maxActive = active;
     try {
       await pending[manga.id]?.future;
+      final result = results[manga.id];
+      if (result != null) return result;
       return UpdateReportItem(
         sourceId: source.id,
         sourceName: source.name,
