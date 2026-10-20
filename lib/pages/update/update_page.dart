@@ -143,6 +143,9 @@ class _UpdateItem extends ConsumerWidget {
     final publicChapters = (chapters.valueOrNull ?? []).where((chapter) => chapter.public);
     final completed = publicChapters.where((chapter) => downloaded.valueOrNull?.contains(chapter.title) == true).length;
     final total = publicChapters.length;
+    final progressError = chapters.hasError || downloaded.hasError;
+    final progressLoading = chapters.isLoading || downloaded.isLoading;
+    final complete = !progressError && !progressLoading && total > 0 && completed == total;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final outcome = switch (item.outcome) {
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
@@ -175,7 +178,11 @@ class _UpdateItem extends ConsumerWidget {
       ),
       trailing: SizedBox.square(
         dimension: 48.0,
-        child: Center(child: _buildProgress(completed, total, chapters.hasError || downloaded.hasError ? colors.error : color)),
+        child: Center(
+          child: complete
+              ? Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface)
+              : _buildProgress(completed, total, progressError ? colors.error : color),
+        ),
       ),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );

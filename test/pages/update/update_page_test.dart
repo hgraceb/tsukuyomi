@@ -196,15 +196,102 @@ void main() {
     container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 7; id++) 'chapter-title-$id', 'removed-chapter'};
     await tester.pumpAndSettle();
     expect(find.text('5 / 5'), findsOneWidget);
-    expect(_progress(tester, 'manga-title-1'), 1.0);
+    expect(_completionIcon('manga-title-1'), findsOneWidget);
 
     chapters.add(chaptersFixture(1, publicCount: 6));
     await tester.pumpAndSettle();
     expect(find.text('6 / 6'), findsOneWidget);
-    expect(_progress(tester, 'manga-title-1'), 1.0);
+    expect(_completionIcon('manga-title-1'), findsOneWidget);
+
+    chapters.add(chaptersFixture(1, total: 9, publicCount: 8));
+    await tester.pumpAndSettle();
+    expect(find.text('7 / 8'), findsOneWidget);
+    expect(_completionIcon('manga-title-1'), findsNothing);
+    expect(_progress(tester, 'manga-title-1'), 7 / 8);
     expect(container.read(updateReportStoreProvider), report);
     expect(find.text('0 · 0 · 1 / 1'), findsOneWidget);
   });
+
+  testWidgets('Only complete public downloads show a check while scan outcomes remain visible', (tester) async {
+    final report = updateReportFixture(
+      totalTargets: 5,
+      items: [
+        updateReportItemFixture(1),
+        updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.networkError),
+        updateReportItemFixture(3).copyWith(outcome: UpdateOutcome.chaptersReduced),
+        updateReportItemFixture(4).copyWith(outcome: UpdateOutcome.noUpdate),
+        updateReportItemFixture(5),
+      ],
+    );
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      chapterStream: (id) => Stream.value(chaptersFixture(id, publicCount: id == 5 ? 0 : 5)),
+      downloadedForManga: (id) => {
+        for (var chapter = 1; chapter <= (id == 4 ? 4 : 7); chapter++) 'chapter-title-$chapter',
+        'removed-chapter',
+      },
+    );
+    final colors = Theme.of(tester.element(find.text('Request failed'))).colorScheme;
+    for (var id = 1; id <= 3; id++) {
+      expect(_completionIcon('manga-title-$id'), findsOneWidget);
+      expect(tester.widget<Icon>(_completionIcon('manga-title-$id')).color, colors.onSurface);
+    }
+    expect(_completionIcon('manga-title-4'), findsNothing);
+    expect(_progress(tester, 'manga-title-4'), 0.8);
+    expect(_completionIcon('manga-title-5'), findsNothing);
+    expect(_progress(tester, 'manga-title-5'), 0.0);
+    expect(find.text('0 / 0'), findsOneWidget);
+    expect(tester.widget<Text>(find.text('Request failed')).style?.color, colors.error);
+    expect(tester.widget<Text>(find.text('Chapters removed')).style?.color, colors.tertiary);
+    expect(find.text('1 · 1 · 3 / 5'), findsOneWidget);
+    expect(container.read(updateReportStoreProvider), report);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final input in ['chapters', 'downloads']) {
+    testWidgets('Retained complete counts do not show a check while $input reload or fail', (tester) async {
+      Completer<void>? pending;
+      final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
+      final container = await _pumpPage(
+        tester,
+        manager: _Manager(),
+        report: report,
+        chapterStream: (_) async* {
+          if (input == 'chapters') await pending?.future;
+          yield chaptersFixture(1);
+        },
+        downloadedForManga: (_) async {
+          if (input == 'downloads') await pending?.future;
+          return {for (var id = 1; id <= 5; id++) 'chapter-title-$id'};
+        },
+      );
+      expect(_completionIcon('manga-title-1'), findsOneWidget);
+      final ProviderOrFamily provider = input == 'chapters' ? chaptersStreamByMangaProvider(1) : updateDownloadedChaptersProvider(1);
+
+      pending = Completer<void>();
+      container.invalidate(provider);
+      await tester.pumpAndSettle();
+      expect(find.text('5 / 5'), findsOneWidget);
+      expect(_completionIcon('manga-title-1'), findsNothing);
+      expect(_progress(tester, 'manga-title-1'), 1.0);
+
+      pending.completeError(StateError('fixture-$input-error'));
+      await tester.pumpAndSettle();
+      expect(find.text('5 / 5'), findsOneWidget);
+      expect(_completionIcon('manga-title-1'), findsNothing);
+      final icon = find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.byType(AnimatedProgressCircleIcon));
+      expect(IconTheme.of(tester.element(icon)).color, Theme.of(tester.element(icon)).colorScheme.error);
+
+      pending = null;
+      container.invalidate(provider);
+      await tester.pumpAndSettle();
+      expect(_completionIcon('manga-title-1'), findsOneWidget);
+      expect(container.read(updateReportStoreProvider), report);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('Long names and chapter counts remain readable in both languages on narrow screens', (tester) async {
     _narrowScreen(tester);
@@ -313,17 +400,17 @@ void main() {
       tester,
       manager: _Manager(),
       report: report,
-      downloadedForManga: (id) => {for (var chapter = 1; chapter <= (id == 1 ? 5 : 1); chapter++) 'chapter-title-$chapter'},
+      downloadedForManga: (id) => {for (var chapter = 1; chapter <= (id == 1 ? 4 : 1); chapter++) 'chapter-title-$chapter'},
     );
-    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
+    expect(_paintedProgress(tester, 'manga-title-1'), 0.8);
     expect(_paintedProgress(tester, 'manga-title-2'), 0.2);
 
     await container.read(updateReportStoreProvider.notifier).save(report.copyWith(items: report.items.reversed.toList()));
     await tester.pump();
 
-    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('5 / 5')), findsOneWidget);
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('4 / 5')), findsOneWidget);
     expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-2'), matching: find.text('1 / 5')), findsOneWidget);
-    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
+    expect(_paintedProgress(tester, 'manga-title-1'), 0.8);
     expect(_paintedProgress(tester, 'manga-title-2'), 0.2);
     expect(tester.takeException(), isNull);
   });
@@ -363,22 +450,22 @@ void main() {
       downloaded: {'chapter-title-1'},
     );
 
-    container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 5; id++) 'chapter-title-$id'};
+    container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 4; id++) 'chapter-title-$id'};
     await tester.pump();
     await tester.pump();
     await tester.pump(const Duration(microseconds: 100));
     final firstProgress = _paintedProgress(tester, 'manga-title-1');
     final secondProgress = _paintedProgress(tester, 'manga-title-2');
-    expect(firstProgress, inExclusiveRange(0.2, 1.0));
-    expect(secondProgress, inExclusiveRange(0.1, 0.5));
+    expect(firstProgress, inExclusiveRange(0.2, 0.8));
+    expect(secondProgress, inExclusiveRange(0.1, 0.4));
 
     await container.read(updateReportStoreProvider.notifier).save(report.copyWith(items: report.items.reversed.toList()));
     await tester.pump();
     expect(_paintedProgress(tester, 'manga-title-1'), firstProgress);
     expect(_paintedProgress(tester, 'manga-title-2'), secondProgress);
     await tester.pumpAndSettle();
-    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
-    expect(_paintedProgress(tester, 'manga-title-2'), 0.5);
+    expect(_paintedProgress(tester, 'manga-title-1'), 0.8);
+    expect(_paintedProgress(tester, 'manga-title-2'), 0.4);
     expect(tester.takeException(), isNull);
   });
 
@@ -413,7 +500,7 @@ void main() {
 
     await tester.scrollUntilVisible(find.text('manga-title-1'), -500.0, scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
-    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
+    expect(_completionIcon('manga-title-1'), findsOneWidget);
     expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('1 / 1')), findsOneWidget);
     expect(container.read(updateReportStoreProvider), report);
     expect(tester.takeException(), isNull);
@@ -485,6 +572,9 @@ void _narrowScreen(WidgetTester tester) {
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 }
+
+Finder _completionIcon(String title) =>
+    find.descendant(of: find.widgetWithText(ListTile, title), matching: find.byIcon(Icons.check_circle_outline));
 
 double _progress(WidgetTester tester, String title) => tester
     .widget<AnimatedProgressCircleIcon>(
