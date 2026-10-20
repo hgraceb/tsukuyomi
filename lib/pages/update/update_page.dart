@@ -70,6 +70,7 @@ class UpdatePage extends ConsumerWidget {
     final running = manager.isLoading;
     final error = manager.hasError || report?.message?.isNotEmpty == true;
     final items = report?.items ?? [];
+    final itemIndexes = {for (var index = 0; index < items.length; index++) items[index].mangaId: index};
     final showSummary = running || error || report != null && report.phase != UpdatePhase.idle;
 
     return TsukuyomiScaffold(
@@ -87,7 +88,8 @@ class UpdatePage extends ConsumerWidget {
                 sliver: SliverPrototypeExtentList.builder(
                   prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
                   itemCount: items.length,
-                  itemBuilder: (context, index) => _UpdateItem(item: items[index]),
+                  findChildIndexCallback: (key) => key is ValueKey<int> ? itemIndexes[key.value] : null,
+                  itemBuilder: (context, index) => _UpdateItem(key: ValueKey(items[index].mangaId), item: items[index]),
                 ),
               ),
             ],
@@ -104,7 +106,7 @@ class UpdatePage extends ConsumerWidget {
 }
 
 class _UpdateItem extends ConsumerWidget {
-  const _UpdateItem({required this.item});
+  const _UpdateItem({super.key, required this.item});
 
   final UpdateReportItem item;
 

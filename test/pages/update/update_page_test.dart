@@ -257,6 +257,118 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Reordering report rows keeps the painted progress with its manga from the first frame', (tester) async {
+    final report = updateReportFixture(items: [updateReportItemFixture(1), updateReportItemFixture(2)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      downloadedForManga: (id) => {for (var chapter = 1; chapter <= (id == 1 ? 5 : 1); chapter++) 'chapter-title-$chapter'},
+    );
+    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
+    expect(_paintedProgress(tester, 'manga-title-2'), 0.2);
+
+    await container.read(updateReportStoreProvider.notifier).save(report.copyWith(items: report.items.reversed.toList()));
+    await tester.pump();
+
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('5 / 5')), findsOneWidget);
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-2'), matching: find.text('1 / 5')), findsOneWidget);
+    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
+    expect(_paintedProgress(tester, 'manga-title-2'), 0.2);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Replacing a report row does not lend its painted progress to a pending manga', (tester) async {
+    final second = Completer<Set<String>>();
+    final report = updateReportFixture(items: [updateReportItemFixture(1)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      mangaIds: [2],
+      downloadedForManga: (id) => id == 1 ? {'chapter-title-1', 'chapter-title-2'} : second.future,
+    );
+    expect(_paintedProgress(tester, 'manga-title-1'), 0.4);
+
+    await container.read(updateReportStoreProvider.notifier).save(report.copyWith(items: [updateReportItemFixture(2)]));
+    await tester.pump();
+    expect(find.text('manga-title-1'), findsNothing);
+    expect(second.isCompleted, isFalse);
+    expect(_progress(tester, 'manga-title-2'), 0.0);
+    expect(_paintedProgress(tester, 'manga-title-2'), 0.0);
+
+    second.complete({'chapter-title-1'});
+    await tester.pumpAndSettle();
+    expect(_paintedProgress(tester, 'manga-title-2'), 0.2);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Moving a manga preserves its own in-flight progress animation', (tester) async {
+    final report = updateReportFixture(items: [updateReportItemFixture(1), updateReportItemFixture(2)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      chapterStream: (id) => Stream.value(chaptersFixture(id, total: id * 5, publicCount: id * 5)),
+      downloaded: {'chapter-title-1'},
+    );
+
+    container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 5; id++) 'chapter-title-$id'};
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(microseconds: 100));
+    final firstProgress = _paintedProgress(tester, 'manga-title-1');
+    final secondProgress = _paintedProgress(tester, 'manga-title-2');
+    expect(firstProgress, inExclusiveRange(0.2, 1.0));
+    expect(secondProgress, inExclusiveRange(0.1, 0.5));
+
+    await container.read(updateReportStoreProvider.notifier).save(report.copyWith(items: report.items.reversed.toList()));
+    await tester.pump();
+    expect(_paintedProgress(tester, 'manga-title-1'), firstProgress);
+    expect(_paintedProgress(tester, 'manga-title-2'), secondProgress);
+    await tester.pumpAndSettle();
+    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
+    expect(_paintedProgress(tester, 'manga-title-2'), 0.5);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Scrolling away while local progress is pending keeps late results with their manga', (tester) async {
+    final first = Completer<Set<String>>();
+    final last = Completer<Set<String>>();
+    final report = updateReportFixture(totalTargets: 40, items: [for (var id = 1; id <= 40; id++) updateReportItemFixture(id)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      chapterStream: (id) => Stream.value(chaptersFixture(id, total: id + 2, publicCount: id)),
+      downloadedForManga: (id) => switch (id) {
+        1 => first.future,
+        40 => last.future,
+        _ => {for (var chapter = 1; chapter <= id ~/ 2; chapter++) 'chapter-title-$chapter'},
+      },
+    );
+
+    expect(_paintedProgress(tester, 'manga-title-1'), 0.0);
+    await tester.scrollUntilVisible(find.text('manga-title-40'), 500.0, scrollable: find.byType(Scrollable).first);
+    expect(find.text('manga-title-1'), findsNothing);
+    expect(last.isCompleted, isFalse);
+    expect(_paintedProgress(tester, 'manga-title-40'), 0.0);
+
+    first.complete({'chapter-title-1'});
+    await tester.pumpAndSettle();
+    expect(_paintedProgress(tester, 'manga-title-40'), 0.0);
+    last.complete({for (var id = 1; id <= 20; id++) 'chapter-title-$id'});
+    await tester.pumpAndSettle();
+    expect(_paintedProgress(tester, 'manga-title-40'), 0.5);
+
+    await tester.scrollUntilVisible(find.text('manga-title-1'), -500.0, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(_paintedProgress(tester, 'manga-title-1'), 1.0);
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('1 / 1')), findsOneWidget);
+    expect(container.read(updateReportStoreProvider), report);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('The last result can scroll above the floating scan button', (tester) async {
     await _pumpPage(
       tester,
@@ -281,6 +393,7 @@ Future<ProviderContainer> _pumpPage(
   Stream<List<DatabaseChapter>> Function(int)? chapterStream,
   Set<String>? downloaded,
   FutureOr<Set<String>> Function(int)? downloadedForManga,
+  Iterable<int> mangaIds = const [],
 }) async {
   SharedPreferences.setMockInitialValues({if (report != null) UpdateReportStore.reportKey: jsonEncode(report.toJson())});
   final preferences = await SharedPreferences.getInstance();
@@ -289,7 +402,7 @@ Future<ProviderContainer> _pumpPage(
       sharedPreferencesProvider.overrideWithValue(preferences),
       updateManagerProvider.overrideWith(() => manager),
       if (downloaded != null) _downloadedProvider.overrideWith((ref) => downloaded),
-      for (final id in {1, ...?report?.items.map((item) => item.mangaId)}) ...[
+      for (final id in {1, ...mangaIds, ...?report?.items.map((item) => item.mangaId)}) ...[
         chaptersStreamByMangaProvider(id).overrideWith((ref) => chapterStream?.call(id) ?? Stream.value(chaptersFixture(id))),
         updateDownloadedChaptersProvider(id).overrideWith((ref) async => downloadedForManga?.call(id) ?? ref.watch(_downloadedProvider)),
       ],
@@ -328,6 +441,16 @@ double _progress(WidgetTester tester, String title) => tester
       find.descendant(of: find.widgetWithText(ListTile, title), matching: find.byType(AnimatedProgressCircleIcon)),
     )
     .progress;
+
+double _paintedProgress(WidgetTester tester, String title) {
+  final icon = tester.widget<CustomPaint>(
+    find.descendant(
+      of: find.widgetWithText(ListTile, title),
+      matching: find.byWidgetPredicate((widget) => widget is CustomPaint && widget.painter is ProgressCircleIconPainter),
+    ),
+  );
+  return (icon.painter! as ProgressCircleIconPainter).progress;
+}
 
 class _Manager extends UpdateManager {
   int _scans = 0;
