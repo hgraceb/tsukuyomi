@@ -20,6 +20,7 @@ class UpdatePage extends ConsumerWidget {
     final colors = theme.colorScheme;
     final failures = report?.failureCount ?? 0;
     final warnings = report?.warningCount ?? 0;
+    final successes = report?.successCount ?? 0;
     final processed = report?.items.length ?? 0;
     final total = report?.totalTargets ?? 0;
     final color = _getStatusColor(colors, error: error || failures > 0, warning: warnings > 0);
@@ -27,7 +28,7 @@ class UpdatePage extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: Semantics(
-        label: l10n.updateSummary(failures, warnings, processed, total),
+        label: l10n.updateSummary(failures, warnings, successes, total),
         excludeSemantics: true,
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -44,7 +45,7 @@ class UpdatePage extends ConsumerWidget {
                     text: '$warnings',
                     style: TextStyle(color: colors.tertiary),
                   ),
-                  TextSpan(text: ' · $processed / $total'),
+                  TextSpan(text: ' · $successes / $total'),
                 ],
               ),
               style: theme.textTheme.bodyLarge?.copyWith(color: colors.onSurface, fontFeatures: const [FontFeature.tabularFigures()]),
