@@ -6,7 +6,7 @@
   "updateStartScan": "扫描书架",
   "updateStopScan": "当前漫画处理完成后停止扫描",
   "updateProgress": "{checked} / {total}",
-  "updateSummary": "错误 {failures} 部 · 警告 {warnings} 部 · 已处理 {processed} / 总数 {total} 部",
+  "updateSummary": "错误 {failures} 部 · 警告 {warnings} 部 · 成功 {successes} 部 / 总数 {total} 部",
   "updateOutcomeUpdated": "已更新",
   "updateOutcomeNoUpdate": "无更新",
   "updateOutcomeChaptersEmpty": "章节为空",

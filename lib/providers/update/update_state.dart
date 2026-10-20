@@ -100,4 +100,6 @@ class UpdateReport with _$UpdateReport {
   int get failureCount => items.where((item) => item.outcome.isFailure).length;
 
   int get warningCount => items.where((item) => item.outcome.isWarning).length;
+
+  int get successCount => items.where((item) => item.outcome.isSuccess).length;
 }

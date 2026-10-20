@@ -88,7 +88,7 @@ void main() {
     );
 
     expect(container.read(updateReportStoreProvider)!.phase, UpdatePhase.interrupted);
-    final summary = tester.widget<Text>(find.text('1 · 1 · 2 / 2'));
+    final summary = tester.widget<Text>(find.text('1 · 1 · 0 / 2'));
     final spans = (summary.textSpan! as TextSpan).children!;
     final colors = Theme.of(tester.element(find.text('Queue / start failed'))).colorScheme;
     expect(spans[0].style?.color, colors.error);
@@ -102,6 +102,56 @@ void main() {
     expect(find.byIcon(Icons.info_outline), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Summary counts only completed outcomes while scan progress includes errors and warnings', (tester) async {
+    final items = [
+      updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
+      updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersEmpty),
+      updateReportItemFixture(3).copyWith(outcome: UpdateOutcome.chaptersReduced),
+      updateReportItemFixture(4),
+      updateReportItemFixture(5).copyWith(outcome: UpdateOutcome.noUpdate),
+      updateReportItemFixture(6),
+    ];
+    for (final locale in [const Locale('en'), const Locale('zh')]) {
+      final manager = _Manager();
+      final report = updateReportFixture(totalTargets: 10, items: items);
+      final container = await _pumpPage(tester, manager: manager, report: report, locale: locale, mangaIds: [7, 8, 9, 10]);
+      final store = container.read(updateReportStoreProvider.notifier);
+      final summaryIcon = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
+
+      for (final phase in [UpdatePhase.running, UpdatePhase.cancelled, UpdatePhase.interrupted]) {
+        if (phase == UpdatePhase.running) {
+          await manager.scan();
+        } else {
+          manager._finish();
+        }
+        await store.save(report.copyWith(phase: phase));
+        await tester.pumpAndSettle();
+        expect(find.text('1 · 2 · 3 / 10'), findsOneWidget);
+        expect(tester.widget<AnimatedProgressCircleIcon>(summaryIcon).progress, 0.6);
+        final label = locale.languageCode == 'en'
+            ? '1 errors · 2 warnings · 3 successful checks / 10 manga'
+            : '错误 1 部 · 警告 2 部 · 成功 3 部 / 总数 10 部';
+        expect(find.bySemanticsLabel(label), findsOneWidget);
+      }
+
+      final completed = [...items, for (var id = 7; id <= 10; id++) updateReportItemFixture(id)];
+      await store.save(report.copyWith(items: completed));
+      await tester.pumpAndSettle();
+      expect(find.text('1 · 2 · 7 / 10'), findsOneWidget);
+      expect(tester.widget<AnimatedProgressCircleIcon>(summaryIcon).progress, 1.0);
+
+      for (final total in [10, 0]) {
+        await store.save(report.copyWith(items: [], totalTargets: total));
+        await tester.pumpAndSettle();
+        expect(find.text('0 · 0 · 0 / $total'), findsOneWidget);
+        expect(tester.widget<AnimatedProgressCircleIcon>(summaryIcon).progress, 0.0);
+      }
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
   });
 
   testWidgets('Global errors color the summary icon and empty results have no prompts', (tester) async {
