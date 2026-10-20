@@ -24,6 +24,9 @@ class UpdatePage extends ConsumerWidget {
     final processed = report?.items.length ?? 0;
     final total = report?.totalTargets ?? 0;
     final color = _getStatusColor(colors, error: error || failures > 0, warning: warnings > 0);
+    final complete = !running && !error && report?.phase == UpdatePhase.finished && total > 0 && processed == total;
+    final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: color);
+    final progressIcon = _buildProgress(processed, total, color);
 
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
@@ -54,7 +57,7 @@ class UpdatePage extends ConsumerWidget {
             if (running && total == 0) ...[
               SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 2.0, color: color)),
             ] else ...[
-              _buildProgress(processed, total, color),
+              complete ? completeIcon : progressIcon,
             ],
           ],
         ),
@@ -143,6 +146,9 @@ class _UpdateItem extends ConsumerWidget {
     final publicChapters = (chapters.valueOrNull ?? []).where((chapter) => chapter.public);
     final completed = publicChapters.where((chapter) => downloaded.valueOrNull?.contains(chapter.title) == true).length;
     final total = publicChapters.length;
+    final progressError = chapters.hasError || downloaded.hasError;
+    final progressLoading = chapters.isLoading || downloaded.isLoading;
+    final complete = !progressError && !progressLoading && total > 0 && completed == total;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final outcome = switch (item.outcome) {
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
@@ -155,6 +161,8 @@ class _UpdateItem extends ConsumerWidget {
       UpdateOutcome.storageError => l10n.updateOutcomeStorageError,
       UpdateOutcome.enqueueFailed => l10n.updateOutcomeEnqueueFailed,
     };
+    final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);
+    final progressIcon = _buildProgress(completed, total, progressError ? colors.error : color);
 
     return ListTile(
       title: _buildTitle(l10n.updateProgress(completed, total)),
@@ -175,7 +183,7 @@ class _UpdateItem extends ConsumerWidget {
       ),
       trailing: SizedBox.square(
         dimension: 48.0,
-        child: Center(child: _buildProgress(completed, total, chapters.hasError || downloaded.hasError ? colors.error : color)),
+        child: Center(child: complete ? completeIcon : progressIcon),
       ),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );
