@@ -73,9 +73,10 @@ class DownloadPage extends ConsumerWidget {
   }
 
   /// 下载列表项的末尾组件 TODO 使用设置图标和弹窗替换只能进行单个操作的图标
-  _buildTrailing(DownloadController controller, DatabaseDownload download) {
+  Widget _buildTrailing(ThemeData theme, DownloadController controller, DatabaseDownload download) {
     if (download.error?.isNotEmpty == true) {
       return IconButton(
+        color: theme.colorScheme.error,
         icon: const Icon(Icons.refresh_outlined),
         onPressed: () => controller.resumeDownload(download),
       );
@@ -110,7 +111,7 @@ class DownloadPage extends ConsumerWidget {
                 child: ListTile(
                   title: _buildTitle(data),
                   subtitle: _buildSubTitle(theme, data),
-                  trailing: _buildTrailing(controller, data.download),
+                  trailing: _buildTrailing(theme, controller, data.download),
                 ),
               );
             },

@@ -221,7 +221,7 @@ class _MangaPageSliverBodyState extends State<_MangaPageSliverBody> with SingleT
   }
 
   /// 获取章节列表项末尾显示的图标
-  Widget _getChapterTrailing(MangaChapter chapter) {
+  Widget _getChapterTrailing(ThemeData theme, MangaChapter chapter) {
     // 下载完成
     if (chapter.downloaded == true) {
       return IconButton(
@@ -253,6 +253,7 @@ class _MangaPageSliverBodyState extends State<_MangaPageSliverBody> with SingleT
       // 下载出错
       if (download.error != null) {
         return IconButton(
+          color: theme.colorScheme.error,
           icon: const Icon(Icons.refresh_outlined),
           onPressed: () => widget.controller.resumeDownload(download),
         );
@@ -289,7 +290,7 @@ class _MangaPageSliverBodyState extends State<_MangaPageSliverBody> with SingleT
               textColor: 0 < chapter.images && chapter.images <= chapter.progress ? theme.disabledColor : null,
               title: Text(chapter.title, overflow: TextOverflow.ellipsis),
               subtitle: _getChapterSubtitle(theme, data),
-              trailing: _getChapterTrailing(data),
+              trailing: _getChapterTrailing(theme, data),
               onTap: () => context.pushNamed(TsukuyomiRouter.chapter.name, params: {
                 'mangaId': widget.mangaId,
                 'chapterId': '${chapter.id}',
