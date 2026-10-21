@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
@@ -12,7 +13,9 @@ void expectList(WidgetTester tester, {required List<int> visible, Finder? list})
   for (final element in items.evaluate()) {
     final box = element.findRenderObject()! as RenderBox;
     final bounds = box.localToGlobal(Offset.zero) & box.size;
-    if (bounds.overlaps(viewport)) {
+    final overlap = bounds.intersect(viewport);
+    // 与 moreOrLessEquals 使用相同的精度，忽略浮点误差产生的边界交叠
+    if (overlap.width > precisionErrorTolerance && overlap.height > precisionErrorTolerance) {
       actual.add(int.parse((element.widget as Text).data!));
     }
   }
