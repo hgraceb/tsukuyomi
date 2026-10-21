@@ -80,7 +80,7 @@ void main() {
         expect(controller.anchorIndex, itemKeys.length - 1);
         itemKeys.clear();
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        await tester.pump();
         expect(controller.anchorIndex, 0);
         expect(controller.position.pixels, moreOrLessEquals(0.0));
         expect(find.byType(Text), findsNothing);
@@ -239,13 +239,13 @@ void main() {
         expectList(tester, visible: [3, 4, 5, 6, 7, 8]);
         // 列表项尺寸动态增大时能够锚定滚动位置
         await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 200.0)));
-        await tester.pumpAndSettle(frame.value);
+        await tester.pump();
         expect(controller.anchorIndex, 5);
         expect(controller.position.pixels, moreOrLessEquals(-200.0));
         expectList(tester, visible: [4, 5, 6]);
         // 列表项尺寸动态减小时能够锚定滚动位置
         await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-        await tester.pumpAndSettle(frame.value);
+        await tester.pump();
         expect(controller.anchorIndex, 5);
         expect(controller.position.pixels, moreOrLessEquals(-200.0));
         expectList(tester, visible: [3, 4, 5, 6, 7, 8]);
@@ -482,7 +482,8 @@ void main() {
         itemHeights.removeRange(0, 100);
         itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        await tester.pump();
+        expect(controller.position.isScrollingNotifier.value, false);
         expect(controller.anchorIndex, itemKeys.length >= 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 1));
         final expectedPixels = itemKeys.length >= 6 ? -200.0 : (itemKeys.length - 1).clamp(0, 1) * -100.0;
         expect(controller.position.pixels, moreOrLessEquals(expectedPixels));
@@ -760,7 +761,7 @@ void main() {
   });
 
   group('TsukuyomiList respects TsukuyomiListController.slideViewport', () {
-    // 保留其他用例使用的 16ms，并覆盖高刷新率、低刷新率和 100ms 慢帧
+    // 使用不同帧间隔验证翻页动画的位置变化
     final frameDurations = {
       '16ms': const Duration(milliseconds: 16),
       for (final frameRate in [120, 60, 30, 10]) ...{
@@ -846,8 +847,9 @@ void main() {
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
 
       // 滚动零个屏幕的距离
-      unawaited(controller.slideViewport(0.0));
-      await tester.pumpAndSettle(const Duration(milliseconds: 16));
+      await controller.slideViewport(0.0);
+      await tester.pump();
+      expect(controller.position.isScrollingNotifier.value, false);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
@@ -892,18 +894,20 @@ void main() {
     });
 
     testWidgets('when size changes', (WidgetTester tester) async {
+      const itemHeight = 100.0;
+      const expandedHeight = itemHeight * 2.0;
       final itemKeys = List.generate(20, (index) => index);
-      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final itemHeights = List.generate(itemKeys.length, (index) => itemHeight);
       final controller = TsukuyomiListController();
 
-      Widget builder({required double customHeight}) {
+      Widget builder({Future<double>? heightFuture}) {
         return Directionality(
           textDirection: TextDirection.ltr,
           child: TsukuyomiList.builder(
             controller: controller,
             itemKeys: itemKeys,
             itemBuilder: (context, index) => FutureBuilder(
-              future: index == 0 ? Future.delayed(const Duration(seconds: 1), () => customHeight) : null,
+              future: index == 0 ? heightFuture : null,
               builder: (context, snapshot) => SizedBox(
                 height: snapshot.data ?? itemHeights[index],
                 child: Text('${itemKeys[index]}'),
@@ -914,15 +918,24 @@ void main() {
       }
 
       // 默认显示首屏的元素
-      await tester.pumpWidget(builder(customHeight: 100.0));
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpWidget(builder());
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
 
       // 自定义增加列表项的尺寸
-      await tester.pumpWidget(builder(customHeight: 200.0));
-      await tester.pump(const Duration(seconds: 1));
+      final largerHeight = Completer<double>();
+      await tester.pumpWidget(builder(heightFuture: largerHeight.future));
+      // 异步任务完成前重建列表，列表项尺寸保持不变
+      await tester.pumpWidget(builder(heightFuture: largerHeight.future));
+      expect(tester.getSize(find.text('0')).height, itemHeight);
+      largerHeight.complete(expandedHeight);
+      await tester.idle();
+      await tester.pump();
+      expect(tester.getSize(find.text('0')).height, expandedHeight);
+      // 异步任务完成后重建列表，列表项使用更新后的尺寸
+      await tester.pumpWidget(builder(heightFuture: largerHeight.future));
+      expect(tester.getSize(find.text('0')).height, expandedHeight);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4]);
@@ -935,8 +948,12 @@ void main() {
       expectList(tester, visible: [5, 6, 7, 8, 9, 10]);
 
       // 还原回列表项的原始尺寸
-      await tester.pumpWidget(builder(customHeight: 100.0));
-      await tester.pump(const Duration(seconds: 1));
+      final restoredHeight = Completer<double>();
+      await tester.pumpWidget(builder(heightFuture: restoredHeight.future));
+      // 列表项未渲染时也能完成异步尺寸更新
+      expect(find.text('0', skipOffstage: false), findsNothing);
+      restoredHeight.complete(itemHeight);
+      await tester.idle();
       expect(controller.anchorIndex, 7);
       expect(controller.position.pixels, moreOrLessEquals(-200.0));
       expectList(tester, visible: [5, 6, 7, 8, 9, 10]);
@@ -944,7 +961,7 @@ void main() {
       // 逆向滚动回到首屏的元素
       unawaited(controller.slideViewport(5 / 6 * -1));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      await tester.pump(const Duration(seconds: 1));
+      expect(tester.getSize(find.text('0')).height, itemHeight);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
@@ -989,7 +1006,8 @@ void main() {
         itemHeights.removeAt(0);
         itemHeights.removeAt(itemHeights.length - 1);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        await tester.pump();
+        expect(controller.position.isScrollingNotifier.value, false);
         expect(controller.anchorIndex, 6 - i);
         expect(controller.position.pixels, moreOrLessEquals(-200.0));
         expectList(tester, visible: [4, 5, 6, 7, 8, 9]);
@@ -1043,7 +1061,8 @@ void main() {
         itemHeights.removeAt(0);
         itemHeights.removeAt(itemHeights.length - 1);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        await tester.pump();
+        expect(controller.position.isScrollingNotifier.value, false);
         expect(controller.anchorIndex, 10 - i - 1);
         expect(controller.position.pixels, moreOrLessEquals(0.0));
         expectList(tester, visible: [10, 11, 12, 13, 14, 15]);
