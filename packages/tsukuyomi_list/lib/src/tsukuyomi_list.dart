@@ -555,7 +555,10 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   @override
   void goBallistic(double velocity) {
     assert(hasPixels);
-    final Simulation? simulation = physics.createBallisticSimulation(this, velocity);
+    // 惯性活动会叠加待布局的修正量，创建模拟时先还原到与边界一致的旧坐标
+    final correction = _correction;
+    final metrics = correction == null ? this : copyWith(pixels: pixels - correction);
+    final Simulation? simulation = physics.createBallisticSimulation(metrics, velocity);
     if (simulation != null) {
       // 进行惯性滚动时需要在中心列表项已经更新但还没有重新布局时修正滚动偏移
       beginActivity(_TsukuyomiListBallisticScrollActivity(
