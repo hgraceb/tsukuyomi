@@ -121,8 +121,10 @@ class _UpdateCountButton extends StatelessWidget {
   }
 }
 
-TextStyle _countStyle(BuildContext context) =>
-    Theme.of(context).textTheme.bodyLarge!.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+TextStyle _countStyle(BuildContext context) {
+  final style = Theme.of(context).textTheme.bodyLarge!;
+  return style.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+}
 
 Size _measure(BuildContext context, String text) {
   final painter = TextPainter(

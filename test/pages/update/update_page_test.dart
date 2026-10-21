@@ -602,7 +602,7 @@ void main() {
       });
       expect(_summaryCounts(tester), [1, 1, 2, 10]);
       final data = tester.getSemantics(_countButton(filter)).getSemanticsData();
-      expect(data.flagsCollection.isSelected, Tristate.isTrue);
+      expect(data.flagsCollection.isSelected.toBoolOrNull(), isTrue);
       expect(data.hasAction(SemanticsAction.tap), isTrue);
       expect(container.read(updateReportStoreProvider), report);
     }
