@@ -580,8 +580,9 @@ void main() {
       final container = await _pumpPage(tester, manager: _Manager(), report: report);
       List<int> ids() {
         final visible = [
-          for (var id = 1; id <= 4; id++)
+          for (var id = 1; id <= 4; id++) ...[
             if (find.byKey(ValueKey(id)).evaluate().isNotEmpty) id,
+          ],
         ];
         double top(int id) => tester.getTopLeft(find.byKey(ValueKey(id))).dy;
         return visible..sort((a, b) => top(a).compareTo(top(b)));
