@@ -567,54 +567,57 @@ void main() {
 
   testWidgets('Four counts filter sorted source titles without changing the report or totals', (tester) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
-    final report = updateReportFixture(
-      totalTargets: 10,
-      items: [
-        updateReportItemFixture(1).copyWith(sourceName: 'B', mangaTitle: 'A'),
-        updateReportItemFixture(2).copyWith(sourceName: 'A', mangaTitle: 'Z', outcome: UpdateOutcome.networkError),
-        updateReportItemFixture(3).copyWith(sourceName: 'A', mangaTitle: 'A', outcome: UpdateOutcome.chaptersEmpty),
-        updateReportItemFixture(4).copyWith(sourceName: 'A', mangaTitle: 'M', outcome: UpdateOutcome.noUpdate),
-      ],
-    );
-    final container = await _pumpPage(tester, manager: _Manager(), report: report);
-    List<int> ids() {
-      final visible = [
-        for (var id = 1; id <= 4; id++)
-          if (find.byKey(ValueKey(id)).evaluate().isNotEmpty) id,
-      ];
-      double top(int id) => tester.getTopLeft(find.byKey(ValueKey(id))).dy;
-      return visible..sort((a, b) => top(a).compareTo(top(b)));
-    }
+    try {
+      final report = updateReportFixture(
+        totalTargets: 10,
+        items: [
+          updateReportItemFixture(1).copyWith(sourceName: 'B', mangaTitle: 'A'),
+          updateReportItemFixture(2).copyWith(sourceName: 'A', mangaTitle: 'Z', outcome: UpdateOutcome.networkError),
+          updateReportItemFixture(3).copyWith(sourceName: 'A', mangaTitle: 'A', outcome: UpdateOutcome.chaptersEmpty),
+          updateReportItemFixture(4).copyWith(sourceName: 'A', mangaTitle: 'M', outcome: UpdateOutcome.noUpdate),
+        ],
+      );
+      final container = await _pumpPage(tester, manager: _Manager(), report: report);
+      List<int> ids() {
+        final visible = [
+          for (var id = 1; id <= 4; id++)
+            if (find.byKey(ValueKey(id)).evaluate().isNotEmpty) id,
+        ];
+        double top(int id) => tester.getTopLeft(find.byKey(ValueKey(id))).dy;
+        return visible..sort((a, b) => top(a).compareTo(top(b)));
+      }
 
-    expect(ids(), [3, 4, 2, 1]);
-    final tile = tester.widget<ListTile>(find.widgetWithText(ListTile, 'Z'));
-    expect(find.descendant(of: find.byWidget(tile.title!), matching: find.text('A')), findsOneWidget);
-    expect(find.descendant(of: find.byWidget(tile.subtitle!), matching: find.text('Z')), findsOneWidget);
+      expect(ids(), [3, 4, 2, 1]);
+      final tile = tester.widget<ListTile>(find.widgetWithText(ListTile, 'Z'));
+      expect(find.descendant(of: find.byWidget(tile.title!), matching: find.text('A')), findsOneWidget);
+      expect(find.descendant(of: find.byWidget(tile.subtitle!), matching: find.text('Z')), findsOneWidget);
 
-    for (final filter in [UpdateFilter.failure, UpdateFilter.warning, UpdateFilter.success]) {
-      await tester.tap(_countButton(filter));
-      await tester.pumpAndSettle();
-      expect(ids(), switch (filter) {
-        UpdateFilter.failure => [2],
-        UpdateFilter.warning => [3],
-        _ => [4, 1],
-      });
-      expect(_summaryCounts(tester), [1, 1, 2, 10]);
-      final data = tester.getSemantics(_countButton(filter)).getSemanticsData();
-      expect(data.flagsCollection.isSelected.toBoolOrNull(), isTrue);
-      expect(data.hasAction(SemanticsAction.tap), isTrue);
-      expect(container.read(updateReportStoreProvider), report);
-    }
-    await tester.tap(_countButton(UpdateFilter.success));
-    await tester.pumpAndSettle();
-    expect(ids(), [3, 4, 2, 1]);
-    for (var repeat = 0; repeat < 2; repeat++) {
-      await tester.tap(_countButton(UpdateFilter.all));
+      for (final filter in [UpdateFilter.failure, UpdateFilter.warning, UpdateFilter.success]) {
+        await tester.tap(_countButton(filter));
+        await tester.pumpAndSettle();
+        expect(ids(), switch (filter) {
+          UpdateFilter.failure => [2],
+          UpdateFilter.warning => [3],
+          _ => [4, 1],
+        });
+        expect(_summaryCounts(tester), [1, 1, 2, 10]);
+        final data = tester.getSemantics(_countButton(filter)).getSemanticsData();
+        expect(data.flagsCollection.isSelected.toBoolOrNull(), isTrue);
+        expect(data.hasAction(SemanticsAction.tap), isTrue);
+        expect(container.read(updateReportStoreProvider), report);
+      }
+      await tester.tap(_countButton(UpdateFilter.success));
       await tester.pumpAndSettle();
       expect(ids(), [3, 4, 2, 1]);
+      for (var repeat = 0; repeat < 2; repeat++) {
+        await tester.tap(_countButton(UpdateFilter.all));
+        await tester.pumpAndSettle();
+        expect(ids(), [3, 4, 2, 1]);
+      }
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
     }
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('A zero-count filter is clearable and scan arrivals keep filtering until a new session', (tester) async {
