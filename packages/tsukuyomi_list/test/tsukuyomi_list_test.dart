@@ -34,7 +34,7 @@ void main() {
 
       // 逆向滚动一定距离让第一个元素作为新的锚点元素
       unawaited(controller.slideViewport(-1.0));
-      await tester.pumpAndSettle(const Duration(microseconds: 100));
+      await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, 0.0);
       expectList(length: itemKeys.length, visible: [0, 1, 2, 3, 4, 5]);
@@ -592,6 +592,58 @@ void main() {
   });
 
   group('TsukuyomiList respects TsukuyomiListController.slideViewport', () {
+    for (final frameDuration in [
+      const Duration(microseconds: 8333),
+      const Duration(milliseconds: 16),
+      const Duration(microseconds: 16667),
+      const Duration(microseconds: 33333),
+      const Duration(milliseconds: 100),
+    ]) {
+      for (final physics in [const ClampingScrollPhysics(), const BouncingScrollPhysics()]) {
+        testWidgets('when anchor changes before layout (${frameDuration.inMicroseconds}us, ${physics.runtimeType})', (tester) async {
+          final itemKeys = List.generate(10, (index) => index);
+          final controller = TsukuyomiListController();
+          const duration = Duration(milliseconds: 300);
+
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: TsukuyomiList.builder(
+                itemKeys: itemKeys,
+                itemBuilder: (context, index) => SizedBox(key: ValueKey(index), height: 100.0, child: Text('$index')),
+                controller: controller,
+                physics: physics,
+                initialScrollIndex: 4,
+              ),
+            ),
+          );
+
+          final viewport = tester.getRect(find.byType(TsukuyomiList));
+          final scrollExtent = itemKeys.length * 100.0 - viewport.height;
+          final item = find.byKey(const ValueKey(4));
+          // 往返滚动时持续跟踪始终可见的列表项，验证锚点修正前后没有丢失动画位移
+          for (final fraction in [-1.0, 1.0]) {
+            final initialTop = tester.getTopLeft(item).dy;
+            final scrolling = controller.slideViewport(fraction, duration: duration);
+            await tester.pump();
+            var elapsed = Duration.zero;
+            while (elapsed < duration) {
+              elapsed += frameDuration;
+              await tester.pump(frameDuration);
+              final progress = (elapsed.inMicroseconds / duration.inMicroseconds).clamp(0.0, 1.0);
+              final offset = scrollExtent * fraction * Curves.easeInOutCubic.transform(progress);
+              expect(tester.getTopLeft(item).dy, closeTo(initialTop - offset, 1e-6));
+            }
+            await tester.pumpAndSettle(frameDuration);
+            await scrolling;
+            expect(tester.getTopLeft(item).dy, closeTo(initialTop - scrollExtent * fraction, 1e-6));
+            expect(controller.position.isScrollingNotifier.value, false);
+          }
+          expect(tester.getTopLeft(item).dy, closeTo(viewport.top, 1e-6));
+        });
+      }
+    }
+
     testWidgets('when default', (WidgetTester tester) async {
       final itemKeys = List.generate(20, (index) => index);
       final controller = TsukuyomiListController();
