@@ -590,6 +590,15 @@ void main() {
       }
 
       expect(ids(), [3, 4, 2, 1]);
+      final countColors = {
+        for (final filter in UpdateFilter.values) filter: tester.widget<Text>(_countText(filter)).style!.color!,
+      };
+      final separators = find.descendant(
+        of: find.byType(UpdateSummary),
+        matching: find.byWidgetPredicate((widget) => widget is Opacity && widget.child is Text),
+      );
+      expect(separators, findsNWidgets(3));
+      expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1.0));
       final tile = tester.widget<ListTile>(find.widgetWithText(ListTile, 'Z'));
       expect(find.descendant(of: find.byWidget(tile.title!), matching: find.text('A')), findsOneWidget);
       expect(find.descendant(of: find.byWidget(tile.subtitle!), matching: find.text('Z')), findsOneWidget);
@@ -603,7 +612,14 @@ void main() {
           _ => [4, 1],
         });
         expect(_summaryCounts(tester), [1, 1, 2, 10]);
-        expect(tester.widget<Text>(_countText(filter)).style?.decoration, TextDecoration.underline);
+        for (final candidate in UpdateFilter.values) {
+          final style = tester.widget<Text>(_countText(candidate)).style!;
+          final original = countColors[candidate]!;
+          final expected = candidate == filter ? original : original.withValues(alpha: original.a * 0.4);
+          expect(style.color, expected);
+          expect(style.decoration, isNot(TextDecoration.underline));
+        }
+        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(0.4));
         final data = tester.getSemantics(_countButton(filter)).getSemanticsData();
         expect(data.flagsCollection.isSelected.toBoolOrNull(), isTrue);
         expect(data.hasAction(SemanticsAction.tap), isTrue);
@@ -612,7 +628,10 @@ void main() {
       await tester.tap(_countButton(UpdateFilter.success));
       await tester.pumpAndSettle();
       expect(ids(), [3, 4, 2, 1]);
-      expect(tester.widget<Text>(_countText(UpdateFilter.success)).style?.decoration, TextDecoration.none);
+      for (final filter in UpdateFilter.values) {
+        expect(tester.widget<Text>(_countText(filter)).style?.color, countColors[filter]);
+      }
+      expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1.0));
       for (var repeat = 0; repeat < 2; repeat++) {
         await tester.tap(_countButton(UpdateFilter.all));
         await tester.pumpAndSettle();
@@ -672,10 +691,17 @@ void main() {
     plain.dispose();
     for (final filter in UpdateFilter.values) {
       expect(find.descendant(of: _countButton(filter), matching: find.byType(DecoratedBox)), findsNothing);
-      expect(tester.widget<Text>(_countText(filter)).style?.decoration, TextDecoration.none);
+      expect(tester.widget<Text>(_countText(filter)).style?.decoration, isNot(TextDecoration.underline));
     }
-    Finder feedback() => find.descendant(of: _countButton(UpdateFilter.all), matching: find.byType(InkResponse));
-    expect(tester.widget<InkResponse>(feedback()).highlightShape, BoxShape.circle);
+    final inkResponses = find.byWidgetPredicate((widget) => widget is InkResponse);
+    Finder feedback() => find.descendant(of: _countButton(UpdateFilter.all), matching: inkResponses);
+    Rect feedbackRect() {
+      final response = tester.widget<InkResponse>(feedback());
+      final box = tester.renderObject<RenderBox>(feedback());
+      return response.getRectCallback(box)!();
+    }
+
+    expect(feedbackRect().size, const Size(36.0, 36.0));
     for (final count in [12, 123, 12345]) {
       await container.read(updateReportStoreProvider.notifier).save(report.copyWith(totalTargets: count));
       await tester.pumpAndSettle();
@@ -686,6 +712,9 @@ void main() {
     final wide = tester.widget<InkResponse>(feedback());
     expect(wide.highlightShape, BoxShape.rectangle);
     expect(wide.customBorder, isA<StadiumBorder>());
+    expect(wide.splashFactory, NoSplash.splashFactory);
+    expect(feedbackRect().height, 36.0);
+    expect(feedbackRect().width, greaterThan(36.0));
   });
 
   testWidgets('Large counts and fonts keep all four actions accessible in both languages', (tester) async {

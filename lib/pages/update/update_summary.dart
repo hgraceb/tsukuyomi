@@ -44,7 +44,10 @@ class UpdateSummary extends StatelessWidget {
       children: [
         for (var index = 0; index < counts.length; index++) ...[
           if (index > 0) ...[
-            Text(index == 3 ? ' / ' : ' · ', style: _countStyle(context)),
+            Opacity(
+              opacity: filter == UpdateFilter.all ? 1.0 : 0.4,
+              child: Text(index == 3 ? ' / ' : ' · ', style: _countStyle(context)),
+            ),
           ],
           _UpdateCountButton(
             key: ValueKey(filters[index]),
@@ -52,7 +55,7 @@ class UpdateSummary extends StatelessWidget {
             color: countColors[index],
             label: labels[index],
             selected: filter == filters[index],
-            showSelection: filter != UpdateFilter.all,
+            muted: filter != UpdateFilter.all && filter != filters[index],
             onPressed: () => onChanged(filters[index]),
           ),
         ],
@@ -74,7 +77,7 @@ class _UpdateCountButton extends StatelessWidget {
     required this.color,
     required this.label,
     required this.selected,
-    required this.showSelection,
+    required this.muted,
     required this.onPressed,
   });
 
@@ -82,14 +85,13 @@ class _UpdateCountButton extends StatelessWidget {
   final Color color;
   final String label;
   final bool selected;
-  final bool showSelection;
+  final bool muted;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final size = _countSize(context, count);
-    final wide = size.width > size.height;
-    final underlined = selected && showSelection;
+    final textColor = muted ? color.withValues(alpha: color.a * 0.4) : color;
 
     return Semantics(
       button: true,
@@ -100,23 +102,14 @@ class _UpdateCountButton extends StatelessWidget {
       child: Tooltip(
         message: label,
         excludeFromSemantics: true,
-        child: InkResponse(
-          highlightShape: wide ? BoxShape.rectangle : BoxShape.circle,
-          containedInkWell: wide,
-          customBorder: wide ? const StadiumBorder() : null,
-          radius: size.height / 2.0,
+        child: _UpdateCountFeedback(
           onTap: onPressed,
           child: SizedBox.fromSize(
             size: size,
             child: Center(
               child: Text(
                 '$count',
-                style: _countStyle(context).copyWith(
-                  color: color,
-                  decoration: underlined ? TextDecoration.underline : TextDecoration.none,
-                  decorationColor: color,
-                  decorationThickness: 2.0,
-                ),
+                style: _countStyle(context).copyWith(color: textColor),
               ),
             ),
           ),
@@ -124,6 +117,23 @@ class _UpdateCountButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _UpdateCountFeedback extends InkResponse {
+  const _UpdateCountFeedback({required super.onTap, required super.child})
+    : super(
+        containedInkWell: true,
+        highlightShape: BoxShape.rectangle,
+        customBorder: const StadiumBorder(),
+        // 仅保留按压高亮，避免与扩散水波纹叠出两圈
+        splashFactory: NoSplash.splashFactory,
+      );
+
+  @override
+  RectCallback getRectCallback(RenderBox referenceBox) => () {
+    final size = referenceBox.size;
+    return Rect.fromCenter(center: size.center(Offset.zero), width: math.max(size.height, size.width), height: size.height);
+  };
 }
 
 TextStyle _countStyle(BuildContext context) {
