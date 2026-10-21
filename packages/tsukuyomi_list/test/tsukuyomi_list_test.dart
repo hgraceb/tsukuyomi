@@ -9,6 +9,109 @@ import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
 import 'tsukuyomi_list_util.dart';
 
 void main() {
+  group('TsukuyomiList respects empty items', () {
+    for (final initialScrollIndex in [0, 1]) {
+      testWidgets('when initialized with index $initialScrollIndex', (WidgetTester tester) async {
+        final controller = TsukuyomiListController();
+
+        Widget builder() {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: TsukuyomiList.builder(
+              itemKeys: const [],
+              itemBuilder: (context, index) => throw StateError('Empty lists must not build items'),
+              controller: controller,
+              initialScrollIndex: initialScrollIndex,
+            ),
+          );
+        }
+
+        // 构造参数允许空列表，此时索引应统一回到 0
+        await tester.pumpWidget(builder());
+        expect(controller.anchorIndex, 0);
+        expect(controller.position.pixels, 0.0);
+        expect(controller.position.minScrollExtent, 0.0);
+        expect(controller.position.maxScrollExtent, 0.0);
+        // 空列表上的跳转和翻页不应产生滚动
+        controller.jumpToIndex(0);
+        await tester.pump();
+        await controller.slideViewport(-1.0);
+        await controller.slideViewport(1.0);
+        expect(controller.position.pixels, 0.0);
+        expect(controller.position.isScrollingNotifier.value, false);
+      });
+    }
+
+    testWidgets('when items are added and removed repeatedly', (WidgetTester tester) async {
+      const itemHeight = 100.0;
+      final itemKeys = <int>[];
+      final controller = TsukuyomiListController();
+      final viewportHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      final visibleItemCount = viewportHeight ~/ itemHeight;
+
+      Widget builder() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: itemKeys,
+            itemBuilder: (context, index) => SizedBox(height: itemHeight, child: Text('${itemKeys[index]}')),
+            controller: controller,
+          ),
+        );
+      }
+
+      await tester.pumpWidget(builder());
+      // 使用同一个可变列表，覆盖首次添加和清空后再次添加
+      for (final firstKey in [0, 100]) {
+        itemKeys.addAll(List.generate(10, (index) => firstKey + index));
+        await tester.pumpWidget(builder());
+        expect(controller.anchorIndex, 0);
+        expectList(length: itemKeys.length, visible: itemKeys.take(visibleItemCount).toList());
+        final firstItem = find.text('$firstKey');
+        final initialTop = tester.getTopLeft(firstItem).dy;
+        // 重新添加的数据必须恢复锚点 key，插入首项后才能继续锚定原来的内容
+        itemKeys.insert(0, firstKey - 1);
+        await tester.pumpWidget(builder());
+        expect(controller.anchorIndex, 1);
+        expect(tester.getTopLeft(firstItem).dy, moreOrLessEquals(initialTop));
+        // 先滚到末尾再清空，验证旧的锚点和滚动偏移不会残留
+        controller.jumpToIndex(itemKeys.length - 1);
+        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        expect(controller.anchorIndex, itemKeys.length - 1);
+        itemKeys.clear();
+        await tester.pumpWidget(builder());
+        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        expect(controller.anchorIndex, 0);
+        expect(controller.position.pixels, 0.0);
+        expect(find.byType(Text), findsNothing);
+      }
+    });
+
+    testWidgets('when controller changes and list is disposed', (WidgetTester tester) async {
+      final firstController = TsukuyomiListController();
+      final secondController = TsukuyomiListController();
+
+      Widget builder(TsukuyomiListController controller) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: TsukuyomiList.builder(
+            itemKeys: const [],
+            itemBuilder: (context, index) => throw StateError('Empty lists must not build items'),
+            controller: controller,
+          ),
+        );
+      }
+
+      await tester.pumpWidget(builder(firstController));
+      expect(firstController.position.hasContentDimensions, true);
+      await tester.pumpWidget(builder(secondController));
+      expect(() => firstController.position, throwsAssertionError);
+      expect(secondController.position.hasContentDimensions, true);
+      await tester.pumpWidget(const SizedBox());
+      expect(() => secondController.position, throwsAssertionError);
+    });
+  });
+
   group('TsukuyomiList respects anchor', () {
     testWidgets('when default', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);

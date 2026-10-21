@@ -88,8 +88,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   @override
   void initState() {
     super.initState();
-    _anchorIndex = widget.initialScrollIndex;
-    _anchorKey = widget.itemKeys[_anchorIndex];
+    _anchorIndex = widget.itemKeys.isEmpty ? 0 : widget.initialScrollIndex;
+    _anchorKey = widget.itemKeys.isEmpty ? null : widget.itemKeys[_anchorIndex];
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -103,7 +103,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       widget.controller?._attach(this);
     }
     // 修正锚点列表项位置
-    if (widget.itemKeys.isEmpty) {
+    if (widget.itemKeys.isEmpty || _anchorKey == null) {
       _updateAnchor(0);
     } else if (widget.itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
       _updateAnchor(newAnchorIndex);
