@@ -91,10 +91,12 @@ void main() {
 
     expect(container.read(updateReportStoreProvider)!.phase, UpdatePhase.interrupted);
     final colors = Theme.of(tester.element(find.text('Queue / start failed'))).colorScheme;
+    Color muted(Color color) => color.withValues(alpha: color.a / 3.0);
     expect(_summaryCounts(tester), [1, 1, 0, 2]);
-    expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
-    expect(tester.widget<Text>(_countText(UpdateFilter.warning)).style?.color, colors.tertiary);
-    expect(tester.widget<Text>(_countText(UpdateFilter.success)).style?.color, colors.onSurface);
+    expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, muted(colors.error));
+    expect(tester.widget<Text>(_countText(UpdateFilter.warning)).style?.color, muted(colors.tertiary));
+    expect(tester.widget<Text>(_countText(UpdateFilter.success)).style?.color, muted(colors.onSurface));
+    expect(tester.widget<Text>(_countText(UpdateFilter.all)).style?.color, colors.onSurface);
     expect(tester.widget<Text>(find.text('Queue / start failed')).style?.color, colors.error);
     expect(tester.widget<Text>(find.text('No chapters')).style?.color, colors.tertiary);
     expect(find.text('2 / 5'), findsOneWidget);
@@ -590,15 +592,33 @@ void main() {
       }
 
       expect(ids(), [3, 4, 2, 1]);
+      final colors = Theme.of(tester.element(find.byType(UpdateSummary))).colorScheme;
       final countColors = {
-        for (final filter in UpdateFilter.values) filter: tester.widget<Text>(_countText(filter)).style!.color!,
+        UpdateFilter.failure: colors.error,
+        UpdateFilter.warning: colors.tertiary,
+        UpdateFilter.success: colors.onSurface,
+        UpdateFilter.all: colors.onSurface,
       };
       final separators = find.descendant(
         of: find.byType(UpdateSummary),
         matching: find.byWidgetPredicate((widget) => widget is Opacity && widget.child is Text),
       );
       expect(separators, findsNWidgets(3));
-      expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1.0));
+      void expectSelection(UpdateFilter filter) {
+        for (final candidate in UpdateFilter.values) {
+          final style = tester.widget<Text>(_countText(candidate)).style!;
+          final original = countColors[candidate]!;
+          final expected = candidate == filter ? original : original.withValues(alpha: original.a / 3.0);
+          expect(style.color, expected);
+          expect(style.decoration, isNot(TextDecoration.underline));
+          final data = tester.getSemantics(_countButton(candidate)).getSemanticsData();
+          expect(data.flagsCollection.isSelected.toBoolOrNull(), candidate == filter);
+          expect(data.hasAction(SemanticsAction.tap), isTrue);
+        }
+        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1 / 3));
+      }
+
+      expectSelection(UpdateFilter.all);
       final tile = tester.widget<ListTile>(find.widgetWithText(ListTile, 'Z'));
       expect(find.descendant(of: find.byWidget(tile.title!), matching: find.text('A')), findsOneWidget);
       expect(find.descendant(of: find.byWidget(tile.subtitle!), matching: find.text('Z')), findsOneWidget);
@@ -612,30 +632,20 @@ void main() {
           _ => [4, 1],
         });
         expect(_summaryCounts(tester), [1, 1, 2, 10]);
-        for (final candidate in UpdateFilter.values) {
-          final style = tester.widget<Text>(_countText(candidate)).style!;
-          final original = countColors[candidate]!;
-          final expected = candidate == filter ? original : original.withValues(alpha: original.a / 3.0);
-          expect(style.color, expected);
-          expect(style.decoration, isNot(TextDecoration.underline));
-        }
-        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1 / 3));
-        final data = tester.getSemantics(_countButton(filter)).getSemanticsData();
-        expect(data.flagsCollection.isSelected.toBoolOrNull(), isTrue);
-        expect(data.hasAction(SemanticsAction.tap), isTrue);
+        expectSelection(filter);
         expect(container.read(updateReportStoreProvider), report);
       }
       await tester.tap(_countButton(UpdateFilter.success));
       await tester.pumpAndSettle();
       expect(ids(), [3, 4, 2, 1]);
-      for (final filter in UpdateFilter.values) {
-        expect(tester.widget<Text>(_countText(filter)).style?.color, countColors[filter]);
-      }
-      expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1.0));
+      expectSelection(UpdateFilter.all);
       for (var repeat = 0; repeat < 2; repeat++) {
         await tester.tap(_countButton(UpdateFilter.all));
         await tester.pumpAndSettle();
         expect(ids(), [3, 4, 2, 1]);
+        expectSelection(UpdateFilter.all);
+        expect(_summaryCounts(tester), [1, 1, 2, 10]);
+        expect(container.read(updateReportStoreProvider), report);
       }
       expect(tester.takeException(), isNull);
     } finally {
