@@ -13,6 +13,7 @@ import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/update/update_page.dart';
 import 'package:tsukuyomi/pages/update/update_filter.dart';
 import 'package:tsukuyomi/pages/update/update_progress_provider.dart';
+import 'package:tsukuyomi/pages/update/update_summary.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/theme/theme_predefined_provider.dart';
 import 'package:tsukuyomi/providers/update/update_manager.dart';
@@ -602,6 +603,7 @@ void main() {
           _ => [4, 1],
         });
         expect(_summaryCounts(tester), [1, 1, 2, 10]);
+        expect(tester.widget<Text>(_countText(filter)).style?.decoration, TextDecoration.underline);
         final data = tester.getSemantics(_countButton(filter)).getSemanticsData();
         expect(data.flagsCollection.isSelected.toBoolOrNull(), isTrue);
         expect(data.hasAction(SemanticsAction.tap), isTrue);
@@ -610,6 +612,7 @@ void main() {
       await tester.tap(_countButton(UpdateFilter.success));
       await tester.pumpAndSettle();
       expect(ids(), [3, 4, 2, 1]);
+      expect(tester.widget<Text>(_countText(UpdateFilter.success)).style?.decoration, TextDecoration.none);
       for (var repeat = 0; repeat < 2; repeat++) {
         await tester.tap(_countButton(UpdateFilter.all));
         await tester.pumpAndSettle();
@@ -651,31 +654,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('manga-title-1'), findsOneWidget);
     expect(find.text('No results for this filter'), findsNothing);
-    expect(tester.getSize(_countButton(UpdateFilter.all)).height, greaterThanOrEqualTo(44.0));
+    expect(tester.getSize(_countButton(UpdateFilter.all)).height, greaterThanOrEqualTo(36.0));
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Count badges stay compact and grow into capsules for large values on narrow screens', (tester) async {
+  testWidgets('Counts retain compact text spacing with circular or capsule feedback only during interaction', (tester) async {
     _narrowScreen(tester);
     final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
     final container = await _pumpPage(tester, manager: _Manager(), report: report);
-    Finder badge(UpdateFilter filter) => find.descendant(
-      of: _countButton(filter),
-      matching: find.byWidgetPredicate((widget) => widget is Container && widget.decoration is ShapeDecoration),
-    );
-    final small = tester.getSize(badge(UpdateFilter.all));
-    expect(small, const Size(36.0, 36.0));
-    expect(tester.getSize(_countButton(UpdateFilter.all)).height, greaterThan(small.height));
+    final plain = TextPainter(
+      text: TextSpan(text: '0 · 0 · 1 / 1', style: tester.widget<Text>(_countText(UpdateFilter.all)).style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final summaryWidth = tester.getSize(find.byType(UpdateSummary)).width;
+    // 原文字与进度图标之外，每个数字只增加少量水平留白
+    expect(summaryWidth, lessThanOrEqualTo(plain.width + 16.0 + 24.0 + 20.0));
+    plain.dispose();
+    for (final filter in UpdateFilter.values) {
+      expect(find.descendant(of: _countButton(filter), matching: find.byType(DecoratedBox)), findsNothing);
+      expect(tester.widget<Text>(_countText(filter)).style?.decoration, TextDecoration.none);
+    }
+    Finder feedback() => find.descendant(of: _countButton(UpdateFilter.all), matching: find.byType(InkResponse));
+    expect(tester.widget<InkResponse>(feedback()).highlightShape, BoxShape.circle);
     for (final count in [12, 123, 12345]) {
       await container.read(updateReportStoreProvider.notifier).save(report.copyWith(totalTargets: count));
       await tester.pumpAndSettle();
-      final large = tester.getSize(badge(UpdateFilter.all));
-      expect(large.height, small.height);
-      expect(large.width, greaterThanOrEqualTo(large.height));
+      expect(find.descendant(of: _countButton(UpdateFilter.all), matching: find.byType(DecoratedBox)), findsNothing);
       expect(tester.renderObject<RenderParagraph>(_countText(UpdateFilter.all)).didExceedMaxLines, isFalse);
       expect(tester.takeException(), isNull);
     }
-    expect(tester.getSize(badge(UpdateFilter.all)).width, greaterThan(small.width));
+    final wide = tester.widget<InkResponse>(feedback());
+    expect(wide.highlightShape, BoxShape.rectangle);
+    expect(wide.customBorder, isA<StadiumBorder>());
   });
 
   testWidgets('Large counts and fonts keep all four actions accessible in both languages', (tester) async {

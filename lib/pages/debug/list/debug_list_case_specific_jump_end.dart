@@ -51,7 +51,6 @@ class _DebugListCaseSpecificJumpEndState extends State<DebugListCaseSpecificJump
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

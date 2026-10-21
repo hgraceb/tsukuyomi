@@ -18,8 +18,8 @@ class UpdateSummary extends StatelessWidget {
   List<int> get _counts => [report?.failureCount ?? 0, report?.warningCount ?? 0, report?.successCount ?? 0, report?.totalTargets ?? 0];
 
   Size size(BuildContext context) {
-    final buttons = _counts.map((count) => _countSizes(context, count).target);
-    final separators = _measure(context, '··/');
+    final buttons = _counts.map((count) => _countSize(context, count));
+    final separators = _measure(context, ' ·  ·  / ');
     final width = buttons.fold(0.0, (width, size) => width + size.width) + separators.width + 16.0 + 24.0;
     final height = buttons.fold(24.0, (height, size) => math.max(height, size.height));
     return Size(width, height);
@@ -44,7 +44,7 @@ class UpdateSummary extends StatelessWidget {
       children: [
         for (var index = 0; index < counts.length; index++) ...[
           if (index > 0) ...[
-            Text(index == 3 ? '/' : '·', style: _countStyle(context)),
+            Text(index == 3 ? ' / ' : ' · ', style: _countStyle(context)),
           ],
           _UpdateCountButton(
             key: ValueKey(filters[index]),
@@ -52,6 +52,7 @@ class UpdateSummary extends StatelessWidget {
             color: countColors[index],
             label: labels[index],
             selected: filter == filters[index],
+            showSelection: filter != UpdateFilter.all,
             onPressed: () => onChanged(filters[index]),
           ),
         ],
@@ -73,6 +74,7 @@ class _UpdateCountButton extends StatelessWidget {
     required this.color,
     required this.label,
     required this.selected,
+    required this.showSelection,
     required this.onPressed,
   });
 
@@ -80,11 +82,14 @@ class _UpdateCountButton extends StatelessWidget {
   final Color color;
   final String label;
   final bool selected;
+  final bool showSelection;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final sizes = _countSizes(context, count);
+    final size = _countSize(context, count);
+    final wide = size.width > size.height;
+    final underlined = selected && showSelection;
 
     return Semantics(
       button: true,
@@ -95,23 +100,23 @@ class _UpdateCountButton extends StatelessWidget {
       child: Tooltip(
         message: label,
         excludeFromSemantics: true,
-        child: InkWell(
-          customBorder: const StadiumBorder(),
+        child: InkResponse(
+          highlightShape: wide ? BoxShape.rectangle : BoxShape.circle,
+          containedInkWell: wide,
+          customBorder: wide ? const StadiumBorder() : null,
+          radius: size.height / 2.0,
           onTap: onPressed,
           child: SizedBox.fromSize(
-            size: sizes.target,
+            size: size,
             child: Center(
-              child: Container(
-                width: sizes.badge.width,
-                height: sizes.badge.height,
-                alignment: Alignment.center,
-                decoration: ShapeDecoration(
-                  color: selected ? color.withValues(alpha: 0.12) : null,
-                  shape: StadiumBorder(
-                    side: BorderSide(color: color.withValues(alpha: selected ? 1.0 : 0.16)),
-                  ),
+              child: Text(
+                '$count',
+                style: _countStyle(context).copyWith(
+                  color: color,
+                  decoration: underlined ? TextDecoration.underline : TextDecoration.none,
+                  decorationColor: color,
+                  decorationThickness: 2.0,
                 ),
-                child: Text('$count', style: _countStyle(context).copyWith(color: color)),
               ),
             ),
           ),
@@ -137,11 +142,7 @@ Size _measure(BuildContext context, String text) {
   return size;
 }
 
-({Size badge, Size target}) _countSizes(BuildContext context, int count) {
+Size _countSize(BuildContext context, int count) {
   final text = _measure(context, '$count');
-  final height = math.max(36.0, text.height + 8.0);
-  final badge = Size(math.max(height, text.width + 8.0), height);
-  final minimum = Theme.of(context).materialTapTargetSize == MaterialTapTargetSize.padded ? kMinInteractiveDimension : 40.0;
-  final target = Size(math.max(minimum, badge.width + 8.0), math.max(minimum, badge.height + 8.0));
-  return (badge: badge, target: target);
+  return Size(text.width + 4.0, math.max(36.0, text.height + 12.0));
 }

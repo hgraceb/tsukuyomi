@@ -55,7 +55,6 @@ class _DebugListCaseAnchorHalfState extends State<DebugListCaseAnchorHalf> {
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );
