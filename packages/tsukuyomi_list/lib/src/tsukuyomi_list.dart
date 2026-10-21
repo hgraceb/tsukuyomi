@@ -500,6 +500,16 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
 
   double? _correction;
 
+  /// 在布局更新滚动范围之前，将边界同步到修正后的滚动坐标
+  ScrollMetrics get _correctedMetrics {
+    final correction = _correction;
+    if (correction == null) return this;
+    return copyWith(
+      minScrollExtent: minScrollExtent + correction,
+      maxScrollExtent: maxScrollExtent + correction,
+    );
+  }
+
   /// 跳转到指定位置并修正越界偏移
   void correctByJump(double value) {
     _origin = value;
@@ -512,6 +522,12 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
       _correction = (_correction ?? 0.0) + delta;
       correctBy(delta);
     }
+  }
+
+  @override
+  double applyBoundaryConditions(double value) {
+    if (_correction == null) return super.applyBoundaryConditions(value);
+    return physics.applyBoundaryConditions(_correctedMetrics, value);
   }
 
   @override
@@ -539,7 +555,10 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
   @override
   void goBallistic(double velocity) {
     assert(hasPixels);
-    final Simulation? simulation = physics.createBallisticSimulation(this, velocity);
+    // 惯性活动会叠加待布局的修正量，创建模拟时先还原到与边界一致的旧坐标
+    final correction = _correction;
+    final metrics = correction == null ? this : copyWith(pixels: pixels - correction);
+    final Simulation? simulation = physics.createBallisticSimulation(metrics, velocity);
     if (simulation != null) {
       // 进行惯性滚动时需要在中心列表项已经更新但还没有重新布局时修正滚动偏移
       beginActivity(_TsukuyomiListBallisticScrollActivity(
@@ -561,7 +580,7 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
     }
 
     // 根据相对位置变化进行动画处理
-    final activity = TsukuyomiDeltaScrollActivity(
+    final activity = _TsukuyomiListDeltaScrollActivity(
       this,
       from: pixels,
       to: to,
@@ -572,6 +591,24 @@ class _TsukuyomiListScrollPosition extends ScrollPositionWithSingleContext {
     beginActivity(activity);
     return activity.done;
   }
+}
+
+class _TsukuyomiListDeltaScrollActivity extends TsukuyomiDeltaScrollActivity {
+  _TsukuyomiListDeltaScrollActivity(
+    _TsukuyomiListScrollPosition super.delegate, {
+    required super.from,
+    required super.to,
+    required super.duration,
+    required super.curve,
+    required super.vsync,
+  });
+
+  @override
+  _TsukuyomiListScrollPosition get delegate => super.delegate as _TsukuyomiListScrollPosition;
+
+  @override
+  @protected
+  ScrollMetrics get metrics => delegate._correctedMetrics;
 }
 
 class _TsukuyomiListBallisticScrollActivity extends BallisticScrollActivity {
