@@ -592,54 +592,66 @@ void main() {
   });
 
   group('TsukuyomiList respects TsukuyomiListController.slideViewport', () {
-    for (final frameDuration in [
-      const Duration(microseconds: 8333),
-      const Duration(milliseconds: 16),
-      const Duration(microseconds: 16667),
-      const Duration(microseconds: 33333),
-      const Duration(milliseconds: 100),
-    ]) {
+    // 保留其他用例使用的 16ms，并覆盖高刷新率、低刷新率和 100ms 慢帧
+    final frameDurations = {
+      '16ms': const Duration(milliseconds: 16),
+      for (final frameRate in [120, 60, 30, 10]) ...{
+        '${frameRate}Hz': Duration(microseconds: (Duration.microsecondsPerSecond / frameRate).round()),
+      },
+    };
+    for (final frame in frameDurations.entries) {
       for (final physics in [const ClampingScrollPhysics(), const BouncingScrollPhysics()]) {
-        testWidgets('when anchor changes before layout (${frameDuration.inMicroseconds}us, ${physics.runtimeType})', (tester) async {
+        final description = 'when anchor changes before layout (${frame.key}, ${physics.runtimeType})';
+        testWidgets(description, (WidgetTester tester) async {
+          const itemHeight = 100.0;
+          const animationDuration = Duration(milliseconds: 300);
+          const curve = Curves.easeInOutCubic;
           final itemKeys = List.generate(10, (index) => index);
           final controller = TsukuyomiListController();
-          const duration = Duration(milliseconds: 300);
+          final frameDuration = frame.value;
+          final viewportHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+          final visibleItemCount = viewportHeight ~/ itemHeight;
+          // 从最后一屏的第一项开始，锚点应位于视口顶部，反向滚动时才能复现锚点跨帧切换
+          final initialScrollIndex = itemKeys.length - visibleItemCount;
 
-          await tester.pumpWidget(
-            Directionality(
+          Widget builder() {
+            return Directionality(
               textDirection: TextDirection.ltr,
               child: TsukuyomiList.builder(
                 itemKeys: itemKeys,
-                itemBuilder: (context, index) => SizedBox(key: ValueKey(index), height: 100.0, child: Text('$index')),
+                itemBuilder: (context, index) => SizedBox(height: itemHeight, child: Text('${itemKeys[index]}')),
                 controller: controller,
                 physics: physics,
-                initialScrollIndex: 4,
+                initialScrollIndex: initialScrollIndex,
               ),
-            ),
-          );
+            );
+          }
 
+          await tester.pumpWidget(builder());
           final viewport = tester.getRect(find.byType(TsukuyomiList));
-          final scrollExtent = itemKeys.length * 100.0 - viewport.height;
-          final item = find.byKey(const ValueKey(4));
-          // 往返滚动时持续跟踪始终可见的列表项，验证锚点修正前后没有丢失动画位移
-          for (final fraction in [-1.0, 1.0]) {
-            final initialTop = tester.getTopLeft(item).dy;
-            final scrolling = controller.slideViewport(fraction, duration: duration);
+          // 列表不足两屏，滑动一个屏幕时，实际位移会被首尾边界限制
+          final scrollExtent = itemKeys.length * itemHeight - viewport.height;
+          final initialItem = find.text('${itemKeys[initialScrollIndex]}');
+          // 先逆向滚到首屏，再正向滚回末屏，初始锚点项在整个往返过程中始终可见
+          for (final viewportFraction in [-1.0, 1.0]) {
+            final initialTop = tester.getTopLeft(initialItem).dy;
+            final scrolling = controller.slideViewport(viewportFraction, duration: animationDuration, curve: curve);
+            // 首帧启动动画计时，之后再按指定的帧间隔推进
             await tester.pump();
             var elapsed = Duration.zero;
-            while (elapsed < duration) {
+            while (elapsed < animationDuration) {
               elapsed += frameDuration;
               await tester.pump(frameDuration);
-              final progress = (elapsed.inMicroseconds / duration.inMicroseconds).clamp(0.0, 1.0);
-              final offset = scrollExtent * fraction * Curves.easeInOutCubic.transform(progress);
-              expect(tester.getTopLeft(item).dy, closeTo(initialTop - offset, 1e-6));
+              final progress = (elapsed.inMicroseconds / animationDuration.inMicroseconds).clamp(0.0, 1.0);
+              final offset = scrollExtent * viewportFraction * curve.transform(progress);
+              expect(tester.getTopLeft(initialItem).dy, moreOrLessEquals(initialTop - offset));
             }
             await tester.pumpAndSettle(frameDuration);
             await scrolling;
-            expect(tester.getTopLeft(item).dy, closeTo(initialTop - scrollExtent * fraction, 1e-6));
+            expect(tester.getTopLeft(initialItem).dy, moreOrLessEquals(initialTop - scrollExtent * viewportFraction));
             expect(controller.position.isScrollingNotifier.value, false);
           }
-          expect(tester.getTopLeft(item).dy, closeTo(viewport.top, 1e-6));
+          expect(tester.getTopLeft(initialItem).dy, moreOrLessEquals(viewport.top));
         });
       }
     }
