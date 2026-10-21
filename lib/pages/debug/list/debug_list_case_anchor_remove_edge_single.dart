@@ -66,7 +66,6 @@ class _DebugListCaseAnchorRemoveEdgeSingleState extends State<DebugListCaseAncho
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );
