@@ -892,18 +892,20 @@ void main() {
     });
 
     testWidgets('when size changes', (WidgetTester tester) async {
+      const itemHeight = 100.0;
+      const expandedHeight = itemHeight * 2.0;
       final itemKeys = List.generate(20, (index) => index);
-      final itemHeights = List.generate(itemKeys.length, (index) => 100.0);
+      final itemHeights = List.generate(itemKeys.length, (index) => itemHeight);
       final controller = TsukuyomiListController();
 
-      Widget builder({required double customHeight}) {
+      Widget builder({Future<double>? heightFuture}) {
         return Directionality(
           textDirection: TextDirection.ltr,
           child: TsukuyomiList.builder(
             controller: controller,
             itemKeys: itemKeys,
             itemBuilder: (context, index) => FutureBuilder(
-              future: index == 0 ? Future.delayed(const Duration(seconds: 1), () => customHeight) : null,
+              future: index == 0 ? heightFuture : null,
               builder: (context, snapshot) => SizedBox(
                 height: snapshot.data ?? itemHeights[index],
                 child: Text('${itemKeys[index]}'),
@@ -914,15 +916,25 @@ void main() {
       }
 
       // 默认显示首屏的元素
-      await tester.pumpWidget(builder(customHeight: 100.0));
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpWidget(builder());
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
 
       // 自定义增加列表项的尺寸
-      await tester.pumpWidget(builder(customHeight: 200.0));
-      await tester.pump(const Duration(seconds: 1));
+      final largerHeight = Completer<double>();
+      await tester.pumpWidget(builder(heightFuture: largerHeight.future));
+      // 任务未完成时重建，仍使用同一个 Future 并保持原尺寸
+      await tester.pumpWidget(builder(heightFuture: largerHeight.future));
+      expect(tester.getSize(find.text('0')).height, itemHeight);
+      largerHeight.complete(expandedHeight);
+      // 先处理 Future 的微任务回调，再渲染它触发的尺寸更新，不推进虚拟时间
+      await tester.idle();
+      await tester.pump();
+      expect(tester.getSize(find.text('0')).height, expandedHeight);
+      // 任务完成后重建也不应重新进入占位尺寸
+      await tester.pumpWidget(builder(heightFuture: largerHeight.future));
+      expect(tester.getSize(find.text('0')).height, expandedHeight);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4]);
@@ -935,8 +947,12 @@ void main() {
       expectList(tester, visible: [5, 6, 7, 8, 9, 10]);
 
       // 还原回列表项的原始尺寸
-      await tester.pumpWidget(builder(customHeight: 100.0));
-      await tester.pump(const Duration(seconds: 1));
+      final restoredHeight = Completer<double>();
+      await tester.pumpWidget(builder(heightFuture: restoredHeight.future));
+      // 首项已离开渲染范围，先完成任务，重新出现时直接使用完成结果
+      expect(find.text('0', skipOffstage: false), findsNothing);
+      restoredHeight.complete(itemHeight);
+      await tester.idle();
       expect(controller.anchorIndex, 7);
       expect(controller.position.pixels, moreOrLessEquals(-200.0));
       expectList(tester, visible: [5, 6, 7, 8, 9, 10]);
@@ -944,7 +960,7 @@ void main() {
       // 逆向滚动回到首屏的元素
       unawaited(controller.slideViewport(5 / 6 * -1));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
-      await tester.pump(const Duration(seconds: 1));
+      expect(tester.getSize(find.text('0')).height, itemHeight);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
