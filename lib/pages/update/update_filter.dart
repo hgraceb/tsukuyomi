@@ -5,9 +5,9 @@ enum UpdateFilter { all, failure, warning, success }
 
 extension UpdateFilterX on UpdateFilter {
   bool matches(UpdateReportItem item) => switch (this) {
-    all => true,
-    failure => item.outcome.isFailure,
-    warning => item.outcome.isWarning,
-    success => item.outcome.isSuccess,
+    UpdateFilter.all => true,
+    UpdateFilter.failure => item.outcome.isFailure,
+    UpdateFilter.warning => item.outcome.isWarning,
+    UpdateFilter.success => item.outcome.isSuccess,
   };
 }
