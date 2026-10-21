@@ -80,7 +80,8 @@ void main() {
         expect(controller.anchorIndex, itemKeys.length - 1);
         itemKeys.clear();
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        // 清空后只需消化下一帧布局，不需要推进动画时间
+        await tester.pump();
         expect(controller.anchorIndex, 0);
         expect(controller.position.pixels, moreOrLessEquals(0.0));
         expect(find.byType(Text), findsNothing);
@@ -136,6 +137,7 @@ void main() {
       expectList(tester, visible: [4, 5, 6, 7, 8, 9]);
 
       // 逆向滚动一定距离让第一个元素作为新的锚点元素
+      // 先启动动画，再逐帧推进虚拟时间，直接 await 动画会阻塞帧推进
       unawaited(controller.slideViewport(-1.0));
       await tester.pumpAndSettle(const Duration(milliseconds: 16));
       expect(controller.anchorIndex, 0);
@@ -239,13 +241,14 @@ void main() {
         expectList(tester, visible: [3, 4, 5, 6, 7, 8]);
         // 列表项尺寸动态增大时能够锚定滚动位置
         await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 200.0)));
-        await tester.pumpAndSettle(frame.value);
+        // 前一阶段动画已结束，尺寸变化只需补一帧布局
+        await tester.pump();
         expect(controller.anchorIndex, 5);
         expect(controller.position.pixels, moreOrLessEquals(-200.0));
         expectList(tester, visible: [4, 5, 6]);
         // 列表项尺寸动态减小时能够锚定滚动位置
         await tester.pumpWidget(builder(itemHeights: List.generate(itemKeys.length, (index) => 100.0)));
-        await tester.pumpAndSettle(frame.value);
+        await tester.pump();
         expect(controller.anchorIndex, 5);
         expect(controller.position.pixels, moreOrLessEquals(-200.0));
         expectList(tester, visible: [3, 4, 5, 6, 7, 8]);
@@ -380,6 +383,7 @@ void main() {
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
 
       // 在列表锚点位置移除单个列表项时能够锚定滚动位置
+      // 删除到边界附近可能触发真实回弹，需要逐帧等到滚动结束
       for (int i = 1; i <= 20; i++) {
         itemKeys.removeAt(controller.anchorIndex);
         await tester.pumpWidget(builder());
@@ -426,6 +430,7 @@ void main() {
       expectList(tester, visible: [7, 8, 9, 10, 11, 12]);
 
       // 在列表首尾位置同时移除单个列表项时能够锚定滚动位置
+      // 此处同样可能触发边界回弹，保留 pumpAndSettle
       for (int i = 1; i <= 10; i++) {
         itemKeys.removeAt(0);
         itemKeys.removeAt(itemKeys.length - 1);
@@ -482,7 +487,9 @@ void main() {
         itemHeights.removeRange(0, 100);
         itemHeights.removeRange(itemHeights.length - 100, itemHeights.length);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        // 这组删项不会触发回弹，只补一帧布局
+        await tester.pump();
+        expect(controller.position.isScrollingNotifier.value, false);
         expect(controller.anchorIndex, itemKeys.length >= 6 ? 999 - i * 100 : (itemKeys.length - 1).clamp(0, 1));
         final expectedPixels = itemKeys.length >= 6 ? -200.0 : (itemKeys.length - 1).clamp(0, 1) * -100.0;
         expect(controller.position.pixels, moreOrLessEquals(expectedPixels));
@@ -814,6 +821,7 @@ void main() {
               final offset = scrollExtent * viewportFraction * curve.transform(progress);
               expect(tester.getTopLeft(initialItem).dy, moreOrLessEquals(initialTop - offset));
             }
+            // 末帧可能还有锚点布局修正或惯性活动，继续逐帧处理到稳定
             await tester.pumpAndSettle(frameDuration);
             await scrolling;
             expect(tester.getTopLeft(initialItem).dy, moreOrLessEquals(initialTop - scrollExtent * viewportFraction));
@@ -846,8 +854,10 @@ void main() {
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
 
       // 滚动零个屏幕的距离
-      unawaited(controller.slideViewport(0.0));
-      await tester.pumpAndSettle(const Duration(milliseconds: 16));
+      await controller.slideViewport(0.0);
+      // 零距离不会启动动画，只消化初始化后尚未提交的布局
+      await tester.pump();
+      expect(controller.position.isScrollingNotifier.value, false);
       expect(controller.anchorIndex, 0);
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [0, 1, 2, 3, 4, 5]);
@@ -1005,7 +1015,9 @@ void main() {
         itemHeights.removeAt(0);
         itemHeights.removeAt(itemHeights.length - 1);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        // 保留的可见内容不变，只补一帧布局
+        await tester.pump();
+        expect(controller.position.isScrollingNotifier.value, false);
         expect(controller.anchorIndex, 6 - i);
         expect(controller.position.pixels, moreOrLessEquals(-200.0));
         expectList(tester, visible: [4, 5, 6, 7, 8, 9]);
@@ -1059,7 +1071,9 @@ void main() {
         itemHeights.removeAt(0);
         itemHeights.removeAt(itemHeights.length - 1);
         await tester.pumpWidget(builder());
-        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        // 跳转和删项后的布局不会触发回弹，不推进虚拟时间
+        await tester.pump();
+        expect(controller.position.isScrollingNotifier.value, false);
         expect(controller.anchorIndex, 10 - i - 1);
         expect(controller.position.pixels, moreOrLessEquals(0.0));
         expectList(tester, visible: [10, 11, 12, 13, 14, 15]);
