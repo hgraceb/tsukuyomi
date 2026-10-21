@@ -8,10 +8,10 @@ import 'update_filter.dart';
 
 /// 更新统计与结果类别筛选
 class UpdateSummary extends StatelessWidget {
-  const UpdateSummary({super.key, required this.report, required this.filter, required this.onChanged, required this.progress});
+  const UpdateSummary({super.key, required this.report, required this.selection, required this.onChanged, required this.progress});
 
   final UpdateReport? report;
-  final UpdateFilter filter;
+  final UpdateFilter? selection;
   final ValueChanged<UpdateFilter> onChanged;
   final Widget progress;
 
@@ -45,7 +45,7 @@ class UpdateSummary extends StatelessWidget {
         for (var index = 0; index < counts.length; index++) ...[
           if (index > 0) ...[
             Opacity(
-              opacity: 1 / 3,
+              opacity: selection == null ? 1.0 : 1 / 3,
               child: Text(index == 3 ? ' / ' : ' · ', style: _countStyle(context)),
             ),
           ],
@@ -54,7 +54,8 @@ class UpdateSummary extends StatelessWidget {
             count: counts[index],
             color: countColors[index],
             label: labels[index],
-            selected: filter == filters[index],
+            selected: selection == filters[index],
+            muted: selection != null && selection != filters[index],
             onPressed: () => onChanged(filters[index]),
           ),
         ],
@@ -76,6 +77,7 @@ class _UpdateCountButton extends StatelessWidget {
     required this.color,
     required this.label,
     required this.selected,
+    required this.muted,
     required this.onPressed,
   });
 
@@ -83,12 +85,13 @@ class _UpdateCountButton extends StatelessWidget {
   final Color color;
   final String label;
   final bool selected;
+  final bool muted;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final size = _countSize(context, count);
-    final textColor = selected ? color : color.withValues(alpha: color.a / 3.0);
+    final textColor = muted ? color.withValues(alpha: color.a / 3.0) : color;
 
     return Semantics(
       button: true,

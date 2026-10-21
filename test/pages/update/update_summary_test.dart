@@ -26,7 +26,7 @@ void main() {
                 child: Center(
                   child: UpdateSummary(
                     report: updateReportFixture(totalTargets: count),
-                    filter: UpdateFilter.all,
+                    selection: UpdateFilter.all,
                     onChanged: (_) {},
                     progress: const SizedBox.square(dimension: 24.0),
                   ),

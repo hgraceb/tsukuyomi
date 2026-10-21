@@ -91,11 +91,10 @@ void main() {
 
     expect(container.read(updateReportStoreProvider)!.phase, UpdatePhase.interrupted);
     final colors = Theme.of(tester.element(find.text('Queue / start failed'))).colorScheme;
-    Color muted(Color color) => color.withValues(alpha: color.a / 3.0);
     expect(_summaryCounts(tester), [1, 1, 0, 2]);
-    expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, muted(colors.error));
-    expect(tester.widget<Text>(_countText(UpdateFilter.warning)).style?.color, muted(colors.tertiary));
-    expect(tester.widget<Text>(_countText(UpdateFilter.success)).style?.color, muted(colors.onSurface));
+    expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
+    expect(tester.widget<Text>(_countText(UpdateFilter.warning)).style?.color, colors.tertiary);
+    expect(tester.widget<Text>(_countText(UpdateFilter.success)).style?.color, colors.onSurface);
     expect(tester.widget<Text>(_countText(UpdateFilter.all)).style?.color, colors.onSurface);
     expect(tester.widget<Text>(find.text('Queue / start failed')).style?.color, colors.error);
     expect(tester.widget<Text>(find.text('No chapters')).style?.color, colors.tertiary);
@@ -604,21 +603,22 @@ void main() {
         matching: find.byWidgetPredicate((widget) => widget is Opacity && widget.child is Text),
       );
       expect(separators, findsNWidgets(3));
-      void expectSelection(UpdateFilter filter) {
+      void expectSelection(UpdateFilter? selection) {
         for (final candidate in UpdateFilter.values) {
           final style = tester.widget<Text>(_countText(candidate)).style!;
           final original = countColors[candidate]!;
-          final expected = candidate == filter ? original : original.withValues(alpha: original.a / 3.0);
+          final muted = selection != null && candidate != selection;
+          final expected = muted ? original.withValues(alpha: original.a / 3.0) : original;
           expect(style.color, expected);
           expect(style.decoration, isNot(TextDecoration.underline));
           final data = tester.getSemantics(_countButton(candidate)).getSemanticsData();
-          expect(data.flagsCollection.isSelected.toBoolOrNull(), candidate == filter);
+          expect(data.flagsCollection.isSelected.toBoolOrNull(), candidate == selection);
           expect(data.hasAction(SemanticsAction.tap), isTrue);
         }
-        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1 / 3));
+        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(selection == null ? 1.0 : 1 / 3));
       }
 
-      expectSelection(UpdateFilter.all);
+      expectSelection(null);
       final tile = tester.widget<ListTile>(find.widgetWithText(ListTile, 'Z'));
       expect(find.descendant(of: find.byWidget(tile.title!), matching: find.text('A')), findsOneWidget);
       expect(find.descendant(of: find.byWidget(tile.subtitle!), matching: find.text('Z')), findsOneWidget);
@@ -638,15 +638,26 @@ void main() {
       await tester.tap(_countButton(UpdateFilter.success));
       await tester.pumpAndSettle();
       expect(ids(), [3, 4, 2, 1]);
-      expectSelection(UpdateFilter.all);
-      for (var repeat = 0; repeat < 2; repeat++) {
+      expectSelection(null);
+      for (var repeat = 0; repeat < 4; repeat++) {
         await tester.tap(_countButton(UpdateFilter.all));
         await tester.pumpAndSettle();
         expect(ids(), [3, 4, 2, 1]);
-        expectSelection(UpdateFilter.all);
+        expectSelection(repeat.isEven ? UpdateFilter.all : null);
         expect(_summaryCounts(tester), [1, 1, 2, 10]);
         expect(container.read(updateReportStoreProvider), report);
       }
+      await tester.tap(_countButton(UpdateFilter.failure));
+      await tester.pumpAndSettle();
+      expect(ids(), [2]);
+      await tester.tap(_countButton(UpdateFilter.all));
+      await tester.pumpAndSettle();
+      expect(ids(), [3, 4, 2, 1]);
+      expectSelection(UpdateFilter.all);
+      await tester.tap(_countButton(UpdateFilter.warning));
+      await tester.pumpAndSettle();
+      expect(ids(), [3]);
+      expectSelection(UpdateFilter.warning);
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();
@@ -683,6 +694,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('manga-title-1'), findsOneWidget);
     expect(find.text('No results for this filter'), findsNothing);
+    final colors = Theme.of(tester.element(find.byType(UpdateSummary))).colorScheme;
+    expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
+    await tester.tap(_countButton(UpdateFilter.all));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error.withValues(alpha: colors.error.a / 3.0));
+    await store.save(report.copyWith(sessionId: 'third-scan'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
+    expect(find.text('manga-title-1'), findsOneWidget);
     expect(tester.getSize(_countButton(UpdateFilter.all)).height, greaterThanOrEqualTo(36.0));
     expect(tester.takeException(), isNull);
   });

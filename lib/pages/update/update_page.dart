@@ -22,11 +22,10 @@ class UpdatePage extends ConsumerStatefulWidget {
 }
 
 class _UpdatePageState extends ConsumerState<UpdatePage> {
-  UpdateFilter _filter = UpdateFilter.all;
+  UpdateFilter? _selection;
 
   void _selectFilter(UpdateFilter filter) {
-    final next = filter == _filter ? UpdateFilter.all : filter;
-    if (next != _filter) setState(() => _filter = next);
+    setState(() => _selection = filter == _selection ? null : filter);
   }
 
   UpdateSummary _buildSummary(BuildContext context, UpdateReport? report, bool running, bool error) {
@@ -47,7 +46,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
 
     return UpdateSummary(
       report: report,
-      filter: _filter,
+      selection: _selection,
       onChanged: _selectFilter,
       progress: pending ? pendingIcon : resultIcon,
     );
@@ -72,7 +71,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
   @override
   Widget build(BuildContext context) {
     ref.listen(updateReportStoreProvider, (previous, next) {
-      if (previous?.sessionId != next?.sessionId && _filter != UpdateFilter.all) setState(() => _filter = UpdateFilter.all);
+      if (previous?.sessionId != next?.sessionId && _selection != null) setState(() => _selection = null);
     });
     final l10n = TsukuyomiLocalizations.of(context)!;
     final manager = ref.watch(updateManagerProvider);
@@ -80,8 +79,9 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
     final controller = ref.read(updateManagerProvider.notifier);
     final running = manager.isLoading;
     final error = manager.hasError || report?.message?.isNotEmpty == true;
+    final filter = _selection ?? UpdateFilter.all;
     final results = report?.items ?? [];
-    final items = results.where(_filter.matches).toList()..sort(compareUpdateItems);
+    final items = results.where(filter.matches).toList()..sort(compareUpdateItems);
     final itemIndexes = {for (var index = 0; index < items.length; index++) items[index].mangaId: index};
     final showSummary = running || error || report != null && report.phase != UpdatePhase.idle;
 
@@ -117,7 +117,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
                       itemBuilder: (context, index) => _UpdateItem(key: ValueKey(items[index].mangaId), item: items[index]),
                     ),
                   ),
-                ] else if (_filter != UpdateFilter.all) ...[
+                ] else if (filter != UpdateFilter.all) ...[
                   SliverFillRemaining(hasScrollBody: false, child: Center(child: Text(l10n.updateFilterEmpty))),
                 ],
               ],
