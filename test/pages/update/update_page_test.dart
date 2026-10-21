@@ -615,11 +615,11 @@ void main() {
         for (final candidate in UpdateFilter.values) {
           final style = tester.widget<Text>(_countText(candidate)).style!;
           final original = countColors[candidate]!;
-          final expected = candidate == filter ? original : original.withValues(alpha: original.a * 0.4);
+          final expected = candidate == filter ? original : original.withValues(alpha: original.a / 3.0);
           expect(style.color, expected);
           expect(style.decoration, isNot(TextDecoration.underline));
         }
-        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(0.4));
+        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(1 / 3));
         final data = tester.getSemantics(_countButton(filter)).getSemanticsData();
         expect(data.flagsCollection.isSelected.toBoolOrNull(), isTrue);
         expect(data.hasAction(SemanticsAction.tap), isTrue);

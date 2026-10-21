@@ -45,7 +45,7 @@ class UpdateSummary extends StatelessWidget {
         for (var index = 0; index < counts.length; index++) ...[
           if (index > 0) ...[
             Opacity(
-              opacity: filter == UpdateFilter.all ? 1.0 : 0.4,
+              opacity: filter == UpdateFilter.all ? 1.0 : 1 / 3,
               child: Text(index == 3 ? ' / ' : ' · ', style: _countStyle(context)),
             ),
           ],
@@ -91,7 +91,7 @@ class _UpdateCountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = _countSize(context, count);
-    final textColor = muted ? color.withValues(alpha: color.a * 0.4) : color;
+    final textColor = muted ? color.withValues(alpha: color.a / 3.0) : color;
 
     return Semantics(
       button: true,
