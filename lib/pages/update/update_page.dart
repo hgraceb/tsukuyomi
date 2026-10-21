@@ -8,96 +8,121 @@ import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
 
+import 'update_filter.dart';
 import 'update_progress_provider.dart';
+import 'update_sort.dart';
+import 'update_summary.dart';
 
 /// 更新页面
-class UpdatePage extends ConsumerWidget {
+class UpdatePage extends ConsumerStatefulWidget {
   const UpdatePage({super.key});
 
-  Widget _buildSummary(BuildContext context, UpdateReport? report, bool running, bool error) {
-    final l10n = TsukuyomiLocalizations.of(context)!;
+  @override
+  ConsumerState<UpdatePage> createState() => _UpdatePageState();
+}
+
+class _UpdatePageState extends ConsumerState<UpdatePage> {
+  UpdateFilter _filter = UpdateFilter.all;
+
+  void _selectFilter(UpdateFilter filter) {
+    final next = filter == _filter ? UpdateFilter.all : filter;
+    if (next != _filter) setState(() => _filter = next);
+  }
+
+  UpdateSummary _buildSummary(BuildContext context, UpdateReport? report, bool running, bool error) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final failures = report?.failureCount ?? 0;
     final warnings = report?.warningCount ?? 0;
-    final successes = report?.successCount ?? 0;
     final processed = report?.items.length ?? 0;
     final total = report?.totalTargets ?? 0;
     final color = _getStatusColor(colors, error: error || failures > 0, warning: warnings > 0);
     final complete = !running && !error && report?.phase == UpdatePhase.finished && total > 0 && processed == total;
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: color);
     final progressIcon = _buildProgress(processed, total, color);
+    final resultIcon = complete ? completeIcon : progressIcon;
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: Semantics(
-        label: l10n.updateSummary(failures, warnings, successes, total),
-        excludeSemantics: true,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: '$failures',
-                    style: TextStyle(color: colors.error),
-                  ),
-                  const TextSpan(text: ' · '),
-                  TextSpan(
-                    text: '$warnings',
-                    style: TextStyle(color: colors.tertiary),
-                  ),
-                  TextSpan(text: ' · $successes / $total'),
-                ],
-              ),
-              style: theme.textTheme.bodyLarge?.copyWith(color: colors.onSurface, fontFeatures: const [FontFeature.tabularFigures()]),
-            ),
-            const SizedBox(width: 16.0),
-            if (running && total == 0) ...[
-              SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 2.0, color: color)),
-            ] else ...[
-              complete ? completeIcon : progressIcon,
-            ],
-          ],
+    final pending = running && total == 0;
+    final pendingIcon = SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 2.0, color: color));
+
+    return UpdateSummary(
+      report: report,
+      filter: _filter,
+      onChanged: _selectFilter,
+      progress: pending ? pendingIcon : resultIcon,
+    );
+  }
+
+  PreferredSizeWidget _buildSummaryBottom(UpdateSummary summary, Size size) {
+    return PreferredSize(
+      preferredSize: Size.fromHeight(size.height + 8.0),
+      child: SizedBox(
+        height: size.height + 8.0,
+        child: Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: summary),
+          ),
         ),
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    ref.listen(updateReportStoreProvider, (previous, next) {
+      if (previous?.sessionId != next?.sessionId && _filter != UpdateFilter.all) setState(() => _filter = UpdateFilter.all);
+    });
     final l10n = TsukuyomiLocalizations.of(context)!;
     final manager = ref.watch(updateManagerProvider);
     final report = ref.watch(updateReportStoreProvider);
     final controller = ref.read(updateManagerProvider.notifier);
     final running = manager.isLoading;
     final error = manager.hasError || report?.message?.isNotEmpty == true;
-    final items = report?.items ?? [];
+    final results = report?.items ?? [];
+    final items = results.where(_filter.matches).toList()..sort(compareUpdateItems);
     final itemIndexes = {for (var index = 0; index < items.length; index++) items[index].mangaId: index};
     final showSummary = running || error || report != null && report.phase != UpdatePhase.idle;
 
     return TsukuyomiScaffold(
       body: SafeArea(
         top: false,
-        child: CustomScrollView(
-          slivers: [
-            TsukuyomiSliverAppBar(
-              title: Text(l10n.updateTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-              actions: showSummary ? [_buildSummary(context, report, running, error)] : null,
-            ),
-            if (items.isNotEmpty) ...[
-              SliverPadding(
-                padding: const EdgeInsets.only(bottom: 96.0),
-                sliver: SliverPrototypeExtentList.builder(
-                  prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
-                  itemCount: items.length,
-                  findChildIndexCallback: (key) => key is ValueKey<int> ? itemIndexes[key.value] : null,
-                  itemBuilder: (context, index) => _UpdateItem(key: ValueKey(items[index].mangaId), item: items[index]),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final summary = _buildSummary(context, report, running, error);
+            final summarySize = summary.size(context);
+            final title = TextPainter(
+              text: TextSpan(text: l10n.updateTitle, style: Theme.of(context).textTheme.titleLarge),
+              textDirection: Directionality.of(context),
+              textScaler: MediaQuery.textScalerOf(context),
+            )..layout();
+            final summaryBelow = showSummary && constraints.maxWidth < summarySize.width + title.width + 48.0;
+            title.dispose();
+
+            return CustomScrollView(
+              slivers: [
+                TsukuyomiSliverAppBar(
+                  title: Text(l10n.updateTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  actions: showSummary && !summaryBelow ? [Padding(padding: const EdgeInsets.only(right: 8.0), child: summary)] : null,
+                  bottom: summaryBelow ? _buildSummaryBottom(summary, summarySize) : null,
                 ),
-              ),
-            ],
-          ],
+                if (items.isNotEmpty) ...[
+                  SliverPadding(
+                    padding: const EdgeInsets.only(bottom: 96.0),
+                    sliver: SliverPrototypeExtentList.builder(
+                      prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
+                      itemCount: items.length,
+                      findChildIndexCallback: (key) => key is ValueKey<int> ? itemIndexes[key.value] : null,
+                      itemBuilder: (context, index) => _UpdateItem(key: ValueKey(items[index].mangaId), item: items[index]),
+                    ),
+                  ),
+                ] else if (_filter != UpdateFilter.all) ...[
+                  SliverFillRemaining(hasScrollBody: false, child: Center(child: Text(l10n.updateFilterEmpty))),
+                ],
+              ],
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -119,7 +144,7 @@ class _UpdateItem extends ConsumerWidget {
       builder: (context, constraints) => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(item.mangaTitle, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(child: Text(item.sourceName, maxLines: 1, overflow: TextOverflow.ellipsis)),
           ConstrainedBox(
             constraints: constraints.copyWith(minWidth: 0.0),
             child: Padding(
@@ -169,7 +194,7 @@ class _UpdateItem extends ConsumerWidget {
       subtitle: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(item.sourceName, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(child: Text(item.mangaTitle, maxLines: 1, overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 8.0),
           Flexible(
             child: Text(
