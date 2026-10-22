@@ -112,6 +112,63 @@ void main() {
     });
   });
 
+  group('TsukuyomiList respects padding', () {
+    for (final axis in Axis.values) {
+      for (final leading in [false, true]) {
+        final edge = leading ? 'leading' : 'trailing';
+        testWidgets('when content is shorter than the viewport ($axis, $edge)', (WidgetTester tester) async {
+          const itemExtent = 100.0;
+          const viewportExtent = 600.0;
+          const paddingExtent = viewportExtent / 2.0;
+          const itemKeys = [0, 1];
+          final controller = TsukuyomiListController();
+
+          Widget builder() {
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: axis == Axis.horizontal ? viewportExtent : itemExtent,
+                  height: axis == Axis.vertical ? viewportExtent : itemExtent,
+                  child: TsukuyomiList.builder(
+                    itemKeys: itemKeys,
+                    itemBuilder: (context, index) => SizedBox(
+                      width: axis == Axis.horizontal ? itemExtent : null,
+                      height: axis == Axis.vertical ? itemExtent : null,
+                      child: Text('${itemKeys[index]}'),
+                    ),
+                    controller: controller,
+                    scrollDirection: axis,
+                    leadingExtent: leading ? paddingExtent : 0.0,
+                    trailingExtent: leading ? 0.0 : paddingExtent,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          // 内容不足一屏时，首尾占位仍应提供相应方向的滚动范围
+          await tester.pumpWidget(builder());
+          expect(controller.position.minScrollExtent, moreOrLessEquals(leading ? -paddingExtent : 0.0));
+          expect(controller.position.maxScrollExtent, moreOrLessEquals(leading ? 0.0 : paddingExtent));
+          expectList(tester, visible: itemKeys);
+          final lastItem = find.text('${itemKeys.last}');
+          final initialPosition = tester.getTopLeft(lastItem);
+          final initialLeading = axis == Axis.vertical ? initialPosition.dy : initialPosition.dx;
+          final distance = (leading ? -paddingExtent : paddingExtent) / 2.0;
+          // 向占位区域滚动时，可见列表项应移动对应的距离
+          unawaited(controller.slideViewport(distance / viewportExtent));
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          final position = tester.getTopLeft(lastItem);
+          final itemLeading = axis == Axis.vertical ? position.dy : position.dx;
+          expect(itemLeading, moreOrLessEquals(initialLeading - distance));
+          expect(controller.position.isScrollingNotifier.value, false);
+        });
+      }
+    }
+  });
+
   group('TsukuyomiList respects anchor', () {
     testWidgets('when default', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);

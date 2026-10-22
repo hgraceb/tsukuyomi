@@ -181,11 +181,18 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
             final extentBefore = _scrollExtentBeforeCenter;
             final extentAfter = _scrollExtentAfterCenter;
             final extentMax = constraints.viewportMainAxisExtent;
-            final extentLeft = extentMax - extentBefore - extentAfter;
+            final extentLeft = clampDouble(extentMax - extentBefore - extentAfter, 0.0, extentMax);
             return SliverToBoxAdapter(
               child: Container(
                 color: _pinkDebugMask,
-                height: clampDouble(extentLeft, 0.0, extentMax),
+                width: switch (widget.scrollDirection) {
+                  Axis.vertical => null,
+                  Axis.horizontal => extentLeft,
+                },
+                height: switch (widget.scrollDirection) {
+                  Axis.vertical => extentLeft,
+                  Axis.horizontal => null,
+                },
               ),
             );
           },
