@@ -112,6 +112,132 @@ void main() {
     });
   });
 
+  group('TsukuyomiList respects onItemsChanged', () {
+    for (final axis in Axis.values) {
+      testWidgets('when item sizes change ($axis)', (WidgetTester tester) async {
+        const itemExtent = 100.0;
+        const viewportExtent = 600.0;
+        const itemKeys = [0, 1];
+        final controller = TsukuyomiListController();
+        final updates = <List<TsukuyomiListItem>>[];
+        final firstExtent = ValueNotifier(itemExtent);
+        addTearDown(firstExtent.dispose);
+
+        Widget builder() {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: viewportExtent,
+                height: viewportExtent,
+                child: TsukuyomiList.builder(
+                  itemKeys: itemKeys,
+                  itemBuilder: (context, index) => ValueListenableBuilder(
+                    valueListenable: firstExtent,
+                    builder: (context, value, child) {
+                      final extent = index == 0 ? value : itemExtent;
+                      return SizedBox(
+                        width: axis == Axis.horizontal ? extent : null,
+                        height: axis == Axis.vertical ? extent : null,
+                        child: child,
+                      );
+                    },
+                    child: Text('${itemKeys[index]}'),
+                  ),
+                  controller: controller,
+                  scrollDirection: axis,
+                  onItemsChanged: updates.add,
+                ),
+              ),
+            ),
+          );
+        }
+
+        await tester.pumpWidget(builder());
+        expect(updates.last.map((item) => item.index), itemKeys);
+        expect(updates.last.last.leading, moreOrLessEquals(itemExtent / viewportExtent));
+        // 列表项变大或恢复尺寸后，回调应包含最新的相邻项位置
+        for (final extent in [itemExtent * 2.0, itemExtent]) {
+          updates.clear();
+          firstExtent.value = extent;
+          await tester.pump();
+          expect(updates, hasLength(1));
+          final items = updates.single;
+          expect(items.map((item) => item.index), itemKeys);
+          expect(items.first.leading, moreOrLessEquals(0.0));
+          expect(items.first.trailing, moreOrLessEquals(extent / viewportExtent));
+          expect(items.last.leading, moreOrLessEquals(extent / viewportExtent));
+          expect(items.last.trailing, moreOrLessEquals((extent + itemExtent) / viewportExtent));
+          expect(controller.position.pixels, moreOrLessEquals(0.0));
+        }
+        // 尺寸相同的父级重建不应重复通知
+        updates.clear();
+        await tester.pumpWidget(builder());
+        expect(updates, isEmpty);
+        await tester.pump();
+        expect(updates, isEmpty);
+      });
+
+      testWidgets('when viewport sizes change ($axis)', (WidgetTester tester) async {
+        const itemExtent = 100.0;
+        const initialViewportExtent = 600.0;
+        const itemKeys = [0, 1];
+        final controller = TsukuyomiListController();
+        final updates = <List<TsukuyomiListItem>>[];
+        var viewportExtent = initialViewportExtent;
+
+        Widget builder() {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: axis == Axis.horizontal ? viewportExtent : initialViewportExtent,
+                height: axis == Axis.vertical ? viewportExtent : initialViewportExtent,
+                child: TsukuyomiList.builder(
+                  itemKeys: itemKeys,
+                  itemBuilder: (context, index) => SizedBox(
+                    width: axis == Axis.horizontal ? itemExtent : null,
+                    height: axis == Axis.vertical ? itemExtent : null,
+                    child: Text('${itemKeys[index]}'),
+                  ),
+                  controller: controller,
+                  scrollDirection: axis,
+                  onItemsChanged: updates.add,
+                ),
+              ),
+            ),
+          );
+        }
+
+        await tester.pumpWidget(builder());
+        expect(updates.last.map((item) => item.index), itemKeys);
+        expect(updates.last.last.leading, moreOrLessEquals(itemExtent / initialViewportExtent));
+        // 视口缩小或恢复尺寸后，回调应按新的视口尺寸计算相对位置
+        for (final extent in [initialViewportExtent / 2.0, initialViewportExtent]) {
+          updates.clear();
+          viewportExtent = extent;
+          await tester.pumpWidget(builder());
+          expect(updates, hasLength(1));
+          final items = updates.single;
+          expect(items.map((item) => item.index), itemKeys);
+          expect(items.first.leading, moreOrLessEquals(0.0));
+          expect(items.first.trailing, moreOrLessEquals(itemExtent / extent));
+          expect(items.last.leading, moreOrLessEquals(itemExtent / extent));
+          expect(items.last.trailing, moreOrLessEquals(itemExtent * 2.0 / extent));
+          expect(controller.position.pixels, moreOrLessEquals(0.0));
+        }
+        // 视口尺寸不变时不应重复通知
+        updates.clear();
+        await tester.pumpWidget(builder());
+        expect(updates, isEmpty);
+        await tester.pump();
+        expect(updates, isEmpty);
+      });
+    }
+  });
+
   group('TsukuyomiList respects padding', () {
     for (final axis in Axis.values) {
       for (final leading in [false, true]) {

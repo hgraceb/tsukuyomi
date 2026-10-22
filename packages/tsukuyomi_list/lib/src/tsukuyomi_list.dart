@@ -85,6 +85,9 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   /// 在列表中心之前的滚动区域范围
   double _scrollExtentAfterCenter = 0.0;
 
+  /// 在列表主轴方向的视口区域范围
+  double? _viewportDimension;
+
   @override
   void initState() {
     super.initState();
@@ -182,6 +185,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
             final extentAfter = _scrollExtentAfterCenter;
             final extentMax = constraints.viewportMainAxisExtent;
             final extentLeft = clampDouble(extentMax - extentBefore - extentAfter, 0.0, extentMax);
+            if (_viewportDimension != extentMax) {
+              _viewportDimension = extentMax;
+              _scheduleUpdateItems();
+            }
             return SliverToBoxAdapter(
               child: Container(
                 color: _pinkDebugMask,
@@ -260,6 +267,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           Axis.vertical => newSize.height,
           Axis.horizontal => newSize.width,
         };
+        if (oldSize != newSize) _scheduleUpdateItems();
       },
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
