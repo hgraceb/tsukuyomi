@@ -393,6 +393,54 @@ void main() {
       expect(itemKeys.isEmpty, true);
     });
 
+    for (final reorder in [false, true]) {
+      final update = reorder ? 'reordering' : 'adding';
+      testWidgets('when $update items after removing the anchor', (WidgetTester tester) async {
+        const itemHeight = 100.0;
+        const initialScrollIndex = 10;
+        final itemKeys = List.generate(30, (index) => index);
+        final controller = TsukuyomiListController();
+        final viewportHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+        final visibleItemCount = viewportHeight ~/ itemHeight;
+        final addedKey = itemKeys.length;
+
+        Widget builder() {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: TsukuyomiList.builder(
+              itemKeys: itemKeys,
+              itemBuilder: (context, index) => SizedBox(height: itemHeight, child: Text('${itemKeys[index]}')),
+              controller: controller,
+              initialScrollIndex: initialScrollIndex,
+            ),
+          );
+        }
+
+        // 初始化列表并让指定元素作为锚点元素
+        await tester.pumpWidget(builder());
+        expect(controller.anchorIndex, initialScrollIndex);
+        // 删除锚点后，由同一索引处的下一项作为新的锚点
+        itemKeys.removeAt(controller.anchorIndex);
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        final anchorKey = itemKeys[initialScrollIndex];
+        final anchorItem = find.text('$anchorKey');
+        final anchorTop = tester.getTopLeft(anchorItem).dy;
+        final visibleKeys = itemKeys.skip(initialScrollIndex).take(visibleItemCount).toList();
+        expect(controller.anchorIndex, initialScrollIndex);
+        expect(controller.position.pixels, moreOrLessEquals(0.0));
+        expectList(tester, visible: visibleKeys);
+        // 头部新增或移入一个列表项时，新锚点应保持原来的屏幕位置
+        itemKeys.insert(0, reorder ? itemKeys.removeLast() : addedKey);
+        await tester.pumpWidget(builder());
+        await tester.pump();
+        expect(controller.anchorIndex, itemKeys.indexOf(anchorKey));
+        expect(controller.position.pixels, moreOrLessEquals(0.0));
+        expect(tester.getTopLeft(anchorItem).dy, moreOrLessEquals(anchorTop));
+        expectList(tester, visible: visibleKeys);
+      });
+    }
+
     testWidgets('when removing single item at start and end', (WidgetTester tester) async {
       final random = Random(2147483647);
       final itemKeys = List.generate(20, (index) => index);
