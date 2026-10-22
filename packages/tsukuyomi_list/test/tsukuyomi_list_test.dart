@@ -180,11 +180,11 @@ void main() {
       });
 
       testWidgets('when anchor item sizes change ($axis)', (WidgetTester tester) async {
+        const anchorIndex = 1;
         const itemExtent = 100.0;
         const reducedExtent = 10.0;
         const viewportExtent = 600.0;
         const scrollDistance = 75.0;
-        const anchorIndex = 1;
         final itemKeys = List.generate(10, (index) => index);
         final controller = TsukuyomiListController();
         final updates = <List<TsukuyomiListItem>>[];
