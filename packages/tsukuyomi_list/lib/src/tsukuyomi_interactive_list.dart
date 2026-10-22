@@ -26,7 +26,7 @@ class TsukuyomiInteractiveList extends StatefulWidget {
     this.scaleDuration = const Duration(milliseconds: 500),
     required this.itemKeys,
     required this.itemBuilder,
-  });
+  }) : assert(middleScale <= maxScale);
 
   /// 列表项标识
   final List<Object> itemKeys;
