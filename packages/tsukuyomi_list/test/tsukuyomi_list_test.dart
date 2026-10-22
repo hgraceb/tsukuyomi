@@ -179,6 +179,79 @@ void main() {
         expect(updates, isEmpty);
       });
 
+      testWidgets('when anchor item sizes change ($axis)', (WidgetTester tester) async {
+        const itemExtent = 100.0;
+        const reducedExtent = 10.0;
+        const viewportExtent = 600.0;
+        const scrollDistance = 75.0;
+        const anchorIndex = 1;
+        final itemKeys = List.generate(10, (index) => index);
+        final controller = TsukuyomiListController();
+        final updates = <List<TsukuyomiListItem>>[];
+        final anchorExtent = ValueNotifier(itemExtent);
+        addTearDown(anchorExtent.dispose);
+
+        Widget builder() {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: viewportExtent,
+                height: viewportExtent,
+                child: TsukuyomiList.builder(
+                  itemKeys: itemKeys,
+                  itemBuilder: (context, index) => ValueListenableBuilder(
+                    valueListenable: anchorExtent,
+                    builder: (context, value, child) {
+                      final extent = index == anchorIndex ? value : itemExtent;
+                      return SizedBox(
+                        width: axis == Axis.horizontal ? extent : null,
+                        height: axis == Axis.vertical ? extent : null,
+                        child: child,
+                      );
+                    },
+                    child: Text('${itemKeys[index]}'),
+                  ),
+                  controller: controller,
+                  scrollDirection: axis,
+                  onItemsChanged: updates.add,
+                ),
+              ),
+            ),
+          );
+        }
+
+        double itemLeading() {
+          final offset = tester.getTopLeft(find.text('$anchorIndex'));
+          return axis == Axis.vertical ? offset.dy : offset.dx;
+        }
+
+        await tester.pumpWidget(builder());
+        controller.position.jumpTo(scrollDistance);
+        await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        expect(controller.anchorIndex, anchorIndex);
+        final initialLeading = itemLeading();
+        final initialPixels = controller.position.pixels;
+        expect(initialLeading, moreOrLessEquals(itemExtent - scrollDistance));
+        // 锚点项缩小或恢复尺寸时，应保持锚点和屏幕位置，同时通知最新的位置数据
+        for (final extent in [reducedExtent, itemExtent]) {
+          updates.clear();
+          anchorExtent.value = extent;
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(controller.anchorIndex, anchorIndex);
+          expect(itemLeading(), moreOrLessEquals(initialLeading));
+          expect(controller.position.pixels, moreOrLessEquals(initialPixels));
+          expect(updates, hasLength(1));
+          final items = updates.single;
+          final anchorItem = items.firstWhere((item) => item.index == anchorIndex);
+          final nextItem = items.firstWhere((item) => item.index == anchorIndex + 1);
+          expect(anchorItem.leading, moreOrLessEquals(initialLeading / viewportExtent));
+          expect(anchorItem.trailing, moreOrLessEquals((initialLeading + extent) / viewportExtent));
+          expect(nextItem.leading, moreOrLessEquals(anchorItem.trailing));
+        }
+      });
+
       testWidgets('when viewport sizes change ($axis)', (WidgetTester tester) async {
         const itemExtent = 100.0;
         const initialViewportExtent = 600.0;

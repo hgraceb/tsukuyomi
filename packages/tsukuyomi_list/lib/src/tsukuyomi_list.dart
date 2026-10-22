@@ -187,7 +187,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
             final extentLeft = clampDouble(extentMax - extentBefore - extentAfter, 0.0, extentMax);
             if (_viewportDimension != extentMax) {
               _viewportDimension = extentMax;
-              _scheduleUpdateItems();
+              _scheduleUpdateItems(updateAnchor: false);
             }
             return SliverToBoxAdapter(
               child: Container(
@@ -267,7 +267,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           Axis.vertical => newSize.height,
           Axis.horizontal => newSize.width,
         };
-        if (oldSize != newSize) _scheduleUpdateItems();
+        if (oldSize != newSize) _scheduleUpdateItems(updateAnchor: false);
       },
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
@@ -302,11 +302,15 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   bool _updateScheduled = false;
-  void _scheduleUpdateItems() {
+  bool _anchorUpdateScheduled = false;
+  void _scheduleUpdateItems({bool updateAnchor = true}) {
+    _anchorUpdateScheduled |= updateAnchor;
     if (_updateScheduled) return;
     _updateScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
+      final updateAnchor = _anchorUpdateScheduled;
       _updateScheduled = false;
+      _anchorUpdateScheduled = false;
       final position = _scrollController.hasClients ? _scrollController.position : null;
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
@@ -333,7 +337,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 添加列表项信息
         items.add(item);
         // 选择第一个符合条件的列表项作为锚点列表项
-        if (item.leading <= anchor && item.trailing >= anchor) {
+        if (updateAnchor && item.leading <= anchor && item.trailing >= anchor) {
           anchorIndex ??= item.index;
         }
       }
