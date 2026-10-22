@@ -107,8 +107,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _updateAnchor(0);
     } else if (widget.itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
       _updateAnchor(newAnchorIndex);
-    } else if (_anchorIndex >= widget.itemKeys.length) {
-      _updateAnchor(widget.itemKeys.length - 1);
+    } else {
+      _updateAnchor(math.min(_anchorIndex, widget.itemKeys.length - 1));
     }
   }
 
