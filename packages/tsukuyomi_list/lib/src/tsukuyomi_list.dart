@@ -76,7 +76,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   late Object? _anchorKey;
   late int _anchorIndex;
   final _centerKey = UniqueKey();
-  final _extents = <int, double>{};
   final _elements = <int, _TsukuyomiListItemElement>{};
   final _scrollController = _TsukuyomiListScrollController();
 
@@ -171,9 +170,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
             ),
           ),
         ),
+        // 锚点变化时重建前后列表，避免沿用其他列表项的布局偏移
         _SliverLayout(
           onPerformLayout: (geometry) => _scrollExtentBeforeCenter = geometry.scrollExtent,
           sliver: SliverList.builder(
+            key: ValueKey(_anchorKey),
             itemCount: _anchorIndex > 0 ? _anchorIndex : 0,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex - index - 1),
           ),
@@ -182,6 +183,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           key: _centerKey,
           onPerformLayout: (geometry) => _scrollExtentAfterCenter = geometry.scrollExtent,
           sliver: SliverList.builder(
+            key: ValueKey(_anchorKey),
             itemCount: _itemKeys.length - _anchorIndex,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex + index),
           ),
@@ -266,16 +268,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       onUnmount: (element) {
         final elementIndex = element.requiredIndex;
         if (_elements[elementIndex] == element) {
-          _extents.remove(elementIndex);
           _elements.remove(elementIndex);
         }
         _scheduleUpdateItems(reselectAnchor: false);
       },
       onPerformLayout: (box, oldSize, newSize) {
-        _extents[index - _anchorIndex] = switch (widget.scrollDirection) {
-          Axis.vertical => newSize.height,
-          Axis.horizontal => newSize.width,
-        };
         if (oldSize != newSize) _scheduleUpdateItems(reselectAnchor: false);
       },
       child: Container(
@@ -326,6 +323,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       final anchor = widget.anchor ?? _calculateAnchor(position);
       final sortedElements = _elements.values.toList()..sort((a, b) => a.requiredIndex.compareTo(b.requiredIndex));
       int? anchorIndex;
+      double anchorOffset = 0.0;
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
         final index = element.requiredIndex + _anchorIndex;
@@ -346,24 +344,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 添加列表项信息
         items.add(item);
         // 选择第一个符合条件的列表项作为锚点列表项
-        if (reselectAnchor && item.leading <= anchor && item.trailing >= anchor) {
-          anchorIndex ??= item.index;
+        if (reselectAnchor && anchorIndex == null && item.leading <= anchor && item.trailing >= anchor) {
+          anchorIndex = item.index;
+          anchorOffset = offset;
         }
       }
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
       if (anchorIndex != null && _anchorIndex != anchorIndex && (position.pixels != 0.0 && position.pixels != position.maxScrollExtent)) {
-        for (var i = anchorIndex - _anchorIndex; i < 0; i++) {
-          final extent = _extents[i];
-          assert(extent != null);
-          if (extent == null) continue;
-          _scrollController.position.correctByDelta(extent);
-        }
-        for (var i = 0; i < anchorIndex - _anchorIndex; i++) {
-          final extent = _extents[i];
-          assert(extent != null);
-          if (extent == null) continue;
-          _scrollController.position.correctByDelta(-extent);
-        }
+        _scrollController.position.correctByDelta(-anchorOffset);
         _updateAnchor(anchorIndex);
       }
       // 回调根据索引顺序进行排序的所有已渲染列表项数据
