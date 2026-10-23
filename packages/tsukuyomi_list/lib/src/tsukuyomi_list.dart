@@ -72,9 +72,9 @@ class TsukuyomiList extends StatefulWidget {
 }
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
-  late int _anchorIndex;
-  late Object? _anchorKey;
   late List<Object> _itemKeys;
+  late Object? _anchorKey;
+  late int _anchorIndex;
   final _centerKey = UniqueKey();
   final _extents = <int, double>{};
   final _elements = <int, _TsukuyomiListItemElement>{};
@@ -92,9 +92,9 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   @override
   void initState() {
     super.initState();
-    _anchorIndex = widget.itemKeys.isEmpty ? 0 : widget.initialScrollIndex;
-    _anchorKey = widget.itemKeys.isEmpty ? null : widget.itemKeys[_anchorIndex];
     _itemKeys = List.of(widget.itemKeys);
+    _anchorIndex = _itemKeys.isEmpty ? 0 : widget.initialScrollIndex;
+    _anchorKey = _itemKeys.isEmpty ? null : _itemKeys[_anchorIndex];
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -113,12 +113,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _scheduleUpdateItems();
     }
     // 修正锚点列表项位置
-    if (widget.itemKeys.isEmpty || _anchorKey == null) {
+    if (_itemKeys.isEmpty || _anchorKey == null) {
       _updateAnchor(0);
-    } else if (widget.itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
+    } else if (_itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
       _updateAnchor(newAnchorIndex);
     } else {
-      _updateAnchor(math.min(_anchorIndex, widget.itemKeys.length - 1));
+      _updateAnchor(math.min(_anchorIndex, _itemKeys.length - 1));
     }
   }
 
@@ -181,7 +181,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           key: _centerKey,
           onPerformLayout: (geometry) => _scrollExtentAfterCenter = geometry.scrollExtent,
           sliver: SliverList.builder(
-            itemCount: widget.itemKeys.length - _anchorIndex,
+            itemCount: _itemKeys.length - _anchorIndex,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex + index),
           ),
         ),
@@ -279,7 +279,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
         child: KeyedSubtree(
-          key: _TsukuyomiListChildGlobalKey(listKey: _centerKey, itemKey: widget.itemKeys[index]),
+          key: _TsukuyomiListChildGlobalKey(listKey: _centerKey, itemKey: _itemKeys[index]),
           child: widget.itemBuilder(context, index),
         ),
       ),
@@ -290,7 +290,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     assert(anchorIndex >= 0);
     if (anchorIndex != _anchorIndex) setState(() {});
     _anchorIndex = anchorIndex;
-    _anchorKey = widget.itemKeys.isEmpty ? null : widget.itemKeys[_anchorIndex];
+    _anchorKey = _itemKeys.isEmpty ? null : _itemKeys[_anchorIndex];
   }
 
   double _calculateAnchor(ScrollPosition position) {
@@ -327,7 +327,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       RenderViewportBase? viewport;
       for (final element in sortedElements) {
         final index = element.requiredIndex + _anchorIndex;
-        if (index >= widget.itemKeys.length) continue;
+        if (index >= _itemKeys.length) continue;
 
         final box = element.findRenderObject() as RenderBox?;
         viewport ??= RenderAbstractViewport.maybeOf(box) as RenderViewportBase?;
