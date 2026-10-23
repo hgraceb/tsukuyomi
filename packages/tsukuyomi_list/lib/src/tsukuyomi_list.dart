@@ -74,6 +74,7 @@ class TsukuyomiList extends StatefulWidget {
 class _TsukuyomiListState extends State<TsukuyomiList> {
   late int _anchorIndex;
   late Object? _anchorKey;
+  late List<Object> _itemKeys;
   final _centerKey = UniqueKey();
   final _extents = <int, double>{};
   final _elements = <int, _TsukuyomiListItemElement>{};
@@ -93,6 +94,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     super.initState();
     _anchorIndex = widget.itemKeys.isEmpty ? 0 : widget.initialScrollIndex;
     _anchorKey = widget.itemKeys.isEmpty ? null : widget.itemKeys[_anchorIndex];
+    _itemKeys = List.of(widget.itemKeys);
     _scrollController.addListener(_scheduleUpdateItems);
     widget.controller?._attach(this);
   }
@@ -104,6 +106,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     if (widget.controller != oldWidget.controller) {
       oldWidget.controller?._detach(this);
       widget.controller?._attach(this);
+    }
+    // 更新列表项标识
+    if (!listEquals(_itemKeys, widget.itemKeys)) {
+      _itemKeys = List.of(widget.itemKeys);
+      _scheduleUpdateItems();
     }
     // 修正锚点列表项位置
     if (widget.itemKeys.isEmpty || _anchorKey == null) {
@@ -252,7 +259,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       index: index - _anchorIndex,
       onMount: (element) {
         _elements[element.requiredIndex] = element;
-        _scheduleUpdateItems();
+        _scheduleUpdateItems(updateAnchor: false);
       },
       onUnmount: (element) {
         final elementIndex = element.requiredIndex;
@@ -260,7 +267,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           _extents.remove(elementIndex);
           _elements.remove(elementIndex);
         }
-        _scheduleUpdateItems();
+        _scheduleUpdateItems(updateAnchor: false);
       },
       onPerformLayout: (box, oldSize, newSize) {
         _extents[index - _anchorIndex] = switch (widget.scrollDirection) {
