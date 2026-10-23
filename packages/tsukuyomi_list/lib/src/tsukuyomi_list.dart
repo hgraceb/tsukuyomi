@@ -95,7 +95,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     _itemKeys = List.of(widget.itemKeys);
     _anchorIndex = _itemKeys.isEmpty ? 0 : widget.initialScrollIndex;
     _anchorKey = _itemKeys.isEmpty ? null : _itemKeys[_anchorIndex];
-    _scrollController.addListener(_scheduleUpdateItems);
+    _scrollController.addListener(() => _scheduleUpdateItems(reselectAnchor: true));
     widget.controller?._attach(this);
   }
 
@@ -110,15 +110,15 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     // 更新列表项标识
     if (!listEquals(_itemKeys, widget.itemKeys)) {
       _itemKeys = List.of(widget.itemKeys);
-      _scheduleUpdateItems();
-    }
-    // 修正锚点列表项位置
-    if (_itemKeys.isEmpty || _anchorKey == null) {
-      _updateAnchor(0);
-    } else if (_itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
-      _updateAnchor(newAnchorIndex);
-    } else {
-      _updateAnchor(math.min(_anchorIndex, _itemKeys.length - 1));
+      // 修正锚点列表项位置
+      if (_itemKeys.isEmpty || _anchorKey == null) {
+        _updateAnchor(0);
+      } else if (_itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
+        _updateAnchor(newAnchorIndex);
+      } else {
+        _updateAnchor(math.min(_anchorIndex, _itemKeys.length - 1));
+      }
+      _scheduleUpdateItems(reselectAnchor: true);
     }
   }
 
@@ -194,7 +194,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
             final extentLeft = clampDouble(extentMax - extentBefore - extentAfter, 0.0, extentMax);
             if (_viewportDimension != extentMax) {
               _viewportDimension = extentMax;
-              _scheduleUpdateItems(updateAnchor: false);
+              _scheduleUpdateItems(reselectAnchor: false);
             }
             return SliverToBoxAdapter(
               child: Container(
@@ -259,7 +259,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       index: index - _anchorIndex,
       onMount: (element) {
         _elements[element.requiredIndex] = element;
-        _scheduleUpdateItems(updateAnchor: false);
+        _scheduleUpdateItems(reselectAnchor: false);
       },
       onUnmount: (element) {
         final elementIndex = element.requiredIndex;
@@ -267,14 +267,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           _extents.remove(elementIndex);
           _elements.remove(elementIndex);
         }
-        _scheduleUpdateItems(updateAnchor: false);
+        _scheduleUpdateItems(reselectAnchor: false);
       },
       onPerformLayout: (box, oldSize, newSize) {
         _extents[index - _anchorIndex] = switch (widget.scrollDirection) {
           Axis.vertical => newSize.height,
           Axis.horizontal => newSize.width,
         };
-        if (oldSize != newSize) _scheduleUpdateItems(updateAnchor: false);
+        if (oldSize != newSize) _scheduleUpdateItems(reselectAnchor: false);
       },
       child: Container(
         foregroundDecoration: index == _anchorIndex ? BoxDecoration(color: _pinkDebugMask) : null,
@@ -309,15 +309,15 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   bool _updateScheduled = false;
-  bool _anchorUpdateScheduled = false;
-  void _scheduleUpdateItems({bool updateAnchor = true}) {
-    _anchorUpdateScheduled |= updateAnchor;
+  bool _anchorReselectScheduled = false;
+  void _scheduleUpdateItems({required bool reselectAnchor}) {
+    _anchorReselectScheduled |= reselectAnchor;
     if (_updateScheduled) return;
     _updateScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      final updateAnchor = _anchorUpdateScheduled;
+      final reselectAnchor = _anchorReselectScheduled;
       _updateScheduled = false;
-      _anchorUpdateScheduled = false;
+      _anchorReselectScheduled = false;
       final position = _scrollController.hasClients ? _scrollController.position : null;
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
@@ -344,7 +344,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         // 添加列表项信息
         items.add(item);
         // 选择第一个符合条件的列表项作为锚点列表项
-        if (updateAnchor && item.leading <= anchor && item.trailing >= anchor) {
+        if (reselectAnchor && item.leading <= anchor && item.trailing >= anchor) {
           anchorIndex ??= item.index;
         }
       }
