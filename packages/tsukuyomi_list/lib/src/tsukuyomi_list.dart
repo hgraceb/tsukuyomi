@@ -155,6 +155,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
               // 如果占位区域底部可见
               if (trailing > Tolerance.defaultTolerance.distance) {
                 _scrollController.position.correctByDelta(-delta);
+                _scheduleUpdateItems(reselectAnchor: false);
               }
             },
             child: Container(
@@ -229,6 +230,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
               // 如果占位区域顶部可见
               if (-leading > Tolerance.defaultTolerance.distance) {
                 _scrollController.position.correctByDelta(delta);
+                _scheduleUpdateItems(reselectAnchor: false);
               }
             },
             child: Container(

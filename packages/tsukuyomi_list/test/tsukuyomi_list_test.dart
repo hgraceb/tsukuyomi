@@ -566,6 +566,81 @@ void main() {
           expect(itemLeading, moreOrLessEquals(initialLeading - distance));
           expect(controller.position.isScrollingNotifier.value, false);
         });
+
+        testWidgets('when padding shrinks after scrolling ($axis, $edge)', (WidgetTester tester) async {
+          const itemExtent = 100.0;
+          const viewportExtent = 600.0;
+          const initialPaddingExtent = 300.0;
+          const reducedPaddingExtent = 200.0;
+          const itemKeys = [0, 1];
+          final controller = TsukuyomiListController();
+          final updates = <List<TsukuyomiListItem>>[];
+          var paddingExtent = initialPaddingExtent;
+
+          Widget builder() {
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: axis == Axis.horizontal ? viewportExtent : itemExtent,
+                  height: axis == Axis.vertical ? viewportExtent : itemExtent,
+                  child: TsukuyomiList.builder(
+                    itemKeys: itemKeys,
+                    itemBuilder: (context, index) => SizedBox(
+                      width: axis == Axis.horizontal ? itemExtent : null,
+                      height: axis == Axis.vertical ? itemExtent : null,
+                      child: Text('${itemKeys[index]}'),
+                    ),
+                    controller: controller,
+                    scrollDirection: axis,
+                    leadingExtent: leading ? paddingExtent : 0.0,
+                    trailingExtent: leading ? 0.0 : paddingExtent,
+                    onItemsChanged: updates.add,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          double itemLeading(int index) {
+            final finder = find.text('${itemKeys[index]}', skipOffstage: false);
+            final offset = tester.getTopLeft(finder);
+            return axis == Axis.vertical ? offset.dy : offset.dx;
+          }
+
+          await tester.pumpWidget(builder());
+          final distance = (leading ? -initialPaddingExtent : initialPaddingExtent) / 2.0;
+          unawaited(controller.slideViewport(distance / viewportExtent));
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          final initialAnchorIndex = controller.anchorIndex;
+          final initialLeading = itemLeading(itemKeys.length - 1);
+          final initialPixels = controller.position.pixels;
+          // 占位区域缩小时，应保持当前锚点并通知修正后的列表项位置
+          updates.clear();
+          paddingExtent = reducedPaddingExtent;
+          await tester.pumpWidget(builder());
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          final delta = reducedPaddingExtent - initialPaddingExtent;
+          final correction = leading ? -delta : delta;
+          expect(itemLeading(itemKeys.length - 1), moreOrLessEquals(initialLeading - correction));
+          expect(controller.position.pixels, moreOrLessEquals(initialPixels + correction));
+          expect(controller.anchorIndex, initialAnchorIndex);
+          expect(updates, hasLength(1));
+          final items = updates.single;
+          expect(items.map((item) => item.index), itemKeys);
+          for (final item in items) {
+            final leading = itemLeading(item.index);
+            expect(item.leading, moreOrLessEquals(leading / viewportExtent));
+            expect(item.trailing, moreOrLessEquals((leading + itemExtent) / viewportExtent));
+          }
+          // 占位尺寸不变的父级重建不应重复通知
+          updates.clear();
+          await tester.pumpWidget(builder());
+          expect(updates, isEmpty);
+          await tester.pump();
+          expect(updates, isEmpty);
+        });
       }
     }
   });
