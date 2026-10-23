@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi_list.dart';
@@ -1196,6 +1197,59 @@ void main() {
   });
 
   group('TsukuyomiList respects TsukuyomiListController.jumpToIndex', () {
+    for (final axis in Axis.values) {
+      testWidgets('when jumping between adjacent indices ($axis)', (WidgetTester tester) async {
+        const initialScrollIndex = 30;
+        const itemExtent = 100.0;
+        const viewportExtent = 600.0;
+        final itemKeys = List.generate(100, (index) => index);
+        final controller = TsukuyomiListController();
+        final updates = <List<TsukuyomiListItem>>[];
+
+        Widget builder() {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: viewportExtent,
+                height: viewportExtent,
+                child: TsukuyomiList.builder(
+                  itemKeys: itemKeys,
+                  itemBuilder: (context, index) => SizedBox(
+                    width: axis == Axis.horizontal ? itemExtent : null,
+                    height: axis == Axis.vertical ? itemExtent : null,
+                    child: Text('${itemKeys[index]}'),
+                  ),
+                  controller: controller,
+                  scrollDirection: axis,
+                  initialScrollIndex: initialScrollIndex,
+                  onItemsChanged: updates.add,
+                ),
+              ),
+            ),
+          );
+        }
+
+        await tester.pumpWidget(builder());
+        // 相邻索引往返跳转后，应通知最新的位置并保持目标项位于视口起点
+        for (final index in [initialScrollIndex + 1, initialScrollIndex]) {
+          updates.clear();
+          controller.jumpToIndex(index);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(controller.anchorIndex, index);
+          expect(controller.position.pixels, moreOrLessEquals(0.0));
+          final position = tester.getTopLeft(find.text('${itemKeys[index]}'));
+          final leading = axis == Axis.vertical ? position.dy : position.dx;
+          expect(leading, moreOrLessEquals(0.0));
+          expect(updates, isNotEmpty);
+          final item = updates.last.firstWhere((item) => item.index == index);
+          expect(item.leading, moreOrLessEquals(0.0));
+          expect(item.trailing, moreOrLessEquals(itemExtent / viewportExtent));
+        }
+      });
+    }
+
     testWidgets('when default', (WidgetTester tester) async {
       final itemKeys = List.generate(10, (index) => index);
       final controller = TsukuyomiListController();
@@ -1282,6 +1336,145 @@ void main() {
       expect(controller.position.pixels, moreOrLessEquals(0.0));
       expectList(tester, visible: [10, 11, 12, 13]);
     });
+  });
+
+  group('TsukuyomiList respects scrolling', () {
+    for (final axis in Axis.values) {
+      for (final physics in [const ClampingScrollPhysics(), const BouncingScrollPhysics()]) {
+        testWidgets('when wheel events cross the cache ($axis, ${physics.runtimeType})', (WidgetTester tester) async {
+          const itemExtent = 100.0;
+          const viewportExtent = 600.0;
+          const wheelDistance = viewportExtent * 2.0;
+          final itemKeys = List.generate(100, (index) => index);
+          final controller = TsukuyomiListController();
+          final updates = <List<TsukuyomiListItem>>[];
+          final visibleItemCount = viewportExtent ~/ itemExtent;
+
+          Widget builder() {
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: viewportExtent,
+                  height: viewportExtent,
+                  child: TsukuyomiList.builder(
+                    itemKeys: itemKeys,
+                    itemBuilder: (context, index) => SizedBox(
+                      width: axis == Axis.horizontal ? itemExtent : null,
+                      height: axis == Axis.vertical ? itemExtent : null,
+                      child: Text('${itemKeys[index]}'),
+                    ),
+                    controller: controller,
+                    physics: physics,
+                    scrollDirection: axis,
+                    onItemsChanged: updates.add,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          await tester.pumpWidget(builder());
+          // 单次滚轮事件跨过缓存区域后，内容应完整移动对应的距离
+          for (final distance in [wheelDistance, -wheelDistance]) {
+            updates.clear();
+            await tester.sendEventToBinding(
+              PointerScrollEvent(
+                position: tester.getCenter(find.byType(TsukuyomiList)),
+                scrollDelta: axis == Axis.vertical ? Offset(0.0, distance) : Offset(distance, 0.0),
+                kind: PointerDeviceKind.mouse,
+              ),
+            );
+            await tester.pumpAndSettle(const Duration(milliseconds: 16));
+            expect(tester.takeException(), isNull);
+            final firstIndex = distance > 0.0 ? wheelDistance ~/ itemExtent : 0;
+            expectList(tester, visible: itemKeys.skip(firstIndex).take(visibleItemCount).toList());
+            final position = tester.getTopLeft(find.text('${itemKeys[firstIndex]}'));
+            final leading = axis == Axis.vertical ? position.dy : position.dx;
+            expect(leading, moreOrLessEquals(0.0));
+            final item = updates.last.firstWhere((item) => item.index == firstIndex);
+            expect(item.leading, moreOrLessEquals(0.0));
+            expect(item.trailing, moreOrLessEquals(itemExtent / viewportExtent));
+          }
+        });
+
+        testWidgets('when the anchor leaves the cache after resizing ($axis, ${physics.runtimeType})', (WidgetTester tester) async {
+          const trackedIndex = 6;
+          const itemExtent = 100.0;
+          const initialExtent = 1000.0;
+          const intermediateExtent = 250.0;
+          const collapsedExtent = 40.0;
+          const viewportExtent = 600.0;
+          const scrollDistance = 360.0;
+          const scrollStep = 1.0;
+          final itemKeys = List.generate(20, (index) => index);
+          final controller = TsukuyomiListController();
+          final updates = <List<TsukuyomiListItem>>[];
+          final firstExtent = ValueNotifier(initialExtent);
+          addTearDown(firstExtent.dispose);
+
+          Widget builder() {
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: viewportExtent,
+                  height: viewportExtent,
+                  child: TsukuyomiList.builder(
+                    itemKeys: itemKeys,
+                    itemBuilder: (context, index) => ValueListenableBuilder(
+                      valueListenable: firstExtent,
+                      builder: (context, value, child) {
+                        final extent = index == 0 ? value : itemExtent;
+                        return SizedBox(
+                          width: axis == Axis.horizontal ? extent : null,
+                          height: axis == Axis.vertical ? extent : null,
+                          child: child,
+                        );
+                      },
+                      child: Text('${itemKeys[index]}'),
+                    ),
+                    controller: controller,
+                    physics: physics,
+                    scrollDirection: axis,
+                    onItemsChanged: updates.add,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          await tester.pumpWidget(builder());
+          controller.position.jumpTo(scrollDistance);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          // 连续缩小首项，使原锚点退出缓存区域
+          for (final extent in [intermediateExtent, collapsedExtent]) {
+            firstExtent.value = extent;
+            await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          }
+          final trackedItem = find.text('${itemKeys[trackedIndex]}');
+          final trackedBuilder = find.ancestor(of: trackedItem, matching: find.byType(ValueListenableBuilder<double>));
+          final trackedState = tester.state(trackedBuilder);
+          final initialPosition = tester.getTopLeft(trackedItem);
+          final initialLeading = axis == Axis.vertical ? initialPosition.dy : initialPosition.dx;
+          // 后续重选锚点时，内容仍应只移动实际滚动的距离
+          updates.clear();
+          controller.position.jumpTo(controller.position.pixels + scrollStep);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(tester.takeException(), isNull);
+          final position = tester.getTopLeft(trackedItem);
+          final leading = axis == Axis.vertical ? position.dy : position.dx;
+          expect(leading, moreOrLessEquals(initialLeading - scrollStep));
+          expect(tester.state(trackedBuilder), same(trackedState));
+          expect(controller.correction, isNull);
+          final item = updates.last.firstWhere((item) => item.index == trackedIndex);
+          expect(item.leading, moreOrLessEquals(leading / viewportExtent));
+          expect(item.trailing, moreOrLessEquals((leading + itemExtent) / viewportExtent));
+        });
+      }
+    }
   });
 
   group('TsukuyomiList respects dragging', () {
