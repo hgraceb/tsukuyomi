@@ -3,7 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:flutter/rendering.dart' show RenderProxyBox, RenderProxySliver, RenderSliverList, SliverGeometry;
+import 'package:flutter/rendering.dart'
+    show RenderProxyBox, RenderProxySliver, RenderSliverList, SliverConstraints, SliverGeometry, SliverMultiBoxAdaptorParentData;
 import 'package:flutter/scheduler.dart';
 import 'package:meta/meta.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/rendering/viewport.dart';
@@ -75,9 +76,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   late List<Object> _itemKeys;
   late Object? _anchorKey;
   late int _anchorIndex;
+  late Map<Object, int> _itemIndices;
   int _layoutVersion = 0;
   final _centerKey = UniqueKey();
-  final _elements = <int, _TsukuyomiListItemElement>{};
+  final _elements = <_TsukuyomiListItemElement>{};
   final _scrollController = _TsukuyomiListScrollController();
 
   /// 在列表中心之前的滚动区域范围
@@ -93,6 +95,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   void initState() {
     super.initState();
     _itemKeys = List.of(widget.itemKeys);
+    _itemIndices = {for (var index = 0; index < _itemKeys.length; index++) _itemKeys[index]: index};
     _anchorIndex = _itemKeys.isEmpty ? 0 : widget.initialScrollIndex;
     _anchorKey = _itemKeys.isEmpty ? null : _itemKeys[_anchorIndex];
     _scrollController.addListener(() => _scheduleUpdateItems(reselectAnchor: true));
@@ -110,10 +113,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     // 更新列表项标识
     if (!listEquals(_itemKeys, widget.itemKeys)) {
       _itemKeys = List.of(widget.itemKeys);
+      _itemIndices = {for (var index = 0; index < _itemKeys.length; index++) _itemKeys[index]: index};
       // 修正锚点列表项位置
       if (_itemKeys.isEmpty || _anchorKey == null) {
         _updateAnchor(0, resetLayout: false);
-      } else if (_itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
+      } else if (_itemIndices[_anchorKey] case final newAnchorIndex?) {
         _updateAnchor(newAnchorIndex, resetLayout: false);
       } else {
         _updateAnchor(math.min(_anchorIndex, _itemKeys.length - 1), resetLayout: false);
@@ -131,6 +135,17 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   @override
   Widget build(BuildContext context) {
+    final keepAliveBefore = <int>[];
+    final keepAliveAfter = <int>[];
+    for (final element in _elements) {
+      if (element.sliverParentData?.keepAlive != true) continue;
+      final index = _itemIndices[(element.widget.key as _TsukuyomiListItemKey).value];
+      if (index == null) continue;
+      final beforeCenter = index < _anchorIndex;
+      if ((element.requiredIndex < 0) == beforeCenter) continue;
+      final localIndex = beforeCenter ? _anchorIndex - index - 1 : index - _anchorIndex;
+      (beforeCenter ? keepAliveBefore : keepAliveAfter).add(localIndex);
+    }
     return TsukuyomiScrollView(
       center: _centerKey,
       controller: _scrollController,
@@ -175,8 +190,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           onPerformLayout: (geometry) => _scrollExtentBeforeCenter = geometry.scrollExtent,
           sliver: _SliverList(
             layoutVersion: _layoutVersion,
+            keepAliveIndices: keepAliveBefore,
             itemCount: _anchorIndex > 0 ? _anchorIndex : 0,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex - index - 1),
+            findChildIndexCallback: (key) => _findChildIndex(key, beforeCenter: true),
           ),
         ),
         _SliverLayout(
@@ -184,8 +201,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           onPerformLayout: (geometry) => _scrollExtentAfterCenter = geometry.scrollExtent,
           sliver: _SliverList(
             layoutVersion: _layoutVersion,
+            keepAliveIndices: keepAliveAfter,
             itemCount: _itemKeys.length - _anchorIndex,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex + index),
+            findChildIndexCallback: (key) => _findChildIndex(key, beforeCenter: false),
           ),
         ),
         // 在列表主轴方向尺寸不足一个屏幕时填充剩余区域，统一列表回弹复位时的视觉效果
@@ -260,16 +279,14 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(
+      key: _TsukuyomiListItemKey(_itemKeys[index]),
       index: index - _anchorIndex,
       onMount: (element) {
-        _elements[element.requiredIndex] = element;
+        _elements.add(element);
         _scheduleUpdateItems(reselectAnchor: false);
       },
       onUnmount: (element) {
-        final elementIndex = element.requiredIndex;
-        if (_elements[elementIndex] == element) {
-          _elements.remove(elementIndex);
-        }
+        _elements.remove(element);
         _scheduleUpdateItems(reselectAnchor: false);
       },
       onPerformLayout: (box, oldSize, newSize) {
@@ -285,9 +302,16 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     );
   }
 
+  int? _findChildIndex(Key key, {required bool beforeCenter}) {
+    final index = _itemIndices[(key as _TsukuyomiListItemKey).value];
+    if (index == null || (index < _anchorIndex) != beforeCenter) return null;
+    return beforeCenter ? _anchorIndex - index - 1 : index - _anchorIndex;
+  }
+
   void _updateAnchor(int anchorIndex, {required bool resetLayout}) {
     assert(anchorIndex >= 0);
     if (anchorIndex != _anchorIndex) {
+      // 数据变化只修正索引，滚动和跳转切换布局原点时才重置布局
       if (resetLayout) _layoutVersion++;
       setState(() {});
     }
@@ -324,7 +348,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       if (!mounted || position == null || !position.hasViewportDimension || !position.hasPixels) return;
       final items = <TsukuyomiListItem>[];
       final anchor = widget.anchor ?? _calculateAnchor(position);
-      final sortedElements = _elements.values.toList()..sort((a, b) => a.requiredIndex.compareTo(b.requiredIndex));
+      final elements = _elements.where((element) => element.sliverParentData?.keptAlive == false);
+      final sortedElements = elements.toList()..sort((a, b) => a.requiredIndex.compareTo(b.requiredIndex));
       int? anchorIndex;
       double anchorOffset = 0.0;
       RenderViewportBase? viewport;
@@ -418,6 +443,10 @@ class TsukuyomiListItem {
     }
     return value;
   }
+}
+
+class _TsukuyomiListItemKey extends ValueKey<Object> {
+  const _TsukuyomiListItemKey(super.value);
 }
 
 class _TsukuyomiListChildGlobalKey extends GlobalObjectKey {
@@ -648,7 +677,7 @@ class _TsukuyomiListBallisticScrollActivity extends BallisticScrollActivity {
 }
 
 class _TsukuyomiListItem extends SingleChildRenderObjectWidget {
-  const _TsukuyomiListItem({this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
+  const _TsukuyomiListItem({super.key, this.index, this.onMount, this.onUnmount, this.onPerformLayout, required super.child});
 
   final int? index;
 
@@ -672,6 +701,15 @@ class _TsukuyomiListItemElement extends SingleChildRenderObjectElement {
   _TsukuyomiListItemElement(super.widget);
 
   int get requiredIndex => widget.index!;
+
+  SliverMultiBoxAdaptorParentData? get sliverParentData {
+    RenderObject? box = renderObject;
+    while (box != null) {
+      if (box.parentData case final SliverMultiBoxAdaptorParentData parentData) return parentData;
+      box = box.parent;
+    }
+    return null;
+  }
 
   @override
   _TsukuyomiListItem get widget => super.widget as _TsukuyomiListItem;
@@ -705,25 +743,42 @@ class _RenderTsukuyomiListItem extends RenderProxyBox {
 }
 
 class _SliverList extends SliverList {
-  _SliverList({required this.layoutVersion, required super.itemBuilder, required super.itemCount}) : super.builder();
+  _SliverList({
+    required this.layoutVersion,
+    required this.keepAliveIndices,
+    required super.itemBuilder,
+    required super.itemCount,
+    required super.findChildIndexCallback,
+  }) : super.builder();
 
   final int layoutVersion;
 
+  final List<int> keepAliveIndices;
+
   @override
   _RenderSliverList createRenderObject(BuildContext context) {
-    return _RenderSliverList(childManager: context as SliverMultiBoxAdaptorElement, layoutVersion: layoutVersion);
+    return _RenderSliverList(
+      childManager: context as SliverMultiBoxAdaptorElement,
+      layoutVersion: layoutVersion,
+      keepAliveIndices: keepAliveIndices,
+    );
   }
 
   @override
   void updateRenderObject(BuildContext context, _RenderSliverList renderObject) {
     renderObject.layoutVersion = layoutVersion;
+    renderObject.keepAliveIndices = keepAliveIndices;
   }
 }
 
 class _RenderSliverList extends RenderSliverList {
-  _RenderSliverList({required super.childManager, required int layoutVersion}) : _layoutVersion = layoutVersion;
+  _RenderSliverList({required super.childManager, required int layoutVersion, required List<int> keepAliveIndices})
+    : _layoutVersion = layoutVersion,
+      _keepAliveIndices = keepAliveIndices;
 
   int _layoutVersion;
+
+  List<int> _keepAliveIndices;
 
   bool _resetLayout = false;
 
@@ -734,12 +789,38 @@ class _RenderSliverList extends RenderSliverList {
     markNeedsLayout();
   }
 
+  set keepAliveIndices(List<int> value) {
+    _keepAliveIndices = value;
+    if (value.isNotEmpty) markNeedsLayout();
+  }
+
   @override
   void performLayout() {
-    if (_resetLayout) {
+    if (_resetLayout || _keepAliveIndices.isNotEmpty) {
       _resetLayout = false;
       // 从局部索引 0 重新布局，保留缓存中的 KeepAlive 子项
       collectGarbage(childCount, 0);
+      final indices = _keepAliveIndices.toSet().toList()..sort((a, b) => b.compareTo(a));
+      _keepAliveIndices = const [];
+      if (indices.isNotEmpty) {
+        final cachedIndices = <int>{};
+        visitChildren((child) => cachedIndices.add((child.parentData! as SliverMultiBoxAdaptorParentData).index!));
+        // 在帧结束前接回另一侧的保活子项，倒序插入头部以保持局部索引有序
+        invokeLayoutCallback<SliverConstraints>((_) {
+          for (final index in indices) {
+            if (cachedIndices.contains(index)) continue;
+            childManager.createChild(index, after: null);
+            // 首次构建的 KeepAlive 可能延迟到帧末应用，更新子树后再放入缓存
+            childManager.createChild(index, after: null);
+          }
+        });
+        collectGarbage(childCount, 0);
+      }
+      // 迁移后新建的外层布局节点也需要尺寸，保活缓存中的节点才有完整的布局信息
+      visitChildren((child) {
+        final box = child as RenderBox;
+        if (!box.hasSize) box.layout(constraints.asBoxConstraints(), parentUsesSize: true);
+      });
     }
     super.performLayout();
   }
