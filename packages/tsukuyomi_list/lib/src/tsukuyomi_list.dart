@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:flutter/rendering.dart' show RenderProxyBox, RenderProxySliver, SliverGeometry;
+import 'package:flutter/rendering.dart' show RenderProxyBox, RenderProxySliver, RenderSliverList, SliverGeometry;
 import 'package:flutter/scheduler.dart';
 import 'package:meta/meta.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/rendering/viewport.dart';
@@ -75,6 +75,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   late List<Object> _itemKeys;
   late Object? _anchorKey;
   late int _anchorIndex;
+  int _layoutVersion = 0;
   final _centerKey = UniqueKey();
   final _elements = <int, _TsukuyomiListItemElement>{};
   final _scrollController = _TsukuyomiListScrollController();
@@ -111,11 +112,11 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       _itemKeys = List.of(widget.itemKeys);
       // 修正锚点列表项位置
       if (_itemKeys.isEmpty || _anchorKey == null) {
-        _updateAnchor(0);
+        _updateAnchor(0, resetLayout: false);
       } else if (_itemKeys.indexWhere((key) => key == _anchorKey) case final newAnchorIndex when newAnchorIndex >= 0) {
-        _updateAnchor(newAnchorIndex);
+        _updateAnchor(newAnchorIndex, resetLayout: false);
       } else {
-        _updateAnchor(math.min(_anchorIndex, _itemKeys.length - 1));
+        _updateAnchor(math.min(_anchorIndex, _itemKeys.length - 1), resetLayout: false);
       }
       _scheduleUpdateItems(reselectAnchor: true);
     }
@@ -170,11 +171,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
             ),
           ),
         ),
-        // 锚点变化时重建前后列表，避免沿用其他列表项的布局偏移
         _SliverLayout(
           onPerformLayout: (geometry) => _scrollExtentBeforeCenter = geometry.scrollExtent,
-          sliver: SliverList.builder(
-            key: ValueKey(_anchorKey),
+          sliver: _SliverList(
+            layoutVersion: _layoutVersion,
             itemCount: _anchorIndex > 0 ? _anchorIndex : 0,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex - index - 1),
           ),
@@ -182,8 +182,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
         _SliverLayout(
           key: _centerKey,
           onPerformLayout: (geometry) => _scrollExtentAfterCenter = geometry.scrollExtent,
-          sliver: SliverList.builder(
-            key: ValueKey(_anchorKey),
+          sliver: _SliverList(
+            layoutVersion: _layoutVersion,
             itemCount: _itemKeys.length - _anchorIndex,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex + index),
           ),
@@ -285,9 +285,12 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
     );
   }
 
-  void _updateAnchor(int anchorIndex) {
+  void _updateAnchor(int anchorIndex, {required bool resetLayout}) {
     assert(anchorIndex >= 0);
-    if (anchorIndex != _anchorIndex) setState(() {});
+    if (anchorIndex != _anchorIndex) {
+      if (resetLayout) _layoutVersion++;
+      setState(() {});
+    }
     _anchorIndex = anchorIndex;
     _anchorKey = _itemKeys.isEmpty ? null : _itemKeys[_anchorIndex];
   }
@@ -352,7 +355,7 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
       // 当前锚点列表项发生位移时才更新锚点列表项索引，避免初始化或者跳转时发生预期外的偏移
       if (anchorIndex != null && _anchorIndex != anchorIndex && (position.pixels != 0.0 && position.pixels != position.maxScrollExtent)) {
         _scrollController.position.correctByDelta(-anchorOffset);
-        _updateAnchor(anchorIndex);
+        _updateAnchor(anchorIndex, resetLayout: true);
       }
       // 回调根据索引顺序进行排序的所有已渲染列表项数据
       widget.onItemsChanged?.call(items);
@@ -361,7 +364,8 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   void _jumpToIndex(int index) {
     _scrollController.position.correctByJump(0.0);
-    _updateAnchor(index);
+    _updateAnchor(index, resetLayout: true);
+    _scheduleUpdateItems(reselectAnchor: false);
   }
 
   Future<void> _slideViewport(double viewportFraction, {required Duration duration, required Curve curve}) async {
@@ -697,6 +701,44 @@ class _RenderTsukuyomiListItem extends RenderProxyBox {
     super.performLayout();
     onPerformLayout?.call(this, _oldSize, size);
     _oldSize = size;
+  }
+}
+
+class _SliverList extends SliverList {
+  _SliverList({required this.layoutVersion, required super.itemBuilder, required super.itemCount}) : super.builder();
+
+  final int layoutVersion;
+
+  @override
+  _RenderSliverList createRenderObject(BuildContext context) {
+    return _RenderSliverList(childManager: context as SliverMultiBoxAdaptorElement, layoutVersion: layoutVersion);
+  }
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderSliverList renderObject) => renderObject.layoutVersion = layoutVersion;
+}
+
+class _RenderSliverList extends RenderSliverList {
+  _RenderSliverList({required super.childManager, required int layoutVersion}) : _layoutVersion = layoutVersion;
+
+  int _layoutVersion;
+  bool _resetLayout = false;
+
+  set layoutVersion(int value) {
+    if (_layoutVersion == value) return;
+    _layoutVersion = value;
+    _resetLayout = true;
+    markNeedsLayout();
+  }
+
+  @override
+  void performLayout() {
+    if (_resetLayout) {
+      _resetLayout = false;
+      // 从局部索引 0 重新布局，保留缓存中的 KeepAlive 子项
+      collectGarbage(childCount, 0);
+    }
+    super.performLayout();
   }
 }
 
