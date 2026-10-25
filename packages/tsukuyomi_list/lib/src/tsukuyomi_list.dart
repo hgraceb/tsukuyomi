@@ -715,13 +715,16 @@ class _SliverList extends SliverList {
   }
 
   @override
-  void updateRenderObject(BuildContext context, _RenderSliverList renderObject) => renderObject.layoutVersion = layoutVersion;
+  void updateRenderObject(BuildContext context, _RenderSliverList renderObject) {
+    renderObject.layoutVersion = layoutVersion;
+  }
 }
 
 class _RenderSliverList extends RenderSliverList {
   _RenderSliverList({required super.childManager, required int layoutVersion}) : _layoutVersion = layoutVersion;
 
   int _layoutVersion;
+
   bool _resetLayout = false;
 
   set layoutVersion(int value) {
