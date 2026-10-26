@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart'
-    show RenderProxyBox, RenderProxySliver, RenderSliverList, SliverConstraints, SliverGeometry, SliverMultiBoxAdaptorParentData;
+    show RenderProxyBox, RenderProxySliver, RenderSliverList, SliverGeometry, SliverMultiBoxAdaptorParentData;
 import 'package:flutter/scheduler.dart';
 import 'package:meta/meta.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/rendering/viewport.dart';
@@ -135,17 +135,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
 
   @override
   Widget build(BuildContext context) {
-    final keepAliveBefore = <int>[];
-    final keepAliveAfter = <int>[];
-    for (final element in _elements) {
-      if (element.sliverParentData?.keepAlive != true) continue;
-      final index = _itemIndices[(element.widget.key as _TsukuyomiListItemKey).value];
-      if (index == null) continue;
-      final beforeCenter = index < _anchorIndex;
-      if ((element.requiredIndex < 0) == beforeCenter) continue;
-      final localIndex = beforeCenter ? _anchorIndex - index - 1 : index - _anchorIndex;
-      (beforeCenter ? keepAliveBefore : keepAliveAfter).add(localIndex);
-    }
     return TsukuyomiScrollView(
       center: _centerKey,
       controller: _scrollController,
@@ -190,7 +179,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           onPerformLayout: (geometry) => _scrollExtentBeforeCenter = geometry.scrollExtent,
           sliver: _SliverList(
             layoutVersion: _layoutVersion,
-            keepAliveIndices: keepAliveBefore,
             itemCount: _anchorIndex > 0 ? _anchorIndex : 0,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex - index - 1),
             findChildIndexCallback: (key) => _findChildIndex(key, beforeCenter: true),
@@ -201,7 +189,6 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
           onPerformLayout: (geometry) => _scrollExtentAfterCenter = geometry.scrollExtent,
           sliver: _SliverList(
             layoutVersion: _layoutVersion,
-            keepAliveIndices: keepAliveAfter,
             itemCount: _itemKeys.length - _anchorIndex,
             itemBuilder: (context, index) => _buildItem(context, _anchorIndex + index),
             findChildIndexCallback: (key) => _findChildIndex(key, beforeCenter: false),
@@ -745,7 +732,6 @@ class _RenderTsukuyomiListItem extends RenderProxyBox {
 class _SliverList extends SliverList {
   _SliverList({
     required this.layoutVersion,
-    required this.keepAliveIndices,
     required super.itemBuilder,
     required super.itemCount,
     required super.findChildIndexCallback,
@@ -753,32 +739,21 @@ class _SliverList extends SliverList {
 
   final int layoutVersion;
 
-  final List<int> keepAliveIndices;
-
   @override
   _RenderSliverList createRenderObject(BuildContext context) {
-    return _RenderSliverList(
-      childManager: context as SliverMultiBoxAdaptorElement,
-      layoutVersion: layoutVersion,
-      keepAliveIndices: keepAliveIndices,
-    );
+    return _RenderSliverList(childManager: context as SliverMultiBoxAdaptorElement, layoutVersion: layoutVersion);
   }
 
   @override
   void updateRenderObject(BuildContext context, _RenderSliverList renderObject) {
     renderObject.layoutVersion = layoutVersion;
-    renderObject.keepAliveIndices = keepAliveIndices;
   }
 }
 
 class _RenderSliverList extends RenderSliverList {
-  _RenderSliverList({required super.childManager, required int layoutVersion, required List<int> keepAliveIndices})
-    : _layoutVersion = layoutVersion,
-      _keepAliveIndices = keepAliveIndices;
+  _RenderSliverList({required super.childManager, required int layoutVersion}) : _layoutVersion = layoutVersion;
 
   int _layoutVersion;
-
-  List<int> _keepAliveIndices;
 
   bool _resetLayout = false;
 
@@ -789,38 +764,12 @@ class _RenderSliverList extends RenderSliverList {
     markNeedsLayout();
   }
 
-  set keepAliveIndices(List<int> value) {
-    _keepAliveIndices = value;
-    if (value.isNotEmpty) markNeedsLayout();
-  }
-
   @override
   void performLayout() {
-    if (_resetLayout || _keepAliveIndices.isNotEmpty) {
+    if (_resetLayout) {
       _resetLayout = false;
       // 从局部索引 0 重新布局，保留缓存中的 KeepAlive 子项
       collectGarbage(childCount, 0);
-      final indices = _keepAliveIndices.toSet().toList()..sort((a, b) => b.compareTo(a));
-      _keepAliveIndices = const [];
-      if (indices.isNotEmpty) {
-        final cachedIndices = <int>{};
-        visitChildren((child) => cachedIndices.add((child.parentData! as SliverMultiBoxAdaptorParentData).index!));
-        // 在帧结束前接回另一侧的保活子项，倒序插入头部以保持局部索引有序
-        invokeLayoutCallback<SliverConstraints>((_) {
-          for (final index in indices) {
-            if (cachedIndices.contains(index)) continue;
-            childManager.createChild(index, after: null);
-            // 首次构建的 KeepAlive 可能延迟到帧末应用，更新子树后再放入缓存
-            childManager.createChild(index, after: null);
-          }
-        });
-        collectGarbage(childCount, 0);
-      }
-      // 迁移后新建的外层布局节点也需要尺寸，保活缓存中的节点才有完整的布局信息
-      visitChildren((child) {
-        final box = child as RenderBox;
-        if (!box.hasSize) box.layout(constraints.asBoxConstraints(), parentUsesSize: true);
-      });
     }
     super.performLayout();
   }

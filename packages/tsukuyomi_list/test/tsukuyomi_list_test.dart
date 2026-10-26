@@ -1909,7 +1909,7 @@ void main() {
 
   group('TsukuyomiList respects item state', () {
     for (final axis in Axis.values) {
-      for (final change in ['reorder', 'reorder across center', 'remove', 'clear', 'release']) {
+      for (final change in ['reorder', 'remove', 'clear', 'release']) {
         testWidgets('when kept items change ($axis, $change)', (WidgetTester tester) async {
           const keptKey = 1;
           const targetIndex = 50;
@@ -1950,15 +1950,11 @@ void main() {
 
           await tester.pumpWidget(builder());
           final state = tester.state(keptItem);
-          if (change == 'reorder across center' || change == 'release') {
-            controller.jumpToIndex(targetIndex ~/ 2);
-            await tester.pumpAndSettle(const Duration(milliseconds: 16));
-          }
           controller.position.jumpTo(controller.position.maxScrollExtent);
           await tester.pumpAndSettle(const Duration(milliseconds: 16));
           expect(state.mounted, true);
           // 同一个数据列表原地修改后，按业务 key 重定位保活项，并释放不再需要的 State
-          final reorder = change == 'reorder' || change == 'reorder across center';
+          final reorder = change == 'reorder';
           if (reorder) {
             itemKeys.remove(keptKey);
             itemKeys.insert(targetIndex, keptKey);
@@ -1997,8 +1993,6 @@ void main() {
       for (final scenario in [
         (initialIndex: 30, targetIndex: 5, keptIndex: 30),
         (initialIndex: 30, targetIndex: 5, keptIndex: 98),
-        (initialIndex: 0, targetIndex: 50, keptIndex: 1),
-        (initialIndex: 50, targetIndex: 0, keptIndex: 49),
       ]) {
         final (initialIndex: initialIndex, targetIndex: targetIndex, keptIndex: keptIndex) = scenario;
         testWidgets('when keeping item $keptIndex across anchors $initialIndex and $targetIndex ($axis)', (WidgetTester tester) async {
@@ -2043,7 +2037,7 @@ void main() {
           expect(controller.anchorIndex, initialIndex);
           state ??= tester.state(keptItem);
           expect(state.mounted, true);
-          // 离散缓存中的保活项在局部索引或所属 Sliver 改变后，仍应保留原来的 State
+          // 同一侧 Sliver 的离散缓存子项在局部索引改变后，仍应保留原来的 State
           controller.jumpToIndex(targetIndex);
           await tester.pumpAndSettle(const Duration(milliseconds: 16));
           expect(controller.anchorIndex, targetIndex);
