@@ -1909,6 +1909,151 @@ void main() {
 
   group('TsukuyomiList respects item state', () {
     for (final axis in Axis.values) {
+      for (final change in ['reorder', 'remove', 'clear', 'release']) {
+        testWidgets('when kept items change ($axis, $change)', (WidgetTester tester) async {
+          const keptKey = 1;
+          const targetIndex = 50;
+          const itemExtent = 100.0;
+          const viewportExtent = 600.0;
+          final itemKeys = List.generate(100, (index) => index);
+          final controller = TsukuyomiListController();
+          final updates = <List<TsukuyomiListItem>>[];
+          final keptItem = find.widgetWithText(_StatefulItem, '$keptKey', skipOffstage: false);
+          var keepAlive = true;
+
+          Widget builder() {
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: viewportExtent,
+                  height: viewportExtent,
+                  child: TsukuyomiList.builder(
+                    itemKeys: itemKeys,
+                    itemBuilder: (context, index) => _StatefulItem(
+                      keepAlive: keepAlive,
+                      child: SizedBox(
+                        width: axis == Axis.horizontal ? itemExtent : null,
+                        height: axis == Axis.vertical ? itemExtent : null,
+                        child: Text('${itemKeys[index]}'),
+                      ),
+                    ),
+                    controller: controller,
+                    scrollDirection: axis,
+                    onItemsChanged: updates.add,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          await tester.pumpWidget(builder());
+          final state = tester.state(keptItem);
+          controller.position.jumpTo(controller.position.maxScrollExtent);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(state.mounted, true);
+          // 同一个数据列表原地修改后，按业务 key 重定位保活项，并释放不再需要的 State
+          final reorder = change == 'reorder';
+          if (reorder) {
+            itemKeys.remove(keptKey);
+            itemKeys.insert(targetIndex, keptKey);
+          } else if (change == 'remove') {
+            itemKeys.remove(keptKey);
+          } else if (change == 'clear') {
+            itemKeys.clear();
+          } else {
+            keepAlive = false;
+          }
+          await tester.pumpWidget(builder());
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(state.mounted, reorder);
+          if (!itemKeys.contains(keptKey)) itemKeys.insert(0, keptKey);
+          keepAlive = true;
+          updates.clear();
+          await tester.pumpWidget(builder());
+          final index = itemKeys.indexOf(keptKey);
+          controller.jumpToIndex(index);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          if (reorder) {
+            expect(tester.state(keptItem), same(state));
+          } else {
+            expect(tester.state(keptItem), isNot(same(state)));
+          }
+          final position = tester.getTopLeft(keptItem);
+          final leading = axis == Axis.vertical ? position.dy : position.dx;
+          final item = updates.last.firstWhere((item) => item.index == index);
+          expect(leading, moreOrLessEquals(0.0));
+          expect(item.leading, moreOrLessEquals(leading / viewportExtent));
+          expect(item.trailing, moreOrLessEquals((leading + itemExtent) / viewportExtent));
+          expect(updates.last.map((item) => item.index).toSet().length, updates.last.length);
+        });
+      }
+
+      for (final scenario in [
+        (initialIndex: 30, targetIndex: 5, keptIndex: 30),
+        (initialIndex: 30, targetIndex: 5, keptIndex: 98),
+      ]) {
+        final (initialIndex: initialIndex, targetIndex: targetIndex, keptIndex: keptIndex) = scenario;
+        testWidgets('when keeping item $keptIndex across anchors $initialIndex and $targetIndex ($axis)', (WidgetTester tester) async {
+          const itemCount = 100;
+          const itemExtent = 100.0;
+          const viewportExtent = 600.0;
+          final itemKeys = List.generate(itemCount, (index) => index);
+          final controller = TsukuyomiListController();
+          final keptItem = find.widgetWithText(_StatefulItem, '$keptIndex', skipOffstage: false);
+
+          Widget builder() {
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: viewportExtent,
+                  height: viewportExtent,
+                  child: TsukuyomiList.builder(
+                    itemKeys: itemKeys,
+                    itemBuilder: (context, index) => _StatefulItem(
+                      keepAlive: true,
+                      child: SizedBox(
+                        width: axis == Axis.horizontal ? itemExtent : null,
+                        height: axis == Axis.vertical ? itemExtent : null,
+                        child: Text('${itemKeys[index]}'),
+                      ),
+                    ),
+                    controller: controller,
+                    scrollDirection: axis,
+                    initialScrollIndex: initialIndex,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          await tester.pumpWidget(builder());
+          State? state = keptItem.evaluate().isEmpty ? null : tester.state(keptItem);
+          controller.position.jumpTo(controller.position.maxScrollExtent);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(controller.anchorIndex, initialIndex);
+          state ??= tester.state(keptItem);
+          expect(state.mounted, true);
+          // 同一侧 Sliver 的离散缓存子项在局部索引改变后，仍应保留原来的 State
+          controller.jumpToIndex(targetIndex);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(controller.anchorIndex, targetIndex);
+          expect(controller.position.pixels, moreOrLessEquals(0.0));
+          expect(state.mounted, true);
+          controller.jumpToIndex(keptIndex);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          expect(tester.state(keptItem), same(state));
+          final position = tester.getTopLeft(keptItem);
+          final leading = axis == Axis.vertical ? position.dy : position.dx;
+          final lastItemCount = itemCount - keptIndex;
+          final expectedLeading = lastItemCount * itemExtent < viewportExtent ? viewportExtent - lastItemCount * itemExtent : 0.0;
+          expect(leading, moreOrLessEquals(expectedLeading));
+        });
+      }
+
       for (final changeAnchor in [false, true]) {
         final changedItem = changeAnchor ? 'anchor' : 'another item';
         testWidgets('when replacing the key of $changedItem ($axis)', (WidgetTester tester) async {
@@ -2196,6 +2341,12 @@ class _StatefulItem extends StatefulWidget {
 class _StatefulItemState extends State<_StatefulItem> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => widget.keepAlive;
+
+  @override
+  void didUpdateWidget(_StatefulItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.keepAlive != oldWidget.keepAlive) updateKeepAlive();
+  }
 
   @override
   Widget build(BuildContext context) {
