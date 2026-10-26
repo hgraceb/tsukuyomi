@@ -18,11 +18,11 @@ class UpdateSummary extends StatelessWidget {
   List<int> get _counts => [report?.failureCount ?? 0, report?.warningCount ?? 0, report?.successCount ?? 0, report?.totalTargets ?? 0];
 
   Size size(BuildContext context) {
-    final buttons = _counts.map((count) => _countSize(context, count));
-    final separators = _measure(context, ' ·  ·  / ');
-    final width = buttons.fold(0.0, (width, size) => width + size.width) + separators.width + 16.0 + 24.0;
-    final height = buttons.fold(24.0, (height, size) => math.max(height, size.height));
-    return Size(width, height);
+    final counts = _counts;
+    final text = _measure(context, '${counts[0]} · ${counts[1]} · ${counts[2]} / ${counts[3]}');
+    // 四个数字的水平留白、图标间距和图标宽度
+    final width = text.width + 16.0 + 16.0 + 24.0;
+    return Size(width, math.max(36.0, text.height + 12.0));
   }
 
   @override

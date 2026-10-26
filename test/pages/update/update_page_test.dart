@@ -767,6 +767,48 @@ void main() {
     }
   });
 
+  testWidgets('Header relocation preserves filtering across window sizes and side safe areas', (tester) async {
+    tester.view.physicalSize = const Size(800.0, 800.0);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    await _pumpPage(
+      tester,
+      manager: _Manager(),
+      textScale: 1.3,
+      report: updateReportFixture(
+        totalTargets: 12345,
+        items: [
+          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
+          updateReportItemFixture(2),
+        ],
+      ),
+    );
+    SliverAppBar appBar() => tester.widget<SliverAppBar>(find.byType(SliverAppBar));
+    expect(appBar().bottom, isNull);
+    await tester.tap(_countButton(UpdateFilter.failure));
+    await tester.pumpAndSettle();
+    for (final safeArea in [true, false]) {
+      tester.view.padding = safeArea ? const FakeViewPadding(left: 300.0, right: 300.0) : const FakeViewPadding();
+      await tester.pumpAndSettle();
+      expect(appBar().bottom != null, safeArea);
+      expect(find.text('manga-title-1'), findsOneWidget);
+      expect(find.text('manga-title-2'), findsNothing);
+      expect(_summaryCounts(tester), [1, 0, 1, 12345]);
+      expect(tester.widget<UpdateSummary>(find.byType(UpdateSummary)).selection, UpdateFilter.failure);
+      expect(tester.takeException(), isNull);
+    }
+    tester.view.physicalSize = const Size(320.0, 800.0);
+    await tester.pumpAndSettle();
+    expect(appBar().bottom, isNotNull);
+    await tester.ensureVisible(_countButton(UpdateFilter.all));
+    await tester.tap(_countButton(UpdateFilter.all));
+    await tester.pumpAndSettle();
+    expect(find.text('manga-title-2'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('The last result can scroll above the floating scan button', (tester) async {
     await _pumpPage(
       tester,

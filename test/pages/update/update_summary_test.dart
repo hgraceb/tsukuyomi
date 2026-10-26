@@ -35,6 +35,11 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
+          final summary = find.byType(UpdateSummary);
+          final measured = tester.widget<UpdateSummary>(summary).size(tester.element(summary));
+          final rendered = tester.getSize(summary);
+          expect(measured.width, closeTo(rendered.width, 0.01));
+          expect(measured.height, closeTo(rendered.height, 0.01));
           final button = find.byKey(const ValueKey(UpdateFilter.all));
           final ink = Material.of(tester.element(button)) as RenderObject;
           final bounds = tester.getRect(button);
