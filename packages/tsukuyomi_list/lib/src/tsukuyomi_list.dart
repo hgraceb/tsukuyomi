@@ -72,9 +72,9 @@ class TsukuyomiList extends StatefulWidget {
 }
 
 class _TsukuyomiListState extends State<TsukuyomiList> {
-  late List<Object> _itemKeys;
   late Object? _anchorKey;
   late int _anchorIndex;
+  late List<Object> _itemKeys;
   late Map<Object, int> _itemIndices;
   final _centerKey = UniqueKey();
   final _elements = <_TsukuyomiListItemElement>{};
