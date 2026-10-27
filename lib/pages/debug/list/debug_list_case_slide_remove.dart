@@ -63,7 +63,6 @@ class _DebugListCaseSlideRemoveState extends State<DebugListCaseSlideRemove> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: next,
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

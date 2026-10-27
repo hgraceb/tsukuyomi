@@ -51,7 +51,6 @@ class _DebugListCaseSlideDefaultState extends State<DebugListCaseSlideDefault> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: next,
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

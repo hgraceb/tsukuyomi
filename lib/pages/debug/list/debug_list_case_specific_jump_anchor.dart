@@ -46,7 +46,6 @@ class _DebugListCaseJumpAnchorState extends State<DebugListCaseJumpAnchor> {
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

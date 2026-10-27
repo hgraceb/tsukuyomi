@@ -64,7 +64,6 @@ class _DebugListCaseAnchorAddEdgeSingleState extends State<DebugListCaseAnchorAd
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );
