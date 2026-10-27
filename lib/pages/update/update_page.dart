@@ -9,9 +9,7 @@ import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
 
 import 'update_controller.dart';
-import 'update_filter.dart';
 import 'update_progress_provider.dart';
-import 'update_sort.dart';
 import 'update_summary.dart';
 
 /// 更新页面
@@ -86,7 +84,6 @@ class UpdatePage extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: running ? l10n.updateStopScan : l10n.updateStartScan,
         onPressed: running ? scanner.stop : scanner.scan,
         child: Icon(running ? Icons.stop_outlined : Icons.sync_outlined),
       ),

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tsukuyomi/pages/update/update_filter.dart';
-import 'package:tsukuyomi/pages/update/update_sort.dart';
+import 'package:tsukuyomi/pages/update/update_controller.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 
 import '../../fixtures/update_fixtures.dart';
