@@ -125,7 +125,6 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
 
   /// 处理触控开始事件
   void _onScaleStart(ScaleStartDetails details) {
-    _scaleController.stop();
     if (details.pointerCount > 1 || _shouldIgnoreListDrag()) {
       return;
     }
@@ -282,6 +281,7 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
           },
           maxScale: widget.maxScale,
           transformationController: _transformationController,
+          onInteractionStart: (_) => _scaleController.stop(),
           onScaleStart: _onScaleStart,
           onScaleUpdate: _onScaleUpdate,
           onScaleEnd: _onScaleEnd,

@@ -98,6 +98,47 @@ void main() {
         expect(tester.getRect(item), originalRect);
       });
 
+      testWidgets('when interrupted by a mouse wheel ($axis)', (WidgetTester tester) async {
+        const middleScale = 2.0;
+        const scaleDuration = Duration(seconds: 1);
+        const animationProgress = 0.4;
+        const wheelDistance = 100.0;
+        final itemKeys = List.generate(40, (index) => index);
+        final scales = <double>[];
+
+        Widget builder() {
+          return _buildList(
+            itemKeys: itemKeys,
+            axis: axis,
+            middleScale: middleScale,
+            scaleDuration: scaleDuration,
+            onScaleUpdate: scales.add,
+          );
+        }
+
+        await tester.pumpWidget(builder());
+        final center = tester.getCenter(find.byType(TsukuyomiInteractiveList));
+        await _doubleTap(tester, center);
+        await tester.pump();
+        await tester.pump(scaleDuration * animationProgress);
+        expect(scales.last, moreOrLessEquals(1.0 + (middleScale - 1.0) * animationProgress));
+        await tester.sendEventToBinding(
+          PointerScrollEvent(
+            kind: PointerDeviceKind.mouse,
+            position: center,
+            scrollDelta: const Offset(0.0, wheelDistance),
+          ),
+        );
+        final viewer = tester.widget<TsukuyomiInteractiveViewer>(find.byType(TsukuyomiInteractiveViewer));
+        final matrix = viewer.transformationController!.value.clone();
+        expect(matrix.getMaxScaleOnAxis(), moreOrLessEquals(1.0));
+        scales.clear();
+        await tester.pump();
+        await tester.pump(scaleDuration);
+        expect(viewer.transformationController!.value, matrix);
+        expect(scales, isEmpty);
+      });
+
       for (final pinching in [false, true]) {
         testWidgets('when interrupted by a new gesture ($axis, pinching: $pinching)', (WidgetTester tester) async {
           const middleScale = 2.0;
