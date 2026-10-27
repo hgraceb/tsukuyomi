@@ -21,28 +21,15 @@ void main() {
         final scales = <double>[];
 
         Widget builder() {
-          return Directionality(
-            textDirection: TextDirection.ltr,
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: viewportExtent,
-                height: viewportExtent,
-                child: TsukuyomiInteractiveList.builder(
-                  itemKeys: itemKeys,
-                  itemBuilder: (context, index) => SizedBox(
-                    width: axis == Axis.horizontal ? itemExtent : null,
-                    height: axis == Axis.vertical ? itemExtent : null,
-                    child: Text('${itemKeys[index]}'),
-                  ),
-                  controller: controller,
-                  initialScrollIndex: initialIndex,
-                  scrollDirection: axis,
-                  onItemsChanged: updates.add,
-                  onScaleUpdate: scales.add,
-                ),
-              ),
-            ),
+          return _buildList(
+            itemKeys: itemKeys,
+            axis: axis,
+            initialIndex: initialIndex,
+            itemExtent: itemExtent,
+            viewportExtent: viewportExtent,
+            controller: controller,
+            onItemsChanged: updates.add,
+            onScaleUpdate: scales.add,
           );
         }
 
@@ -76,29 +63,14 @@ void main() {
         final scales = <double>[];
 
         Widget builder() {
-          return Directionality(
-            textDirection: TextDirection.ltr,
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: viewportExtent,
-                height: viewportExtent,
-                child: TsukuyomiInteractiveList.builder(
-                  itemKeys: itemKeys,
-                  itemBuilder: (context, index) => SizedBox(
-                    key: ValueKey(itemKeys[index]),
-                    width: axis == Axis.horizontal ? itemExtent : null,
-                    height: axis == Axis.vertical ? itemExtent : null,
-                    child: Text('${itemKeys[index]}'),
-                  ),
-                  scrollDirection: axis,
-                  middleScale: middleScale,
-                  scaleCurve: Curves.linear,
-                  scaleDuration: scaleDuration,
-                  onScaleUpdate: scales.add,
-                ),
-              ),
-            ),
+          return _buildList(
+            itemKeys: itemKeys,
+            axis: axis,
+            itemExtent: itemExtent,
+            viewportExtent: viewportExtent,
+            middleScale: middleScale,
+            scaleDuration: scaleDuration,
+            onScaleUpdate: scales.add,
           );
         }
 
@@ -125,6 +97,62 @@ void main() {
         expect(scales.last, moreOrLessEquals(1.0));
         expect(tester.getRect(item), originalRect);
       });
+
+      for (final pinching in [false, true]) {
+        testWidgets('when interrupted by a new gesture ($axis, pinching: $pinching)', (WidgetTester tester) async {
+          const middleScale = 2.0;
+          const scaleDuration = Duration(seconds: 1);
+          const animationProgress = 0.4;
+          const fingerDistance = 50.0;
+          const closedFingerDistance = 1.0;
+          final itemKeys = List.generate(40, (index) => index);
+          final scales = <double>[];
+
+          Widget builder() {
+            return _buildList(
+              itemKeys: itemKeys,
+              axis: axis,
+              initialIndex: 10,
+              middleScale: middleScale,
+              scaleDuration: scaleDuration,
+              onScaleUpdate: scales.add,
+            );
+          }
+
+          await tester.pumpWidget(builder());
+          final center = tester.getCenter(find.byType(TsukuyomiInteractiveList));
+          await _doubleTap(tester, center);
+          await tester.pump();
+          await tester.pump(scaleDuration * animationProgress);
+          expect(scales.last, moreOrLessEquals(1.0 + (middleScale - 1.0) * animationProgress));
+          final firstPosition = pinching ? center - const Offset(fingerDistance, 0.0) : center;
+          final first = await tester.startGesture(firstPosition, pointer: 1);
+          final second = pinching ? await tester.startGesture(center + const Offset(fingerDistance, 0.0), pointer: 2) : null;
+          await tester.pump(kDoubleTapMinTime);
+          if (second != null) {
+            await first.moveBy(const Offset(-kTouchSlop * 2.0, 0.0));
+            await second.moveBy(const Offset(kTouchSlop * 2.0, 0.0));
+            await tester.pump();
+            await first.moveTo(center - const Offset(closedFingerDistance, 0.0));
+            await second.moveTo(center + const Offset(closedFingerDistance, 0.0));
+            await tester.pump();
+            expect(scales.last, moreOrLessEquals(1.0));
+          } else {
+            final delta = axis == Axis.vertical ? const Offset(0.0, -kTouchSlop * 2.0) : const Offset(-kTouchSlop * 2.0, 0.0);
+            await first.moveBy(delta);
+            await tester.pump();
+          }
+          final viewer = tester.widget<TsukuyomiInteractiveViewer>(find.byType(TsukuyomiInteractiveViewer));
+          final matrix = viewer.transformationController!.value.clone();
+          scales.clear();
+          await tester.pump(scaleDuration);
+          expect(viewer.transformationController!.value, matrix);
+          expect(scales, isEmpty);
+          await first.up();
+          await second?.up();
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+        });
+      }
     }
   });
 
@@ -145,30 +173,16 @@ void main() {
           final trackedIndex = initialIndex + viewportExtent ~/ itemExtent ~/ 2;
 
           Widget builder() {
-            return Directionality(
-              textDirection: TextDirection.ltr,
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: viewportExtent,
-                  height: viewportExtent,
-                  child: TsukuyomiInteractiveList.builder(
-                    itemKeys: itemKeys,
-                    itemBuilder: (context, index) => SizedBox(
-                      key: ValueKey(itemKeys[index]),
-                      width: axis == Axis.horizontal ? itemExtent : null,
-                      height: axis == Axis.vertical ? itemExtent : null,
-                      child: Text('${itemKeys[index]}'),
-                    ),
-                    controller: controller,
-                    initialScrollIndex: initialIndex,
-                    scrollDirection: axis,
-                    middleScale: middleScale,
-                    scaleDuration: scaleDuration,
-                    onScaleUpdate: scales.add,
-                  ),
-                ),
-              ),
+            return _buildList(
+              itemKeys: itemKeys,
+              axis: axis,
+              initialIndex: initialIndex,
+              itemExtent: itemExtent,
+              viewportExtent: viewportExtent,
+              middleScale: middleScale,
+              scaleDuration: scaleDuration,
+              controller: controller,
+              onScaleUpdate: scales.add,
             );
           }
 
@@ -225,6 +239,63 @@ void main() {
     }
   });
 
+  group('TsukuyomiInteractiveList respects flinging', () {
+    for (final axis in Axis.values) {
+      for (final zoomed in [false, true]) {
+        for (final direction in [-1.0, 1.0]) {
+          testWidgets('when releasing a fast drag ($axis, zoomed: $zoomed, direction: $direction)', (WidgetTester tester) async {
+            const initialIndex = 10;
+            const itemExtent = 100.0;
+            const middleScale = 2.0;
+            const scaleDuration = Duration(milliseconds: 200);
+            const flingDistance = 120.0;
+            const flingSpeed = 1200.0;
+            const eventInterval = Duration(milliseconds: 16);
+            final itemKeys = List.generate(40, (index) => index);
+            final controller = TsukuyomiListController();
+
+            Widget builder() {
+              return _buildList(
+                itemKeys: itemKeys,
+                axis: axis,
+                initialIndex: initialIndex,
+                itemExtent: itemExtent,
+                middleScale: middleScale,
+                scaleDuration: scaleDuration,
+                controller: controller,
+                physics: const ClampingScrollPhysics(),
+              );
+            }
+
+            await tester.pumpWidget(builder());
+            final center = tester.getCenter(find.byType(TsukuyomiInteractiveList));
+            if (zoomed) {
+              await _doubleTap(tester, center);
+              await tester.pump();
+              await tester.pump(scaleDuration);
+            }
+            final distance = direction * flingDistance;
+            final delta = axis == Axis.vertical ? Offset(0.0, distance) : Offset(distance, 0.0);
+            await tester.flingFrom(center, delta, flingSpeed);
+            final scale = zoomed ? middleScale : 1.0;
+            final expectedVelocity = -direction * flingSpeed / scale;
+            final simulation = controller.position.physics.createBallisticSimulation(controller.position, expectedVelocity)!;
+            await tester.pump();
+            final before = controller.anchorIndex * itemExtent + controller.position.pixels;
+            await tester.pump(eventInterval);
+            final after = controller.anchorIndex * itemExtent + controller.position.pixels;
+            final elapsed = eventInterval.inMicroseconds / Duration.microsecondsPerSecond;
+            final expectedDistance = simulation.x(elapsed) - simulation.x(0.0);
+            expect((after - before) * -direction, greaterThan(0.0));
+            expect(after - before, moreOrLessEquals(expectedDistance));
+            await tester.pumpAndSettle(eventInterval);
+            expect(controller.position.isScrollingNotifier.value, false);
+          });
+        }
+      }
+    }
+  });
+
   group('TsukuyomiInteractiveList respects pinch scaling', () {
     for (final axis in Axis.values) {
       testWidgets('when reaching scale limits ($axis)', (WidgetTester tester) async {
@@ -239,29 +310,16 @@ void main() {
         final scales = <double>[];
 
         Widget builder() {
-          return Directionality(
-            textDirection: TextDirection.ltr,
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: viewportExtent,
-                height: viewportExtent,
-                child: TsukuyomiInteractiveList.builder(
-                  itemKeys: itemKeys,
-                  itemBuilder: (context, index) => SizedBox(
-                    width: axis == Axis.horizontal ? itemExtent : null,
-                    height: axis == Axis.vertical ? itemExtent : null,
-                    child: Text('${itemKeys[index]}'),
-                  ),
-                  controller: controller,
-                  initialScrollIndex: initialIndex,
-                  scrollDirection: axis,
-                  middleScale: maxScale,
-                  maxScale: maxScale,
-                  onScaleUpdate: scales.add,
-                ),
-              ),
-            ),
+          return _buildList(
+            itemKeys: itemKeys,
+            axis: axis,
+            initialIndex: initialIndex,
+            itemExtent: itemExtent,
+            viewportExtent: viewportExtent,
+            middleScale: maxScale,
+            maxScale: maxScale,
+            controller: controller,
+            onScaleUpdate: scales.add,
           );
         }
 
@@ -290,6 +348,132 @@ void main() {
         expect(controller.anchorIndex, initialIndex);
         expect(controller.position.pixels, moreOrLessEquals(0.0));
       });
+
+      testWidgets('when adding and removing a second pointer during a drag ($axis)', (WidgetTester tester) async {
+        const initialIndex = 10;
+        const itemExtent = 100.0;
+        const dragDistance = 100.0;
+        const fingerDistance = 60.0;
+        const eventInterval = Duration(milliseconds: 16);
+        final itemKeys = List.generate(40, (index) => index);
+        final controller = TsukuyomiListController();
+
+        Widget builder() {
+          return _buildList(
+            itemKeys: itemKeys,
+            axis: axis,
+            initialIndex: initialIndex,
+            itemExtent: itemExtent,
+            controller: controller,
+          );
+        }
+
+        await tester.pumpWidget(builder());
+        final center = tester.getCenter(find.byType(TsukuyomiInteractiveList));
+        final startDelta = axis == Axis.vertical ? const Offset(0.0, -kTouchSlop * 2.0) : const Offset(-kTouchSlop * 2.0, 0.0);
+        final dragDelta = axis == Axis.vertical ? const Offset(0.0, -dragDistance) : const Offset(-dragDistance, 0.0);
+        final crossDelta = axis == Axis.vertical ? const Offset(fingerDistance, 0.0) : const Offset(0.0, fingerDistance);
+        final first = await tester.startGesture(center, pointer: 1);
+        await first.moveBy(startDelta, timeStamp: eventInterval);
+        await tester.pump(eventInterval);
+        await first.moveBy(dragDelta, timeStamp: eventInterval * 2);
+        await tester.pump(eventInterval);
+        final beforePinch = controller.anchorIndex * itemExtent + controller.position.pixels;
+        expect(beforePinch, greaterThan(initialIndex * itemExtent));
+        final second = await tester.createGesture(pointer: 2);
+        await second.down(center + startDelta + dragDelta + crossDelta, timeStamp: eventInterval * 2);
+        await first.moveBy(dragDelta, timeStamp: eventInterval * 3);
+        await second.moveBy(dragDelta, timeStamp: eventInterval * 3);
+        await tester.pump(eventInterval);
+        expect(controller.anchorIndex * itemExtent + controller.position.pixels, moreOrLessEquals(beforePinch));
+        await second.up(timeStamp: eventInterval * 3);
+        await tester.pump();
+        expect(controller.anchorIndex * itemExtent + controller.position.pixels, moreOrLessEquals(beforePinch));
+        await first.moveBy(startDelta, timeStamp: eventInterval * 4);
+        await tester.pump(eventInterval);
+        final beforeDrag = controller.anchorIndex * itemExtent + controller.position.pixels;
+        final viewer = tester.widget<TsukuyomiInteractiveViewer>(find.byType(TsukuyomiInteractiveViewer));
+        final scale = viewer.transformationController!.value.getMaxScaleOnAxis();
+        await first.moveBy(dragDelta, timeStamp: eventInterval * 5);
+        await tester.pump(eventInterval);
+        final afterDrag = controller.anchorIndex * itemExtent + controller.position.pixels;
+        expect(afterDrag - beforeDrag, moreOrLessEquals(dragDistance / scale));
+        await tester.pump(kPressTimeout);
+        await first.up(timeStamp: eventInterval * 5 + kPressTimeout);
+        await tester.pumpAndSettle(eventInterval);
+        expect(controller.position.isScrollingNotifier.value, false);
+        final stoppedOffset = controller.anchorIndex * itemExtent + controller.position.pixels;
+        await tester.pump(kPressTimeout);
+        expect(controller.anchorIndex * itemExtent + controller.position.pixels, moreOrLessEquals(stoppedOffset));
+      });
+    }
+  });
+
+  group('TsukuyomiInteractiveList respects zoomed boundaries', () {
+    for (final axis in Axis.values) {
+      for (final itemCount in [2, 4, 40]) {
+        testWidgets('when scrolling to both ends ($axis, items: $itemCount)', (WidgetTester tester) async {
+          const itemExtent = 100.0;
+          const viewportExtent = 600.0;
+          const middleScale = 2.0;
+          const scaleDuration = Duration(milliseconds: 200);
+          final itemKeys = List.generate(itemCount, (index) => index);
+          final controller = TsukuyomiListController();
+
+          Widget builder() {
+            return _buildList(
+              itemKeys: itemKeys,
+              axis: axis,
+              itemExtent: itemExtent,
+              viewportExtent: viewportExtent,
+              middleScale: middleScale,
+              scaleDuration: scaleDuration,
+              controller: controller,
+              physics: const ClampingScrollPhysics(),
+            );
+          }
+
+          await tester.pumpWidget(builder());
+          final viewport = tester.getRect(find.byType(TsukuyomiInteractiveList));
+          await _doubleTap(tester, viewport.center);
+          await tester.pump();
+          await tester.pump(scaleDuration);
+          controller.jumpToIndex(0);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          controller.position.jumpTo(controller.position.minScrollExtent);
+          await tester.pumpAndSettle(const Duration(milliseconds: 16));
+          final firstRect = tester.getRect(find.byKey(const ValueKey(0)));
+          final firstLeading = axis == Axis.vertical ? firstRect.top : firstRect.left;
+          final viewportLeading = axis == Axis.vertical ? viewport.top : viewport.left;
+          expect(firstLeading, moreOrLessEquals(viewportLeading));
+          final lastItem = find.byKey(ValueKey(itemCount - 1));
+          final viewportTrailing = axis == Axis.vertical ? viewport.bottom : viewport.right;
+          final contentExtent = itemCount * itemExtent;
+          if (contentExtent * middleScale <= viewportExtent) {
+            final lastRect = tester.getRect(lastItem);
+            final lastTrailing = axis == Axis.vertical ? lastRect.bottom : lastRect.right;
+            expect(lastTrailing, lessThanOrEqualTo(viewportTrailing));
+            final lastLeading = axis == Axis.vertical ? lastRect.top : lastRect.left;
+            expect(lastLeading, greaterThanOrEqualTo(viewportLeading));
+          } else {
+            if (contentExtent < viewportExtent) {
+              final lastRect = tester.getRect(lastItem);
+              final lastTrailing = axis == Axis.vertical ? lastRect.bottom : lastRect.right;
+              final delta = (lastTrailing - viewportTrailing) / middleScale;
+              controller.position.jumpTo(controller.position.pixels + delta);
+            } else {
+              controller.jumpToIndex(itemCount - 1);
+              await tester.pumpAndSettle(const Duration(milliseconds: 16));
+              controller.position.jumpTo(controller.position.maxScrollExtent);
+            }
+            await tester.pumpAndSettle(const Duration(milliseconds: 16));
+            final lastRect = tester.getRect(lastItem);
+            final lastTrailing = axis == Axis.vertical ? lastRect.bottom : lastRect.right;
+            expect(lastTrailing, moreOrLessEquals(viewportTrailing));
+          }
+          expect(controller.position.outOfRange, false);
+        });
+      }
     }
   });
 
@@ -301,14 +485,7 @@ void main() {
     final secondController = TsukuyomiListController();
 
     Widget builder(TsukuyomiListController? controller) {
-      return Directionality(
-        textDirection: TextDirection.ltr,
-        child: TsukuyomiInteractiveList.builder(
-          itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: itemExtent, child: Text('${itemKeys[index]}')),
-          controller: controller,
-        ),
-      );
+      return _buildList(itemKeys: itemKeys, itemExtent: itemExtent, controller: controller);
     }
 
     await tester.pumpWidget(builder(firstController));
@@ -339,16 +516,11 @@ void main() {
     final scales = <double>[];
 
     Widget builder(Duration duration) {
-      return Directionality(
-        textDirection: TextDirection.ltr,
-        child: TsukuyomiInteractiveList.builder(
-          itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
-          middleScale: middleScale,
-          scaleDuration: duration,
-          scaleCurve: Curves.linear,
-          onScaleUpdate: scales.add,
-        ),
+      return _buildList(
+        itemKeys: itemKeys,
+        middleScale: middleScale,
+        scaleDuration: duration,
+        onScaleUpdate: scales.add,
       );
     }
 
@@ -370,16 +542,11 @@ void main() {
     final scales = <double>[];
 
     Widget builder() {
-      return Directionality(
-        textDirection: TextDirection.ltr,
-        child: TsukuyomiInteractiveList.builder(
-          itemKeys: itemKeys,
-          itemBuilder: (context, index) => SizedBox(height: 100.0, child: Text('${itemKeys[index]}')),
-          middleScale: middleScale,
-          scaleDuration: scaleDuration,
-          scaleCurve: Curves.linear,
-          onScaleUpdate: scales.add,
-        ),
+      return _buildList(
+        itemKeys: itemKeys,
+        middleScale: middleScale,
+        scaleDuration: scaleDuration,
+        onScaleUpdate: scales.add,
       );
     }
 
@@ -394,6 +561,51 @@ void main() {
     expect(scales.length, updateCount);
     expect(tester.takeException(), isNull);
   });
+}
+
+Widget _buildList({
+  required List<int> itemKeys,
+  Axis axis = Axis.vertical,
+  int initialIndex = 0,
+  double itemExtent = 100.0,
+  double viewportExtent = 600.0,
+  double middleScale = 2.0,
+  double maxScale = 5.0,
+  Duration scaleDuration = const Duration(milliseconds: 200),
+  TsukuyomiListController? controller,
+  ScrollPhysics? physics,
+  ValueChanged<List<TsukuyomiListItem>>? onItemsChanged,
+  ValueChanged<double>? onScaleUpdate,
+}) {
+  return Directionality(
+    textDirection: TextDirection.ltr,
+    child: Align(
+      alignment: Alignment.topLeft,
+      child: SizedBox(
+        width: viewportExtent,
+        height: viewportExtent,
+        child: TsukuyomiInteractiveList.builder(
+          itemKeys: itemKeys,
+          itemBuilder: (context, index) => SizedBox(
+            key: ValueKey(itemKeys[index]),
+            width: axis == Axis.horizontal ? itemExtent : null,
+            height: axis == Axis.vertical ? itemExtent : null,
+            child: Text('${itemKeys[index]}'),
+          ),
+          scrollDirection: axis,
+          initialScrollIndex: initialIndex,
+          middleScale: middleScale,
+          maxScale: maxScale,
+          scaleDuration: scaleDuration,
+          scaleCurve: Curves.linear,
+          controller: controller,
+          physics: physics,
+          onItemsChanged: onItemsChanged,
+          onScaleUpdate: onScaleUpdate,
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> _doubleTap(WidgetTester tester, Offset position) async {

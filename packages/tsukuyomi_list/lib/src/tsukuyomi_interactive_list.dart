@@ -125,6 +125,7 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
 
   /// 处理触控开始事件
   void _onScaleStart(ScaleStartDetails details) {
+    _scaleController.stop();
     if (details.pointerCount > 1 || _shouldIgnoreListDrag()) {
       return;
     }
@@ -254,16 +255,7 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
   void didUpdateWidget(TsukuyomiInteractiveList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
-      if (oldWidget.controller == null) {
-        assert(widget.controller != null);
-        _listController = widget.controller!;
-      } else {
-        if (widget.controller == null) {
-          _listController = TsukuyomiListController();
-        } else {
-          _listController = widget.controller!;
-        }
-      }
+      _listController = widget.controller ?? TsukuyomiListController();
     }
     _scaleController.duration = widget.scaleDuration;
   }
