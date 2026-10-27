@@ -33,46 +33,6 @@ class UpdatePage extends ConsumerWidget {
     return complete ? Icon(Icons.check_circle_outline, size: 24.0, color: color) : _buildProgress(processed, total, color);
   }
 
-  /// 更新页面的应用栏
-  Widget _buildAppBar(BuildContext context, UpdateSummary? summary) {
-    final l10n = TsukuyomiLocalizations.of(context)!;
-    final title = Text(l10n.updateTitle, maxLines: 1, overflow: TextOverflow.ellipsis);
-    if (summary == null) return TsukuyomiSliverAppBar(title: title);
-
-    final summarySize = summary.size(context);
-    final painter = TextPainter(
-      text: TextSpan(text: l10n.updateTitle, style: Theme.of(context).textTheme.titleLarge),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout();
-    final width = MediaQuery.sizeOf(context).width - MediaQuery.paddingOf(context).horizontal;
-    final summaryBelow = width < summarySize.width + painter.width + 48.0;
-    painter.dispose();
-
-    return TsukuyomiSliverAppBar(
-      title: title,
-      actions: summaryBelow ? null : [Padding(padding: const EdgeInsets.only(right: 8.0), child: summary)],
-      bottom: summaryBelow ? _buildSummaryBottom(summary, summarySize) : null,
-    );
-  }
-
-  /// 窄屏下显示在应用栏底部的更新统计
-  PreferredSizeWidget _buildSummaryBottom(UpdateSummary summary, Size size) {
-    return PreferredSize(
-      preferredSize: Size.fromHeight(size.height + 8.0),
-      child: SizedBox(
-        height: size.height + 8.0,
-        child: Align(
-          alignment: Alignment.topRight,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: summary),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
@@ -88,11 +48,16 @@ class UpdatePage extends ConsumerWidget {
     final items = results.where(filter.matches).toList()..sort(compareUpdateItems);
     final itemIndexes = {for (var index = 0; index < items.length; index++) items[index].mangaId: index};
     final showSummary = running || error || report != null && report.phase != UpdatePhase.idle;
-    final summary = UpdateSummary(
-      report: report,
-      selection: selection,
-      onChanged: controller.onFilterChanged,
-      progress: _buildSummaryProgress(context, report, running, error),
+    final summary = Flexible(
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: UpdateSummary(
+          report: report,
+          selection: selection,
+          onChanged: controller.onFilterChanged,
+          progress: _buildSummaryProgress(context, report, running, error),
+        ),
+      ),
     );
 
     return TsukuyomiScaffold(
@@ -100,7 +65,10 @@ class UpdatePage extends ConsumerWidget {
         top: false,
         child: CustomScrollView(
           slivers: [
-            _buildAppBar(context, showSummary ? summary : null),
+            TsukuyomiSliverAppBar(
+              title: Text(l10n.updateTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+              actions: showSummary ? [summary] : null,
+            ),
             if (items.isNotEmpty) ...[
               SliverPadding(
                 padding: const EdgeInsets.only(bottom: 96.0),

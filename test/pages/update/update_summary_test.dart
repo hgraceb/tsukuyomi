@@ -35,16 +35,14 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          final summary = find.byType(UpdateSummary);
-          final measured = tester.widget<UpdateSummary>(summary).size(tester.element(summary));
-          final rendered = tester.getSize(summary);
-          expect(measured.width, closeTo(rendered.width, 0.01));
-          expect(measured.height, closeTo(rendered.height, 0.01));
           final button = find.byKey(const ValueKey(UpdateFilter.all));
           final ink = Material.of(tester.element(button)) as RenderObject;
           final bounds = tester.getRect(button);
-          final height = bounds.height;
-          final feedback = Rect.fromCenter(center: bounds.center, width: math.max(height, bounds.width), height: height);
+          final box = tester.renderObject<RenderBox>(button);
+          final size = box.size;
+          final rect = Rect.fromCenter(center: size.center(Offset.zero), width: math.max(size.height, size.width), height: size.height);
+          final translation = MatrixUtils.getAsTranslation(box.getTransformTo(ink));
+          final feedback = translation == null ? rect : rect.shift(translation);
           expect(bounds.height, greaterThanOrEqualTo(36.0));
           expect(ink, paintsExactlyCountTimes(#drawRect, 0));
           final press = await tester.startGesture(bounds.center + Offset(bounds.width / 4.0, 0.0));

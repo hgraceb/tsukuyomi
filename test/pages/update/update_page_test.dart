@@ -598,11 +598,8 @@ void main() {
         UpdateFilter.success: colors.onSurface,
         UpdateFilter.all: colors.onSurface,
       };
-      final separators = find.descendant(
-        of: find.byType(UpdateSummary),
-        matching: find.byWidgetPredicate((widget) => widget is Opacity && widget.child is Text),
-      );
-      expect(separators, findsNWidgets(3));
+      List<TextSpan> separators() => (tester.widget<Text>(_summaryText()).textSpan! as TextSpan).children!.whereType<TextSpan>().toList();
+      expect(separators(), hasLength(3));
       void expectSelection(UpdateFilter? selection) {
         for (final candidate in UpdateFilter.values) {
           final style = tester.widget<Text>(_countText(candidate)).style!;
@@ -615,7 +612,8 @@ void main() {
           expect(data.flagsCollection.isSelected.toBoolOrNull(), candidate == selection);
           expect(data.hasAction(SemanticsAction.tap), isTrue);
         }
-        expect(tester.widgetList<Opacity>(separators).map((widget) => widget.opacity), everyElement(selection == null ? 1.0 : 1 / 3));
+        final separatorColor = selection == null ? colors.onSurface : colors.onSurface.withValues(alpha: colors.onSurface.a / 3.0);
+        expect(separators().map((span) => span.style?.color), everyElement(separatorColor));
       }
 
       expectSelection(null);
@@ -747,7 +745,7 @@ void main() {
     expect(feedbackRect().width, greaterThan(36.0));
   });
 
-  testWidgets('Large counts and fonts keep all four actions accessible in both languages', (tester) async {
+  testWidgets('Large counts and fonts use single-line ellipsis in both languages', (tester) async {
     tester.view.physicalSize = const Size(320.0, 800.0);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -755,19 +753,18 @@ void main() {
     for (final locale in [const Locale('en'), const Locale('zh')]) {
       await _pumpPage(tester, manager: _Manager(), locale: locale, textScale: 1.3, report: updateReportFixture(totalTargets: 12345));
       expect(_summaryCounts(tester), [0, 0, 0, 12345]);
-      expect(tester.widget<SliverAppBar>(find.byType(SliverAppBar)).bottom, isNotNull);
-      final all = _countButton(UpdateFilter.all);
-      await tester.ensureVisible(all);
-      await tester.tap(all);
-      await tester.pumpAndSettle();
-      expect(tester.renderObject<RenderParagraph>(_countText(UpdateFilter.all)).didExceedMaxLines, isFalse);
+      expect(tester.widget<SliverAppBar>(find.byType(SliverAppBar)).bottom, isNull);
+      final text = tester.widget<Text>(_summaryText());
+      expect(text.maxLines, 1);
+      expect(text.overflow, TextOverflow.ellipsis);
+      expect(tester.renderObject<RenderParagraph>(_summaryText()).didExceedMaxLines, isTrue);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     }
   });
 
-  testWidgets('Header relocation preserves filtering across window sizes and side safe areas', (tester) async {
+  testWidgets('Single-line summary preserves filtering across window sizes and side safe areas', (tester) async {
     tester.view.physicalSize = const Size(800.0, 800.0);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -792,7 +789,8 @@ void main() {
     for (final safeArea in [true, false]) {
       tester.view.padding = safeArea ? const FakeViewPadding(left: 300.0, right: 300.0) : const FakeViewPadding();
       await tester.pumpAndSettle();
-      expect(appBar().bottom != null, safeArea);
+      expect(appBar().bottom, isNull);
+      expect(tester.renderObject<RenderParagraph>(_summaryText()).didExceedMaxLines, safeArea);
       expect(find.text('manga-title-1'), findsOneWidget);
       expect(find.text('manga-title-2'), findsNothing);
       expect(_summaryCounts(tester), [1, 0, 1, 12345]);
@@ -801,8 +799,10 @@ void main() {
     }
     tester.view.physicalSize = const Size(320.0, 800.0);
     await tester.pumpAndSettle();
-    expect(appBar().bottom, isNotNull);
-    await tester.ensureVisible(_countButton(UpdateFilter.all));
+    expect(appBar().bottom, isNull);
+    expect(tester.renderObject<RenderParagraph>(_summaryText()).didExceedMaxLines, isTrue);
+    tester.view.physicalSize = const Size(800.0, 800.0);
+    await tester.pumpAndSettle();
     await tester.tap(_countButton(UpdateFilter.all));
     await tester.pumpAndSettle();
     expect(find.text('manga-title-2'), findsOneWidget);
@@ -877,6 +877,11 @@ void _narrowScreen(WidgetTester tester) {
 }
 
 Finder _countButton(UpdateFilter filter) => find.byKey(ValueKey(filter));
+
+Finder _summaryText() => find.descendant(
+  of: find.byType(UpdateSummary),
+  matching: find.byWidgetPredicate((widget) => widget is Text && widget.textSpan != null),
+);
 
 Finder _countText(UpdateFilter filter) => find.descendant(of: _countButton(filter), matching: find.byType(Text));
 

@@ -17,19 +17,13 @@ class UpdateSummary extends StatelessWidget {
 
   List<int> get _counts => [report?.failureCount ?? 0, report?.warningCount ?? 0, report?.successCount ?? 0, report?.totalTargets ?? 0];
 
-  Size size(BuildContext context) {
-    final counts = _counts;
-    final text = _measure(context, '${counts[0]} · ${counts[1]} · ${counts[2]} / ${counts[3]}');
-    // 四个数字的水平留白、图标间距和图标宽度
-    final width = text.width + 16.0 + 16.0 + 24.0;
-    return Size(width, math.max(36.0, text.height + 12.0));
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final counts = _counts;
+    final separatorOpacity = selection == null ? 1.0 : 1 / 3;
+    final separatorColor = colors.onSurface.withValues(alpha: colors.onSurface.a * separatorOpacity);
     final labels = [
       l10n.updateFilterErrors(counts[0]),
       l10n.updateFilterWarnings(counts[1]),
@@ -42,23 +36,37 @@ class UpdateSummary extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (var index = 0; index < counts.length; index++) ...[
-          if (index > 0) ...[
-            Opacity(
-              opacity: selection == null ? 1.0 : 1 / 3,
-              child: Text(index == 3 ? ' / ' : ' · ', style: _countStyle(context)),
+        Flexible(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                for (var index = 0; index < counts.length; index++) ...[
+                  if (index > 0) ...[
+                    TextSpan(
+                      text: index == 3 ? ' / ' : ' · ',
+                      style: TextStyle(color: separatorColor),
+                    ),
+                  ],
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: _UpdateCountButton(
+                      key: ValueKey(filters[index]),
+                      count: counts[index],
+                      color: countColors[index],
+                      label: labels[index],
+                      selected: selection == filters[index],
+                      muted: selection != null && selection != filters[index],
+                      onPressed: () => onChanged(filters[index]),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-          _UpdateCountButton(
-            key: ValueKey(filters[index]),
-            count: counts[index],
-            color: countColors[index],
-            label: labels[index],
-            selected: selection == filters[index],
-            muted: selection != null && selection != filters[index],
-            onPressed: () => onChanged(filters[index]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _countStyle(context),
           ),
-        ],
+        ),
         const SizedBox(width: 16.0),
         Semantics(
           label: l10n.updateSummary(counts[0], counts[1], counts[2], counts[3]),
@@ -90,7 +98,6 @@ class _UpdateCountButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = _countSize(context, count);
     final textColor = muted ? color.withValues(alpha: color.a / 3.0) : color;
 
     return Semantics(
@@ -104,12 +111,18 @@ class _UpdateCountButton extends StatelessWidget {
         excludeFromSemantics: true,
         child: _UpdateCountFeedback(
           onTap: onPressed,
-          child: SizedBox.fromSize(
-            size: size,
-            child: Center(
-              child: Text(
-                '$count',
-                style: _countStyle(context).copyWith(color: textColor),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 36.0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 6.0),
+              // 行内组件由 Text.rich 统一缩放，避免字号重复放大
+              child: MediaQuery.withNoTextScaling(
+                child: Text(
+                  '$count',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _countStyle(context).copyWith(color: textColor),
+                ),
               ),
             ),
           ),
@@ -139,20 +152,4 @@ class _UpdateCountFeedback extends InkResponse {
 TextStyle _countStyle(BuildContext context) {
   final style = Theme.of(context).textTheme.bodyLarge!;
   return style.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
-}
-
-Size _measure(BuildContext context, String text) {
-  final painter = TextPainter(
-    text: TextSpan(text: text, style: _countStyle(context)),
-    textDirection: Directionality.of(context),
-    textScaler: MediaQuery.textScalerOf(context),
-  )..layout();
-  final size = painter.size;
-  painter.dispose();
-  return size;
-}
-
-Size _countSize(BuildContext context, int count) {
-  final text = _measure(context, '$count');
-  return Size(text.width + 4.0, math.max(36.0, text.height + 12.0));
 }
