@@ -705,7 +705,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Counts retain compact text spacing with circular or capsule feedback only during interaction', (tester) async {
+  testWidgets('Counts retain compact text spacing without persistent button decoration', (tester) async {
     _narrowScreen(tester);
     final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
     final container = await _pumpPage(tester, manager: _Manager(), report: report);
@@ -721,15 +721,6 @@ void main() {
       expect(find.descendant(of: _countButton(filter), matching: find.byType(DecoratedBox)), findsNothing);
       expect(tester.widget<Text>(_countText(filter)).style?.decoration, isNot(TextDecoration.underline));
     }
-    final inkResponses = find.byWidgetPredicate((widget) => widget is InkResponse);
-    Finder feedback() => find.descendant(of: _countButton(UpdateFilter.all), matching: inkResponses);
-    Rect feedbackRect() {
-      final response = tester.widget<InkResponse>(feedback());
-      final box = tester.renderObject<RenderBox>(feedback());
-      return response.getRectCallback(box)!();
-    }
-
-    expect(feedbackRect().size, const Size(36.0, 36.0));
     for (final count in [12, 123, 12345]) {
       await container.read(updateReportStoreProvider.notifier).save(report.copyWith(totalTargets: count));
       await tester.pumpAndSettle();
@@ -737,12 +728,6 @@ void main() {
       expect(tester.renderObject<RenderParagraph>(_countText(UpdateFilter.all)).didExceedMaxLines, isFalse);
       expect(tester.takeException(), isNull);
     }
-    final wide = tester.widget<InkResponse>(feedback());
-    expect(wide.highlightShape, BoxShape.rectangle);
-    expect(wide.customBorder, isA<StadiumBorder>());
-    expect(wide.splashFactory, NoSplash.splashFactory);
-    expect(feedbackRect().height, 36.0);
-    expect(feedbackRect().width, greaterThan(36.0));
   });
 
   testWidgets('Large counts and fonts use single-line ellipsis in both languages', (tester) async {

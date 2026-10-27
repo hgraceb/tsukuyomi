@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:tsukuyomi/l10n/l10n.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
@@ -109,7 +107,7 @@ class _UpdateCountButton extends StatelessWidget {
       child: Tooltip(
         message: label,
         excludeFromSemantics: true,
-        child: _UpdateCountFeedback(
+        child: InkWell(
           onTap: onPressed,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 36.0),
@@ -130,23 +128,6 @@ class _UpdateCountButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _UpdateCountFeedback extends InkResponse {
-  const _UpdateCountFeedback({required super.onTap, required super.child})
-    : super(
-        containedInkWell: true,
-        highlightShape: BoxShape.rectangle,
-        customBorder: const StadiumBorder(),
-        // 仅保留按压高亮，避免与扩散水波纹叠出两圈
-        splashFactory: NoSplash.splashFactory,
-      );
-
-  @override
-  RectCallback getRectCallback(RenderBox referenceBox) => () {
-    final size = referenceBox.size;
-    return Rect.fromCenter(center: size.center(Offset.zero), width: math.max(size.height, size.width), height: size.height);
-  };
 }
 
 TextStyle _countStyle(BuildContext context) {
