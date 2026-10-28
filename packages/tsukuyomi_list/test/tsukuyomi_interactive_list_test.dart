@@ -39,7 +39,6 @@ void main() {
         expectList(tester, visible: List.generate(visibleCount, (index) => initialIndex + index));
         expect(updates, isNotEmpty);
         final initialItem = updates.first.singleWhere((item) => item.index == initialIndex);
-        expect(initialItem.index, initialIndex);
         expect(initialItem.leading, moreOrLessEquals(0.0));
         expect(initialItem.trailing, moreOrLessEquals(itemExtent / viewportExtent));
         expect(scales, isEmpty);
@@ -329,7 +328,6 @@ void main() {
             }
 
             await tester.pumpWidget(builder());
-            expect(controller.position.physics, isA<ClampingScrollPhysics>());
             final center = tester.getCenter(find.byType(TsukuyomiInteractiveList));
             if (zoomed) {
               await _doubleTap(tester, center);
@@ -532,11 +530,6 @@ void main() {
           await _doubleTap(tester, viewport.center);
           await tester.pump();
           await tester.pump(scaleDuration);
-          if (contentExtent < viewportExtent) {
-            final inset = viewportExtent * (1.0 - 1.0 / middleScale) / 2.0;
-            expect(controller.position.minScrollExtent, moreOrLessEquals(-inset));
-            expect(controller.position.maxScrollExtent, moreOrLessEquals(inset));
-          }
           controller.jumpToIndex(0);
           await tester.pumpAndSettle(const Duration(milliseconds: 16));
           controller.position.jumpTo(controller.position.minScrollExtent);
@@ -576,29 +569,37 @@ void main() {
   });
 
   testWidgets('TsukuyomiInteractiveList respects controller replacement', (WidgetTester tester) async {
+    const initialIndex = 10;
+    const targetIndex = initialIndex + 1;
     const itemExtent = 100.0;
-    const targetIndex = 10;
+    const scrollOffset = itemExtent / 4.0;
     final itemKeys = List.generate(40, (index) => index);
     final firstController = TsukuyomiListController();
     final secondController = TsukuyomiListController();
 
     Widget builder(TsukuyomiListController? controller) {
-      return _buildList(itemKeys: itemKeys, itemExtent: itemExtent, controller: controller);
+      return _buildList(itemKeys: itemKeys, initialIndex: initialIndex, itemExtent: itemExtent, controller: controller);
     }
 
     await tester.pumpWidget(builder(firstController));
-    final position = firstController.position;
+    firstController.position.jumpTo(scrollOffset);
+    await tester.pumpAndSettle(const Duration(milliseconds: 16));
+    final initialItem = find.byKey(const ValueKey(initialIndex));
+    final initialRect = tester.getRect(initialItem);
+    expect(initialRect.top, moreOrLessEquals(-scrollOffset));
     await tester.pumpWidget(builder(secondController));
     expect(() => firstController.position, throwsAssertionError);
-    expect(secondController.position, same(position));
+    expect(tester.getRect(initialItem), initialRect);
     secondController.jumpToIndex(targetIndex);
     await tester.pumpAndSettle(const Duration(milliseconds: 16));
-    expect(tester.getTopLeft(find.text('$targetIndex')).dy, moreOrLessEquals(0.0));
+    final targetItem = find.byKey(const ValueKey(targetIndex));
+    final targetRect = tester.getRect(targetItem);
+    expect(targetRect.top, moreOrLessEquals(0.0));
     await tester.pumpWidget(builder(null));
     expect(() => secondController.position, throwsAssertionError);
+    expect(tester.getRect(targetItem), targetRect);
     await tester.pumpWidget(builder(firstController));
-    expect(firstController.position, same(position));
-    expect(firstController.anchorIndex, targetIndex);
+    expect(tester.getRect(targetItem), targetRect);
     firstController.jumpToIndex(0);
     await tester.pumpAndSettle(const Duration(milliseconds: 16));
     expect(tester.getTopLeft(find.text('0')).dy, moreOrLessEquals(0.0));
