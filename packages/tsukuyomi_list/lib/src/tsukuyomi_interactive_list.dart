@@ -254,16 +254,7 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
   void didUpdateWidget(TsukuyomiInteractiveList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
-      if (oldWidget.controller == null) {
-        assert(widget.controller != null);
-        _listController = widget.controller!;
-      } else {
-        if (widget.controller == null) {
-          _listController = TsukuyomiListController();
-        } else {
-          _listController = widget.controller!;
-        }
-      }
+      _listController = widget.controller ?? TsukuyomiListController();
     }
     _scaleController.duration = widget.scaleDuration;
   }
@@ -290,6 +281,7 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
           },
           maxScale: widget.maxScale,
           transformationController: _transformationController,
+          onInteractionStart: (_) => _scaleController.stop(),
           onScaleStart: _onScaleStart,
           onScaleUpdate: _onScaleUpdate,
           onScaleEnd: _onScaleEnd,
