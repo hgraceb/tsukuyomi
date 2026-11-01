@@ -11,7 +11,7 @@ part 'theme_preferences_provider.g.dart';
 /// 主题配置
 @Riverpod(keepAlive: true)
 class ThemePreference extends _$ThemePreference {
-  late SharedPreferences _sharedPreferences;
+  late SharedPreferencesWithCache _sharedPreferences;
 
   @override
   ThemePreferences build() {

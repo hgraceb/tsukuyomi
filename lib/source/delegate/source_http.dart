@@ -49,7 +49,7 @@ class IsolateDioHttpSource extends DioHttpSource {
 
   final ObjInstance delegate;
 
-  final SharedPreferences preferences;
+  final SharedPreferencesWithCache preferences;
 
   final Map<String, String> storage = {};
 

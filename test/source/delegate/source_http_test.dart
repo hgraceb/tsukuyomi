@@ -5,11 +5,14 @@ import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 
+import '../../fixtures/preferences_fixtures.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
+  late SharedPreferencesWithCache preferences;
+  setUp(() async {
+    preferences = await preferencesFixture();
   });
 
   test('Source getters work after initialization in compute', () async {
@@ -25,7 +28,7 @@ class Example extends HttpSource {
 dynamic main() => Example();
     ''';
     final instance = await compute((source) => eval(source, libraries: evalLibraries), source) as ObjInstance;
-    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    final host = IsolateDioHttpSource(delegate: instance, preferences: preferences);
     expect(host.name, 'Example');
     expect(host.baseUrl, 'https://example.com');
     expect(await compute((instance) => instance.get('name'), instance), 'Example');
@@ -45,7 +48,7 @@ class Example extends HttpSource {
 dynamic main() => Example();
     ''';
     final instance = await eval(source, libraries: evalLibraries) as ObjInstance;
-    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    final host = IsolateDioHttpSource(delegate: instance, preferences: preferences);
     expect(host.getRequestHeaders(), {'token': 'default'});
     expect(instance.invoke('getRequestHeaders', ['provided']), {'token': 'provided'});
     expect(host.getRequestHeaders(), {'token': 'default'});
@@ -79,7 +82,6 @@ dynamic main() {
 }
     ''';
     final instances = (await eval(source, libraries: evalLibraries) as List).cast<ObjInstance>();
-    final preferences = await SharedPreferences.getInstance();
     final first = IsolateDioHttpSource(delegate: instances.first, preferences: preferences);
     final second = IsolateDioHttpSource(delegate: instances.last, preferences: preferences);
     expect(first.delegate.clazz, same(second.delegate.clazz));
@@ -113,7 +115,7 @@ Example main() => Example();
     ''';
     final instance = await eval(source, libraries: evalLibraries) as ObjInstance;
     final property = instance.props['getStorage'];
-    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    final host = IsolateDioHttpSource(delegate: instance, preferences: preferences);
     expect(instance.props['getStorage'], same(property));
     expect(await host.delegate.invoke('load', null), 'script');
   });
@@ -154,7 +156,7 @@ dynamic main() {
     final result = await eval(source, libraries: evalLibraries) as Map;
     expect(result['checks'], [true, true, true, true, true, true, true, true]);
     final instance = result['delegate'] as ObjInstance;
-    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    final host = IsolateDioHttpSource(delegate: instance, preferences: preferences);
     expect(host.name, 'Example');
     expect(instance.clazz.name, 'Child');
   });

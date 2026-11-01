@@ -12,7 +12,7 @@ part 'update_report_store.g.dart';
 class UpdateReportStore extends _$UpdateReportStore {
   static const reportKey = 'update.latestReport';
 
-  late SharedPreferences _preferences;
+  late SharedPreferencesWithCache _preferences;
 
   Future<void> _pendingSave = Future.value();
 
@@ -28,11 +28,7 @@ class UpdateReportStore extends _$UpdateReportStore {
   /// 保存最近的更新报告
   Future<void> save(UpdateReport report) {
     state = report;
-    final save = _pendingSave.then((_) async {
-      if (!await _preferences.setString(reportKey, jsonEncode(report.toJson()))) {
-        throw StateError('Failed to save update report');
-      }
-    });
+    final save = _pendingSave.then((_) => _preferences.setString(reportKey, jsonEncode(report.toJson())));
     _pendingSave = save.then((_) {}, onError: (_, _) {});
     return save;
   }
