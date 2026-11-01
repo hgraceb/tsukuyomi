@@ -50,7 +50,7 @@ void main() {
     await tester.pump();
     expect(manager._scans, 1);
     expect(_summaryCounts(tester), [0, 0, 0, 0]);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.byIcon(Icons.stop_outlined), findsOneWidget);
 
     final report = updateReportFixture(phase: UpdatePhase.running, items: [updateReportItemFixture(1)]);
@@ -58,8 +58,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(_summaryCounts(tester), [0, 0, 1, 2]);
     expect(find.text('2 / 5'), findsOneWidget);
-    final summary = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
-    expect(tester.widget<AnimatedProgressCircleIcon>(summary).progress, 0.5);
     expect(find.byType(LinearProgressIndicator), findsNothing);
 
     await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.stop_outlined));
@@ -106,7 +104,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Summary counts only completed outcomes while scan progress includes errors and warnings', (tester) async {
+  testWidgets('Summary counts only completed outcomes across scan phases without a progress icon', (tester) async {
     final items = [
       updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
       updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersEmpty),
@@ -120,7 +118,7 @@ void main() {
       final report = updateReportFixture(totalTargets: 10, items: items);
       final container = await _pumpPage(tester, manager: manager, report: report, locale: locale, mangaIds: [7, 8, 9, 10]);
       final store = container.read(updateReportStoreProvider.notifier);
-      final summaryIcon = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
+      final summaryIcons = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(Icon));
 
       for (final phase in [UpdatePhase.running, UpdatePhase.cancelled, UpdatePhase.interrupted]) {
         if (phase == UpdatePhase.running) {
@@ -131,22 +129,20 @@ void main() {
         await store.save(report.copyWith(phase: phase));
         await tester.pumpAndSettle();
         expect(_summaryCounts(tester), [1, 2, 3, 10]);
-        expect(tester.widget<AnimatedProgressCircleIcon>(summaryIcon).progress, 0.6);
+        expect(summaryIcons, findsNothing);
       }
 
       final completed = [...items, for (var id = 7; id <= 10; id++) updateReportItemFixture(id)];
       await store.save(report.copyWith(items: completed));
       await tester.pumpAndSettle();
       expect(_summaryCounts(tester), [1, 2, 7, 10]);
-      final summaryCheck = find.descendant(of: find.byType(SliverAppBar), matching: find.byIcon(Icons.check_circle_outline));
-      expect(summaryCheck, findsOneWidget);
-      expect(summaryIcon, findsNothing);
+      expect(summaryIcons, findsNothing);
 
       for (final total in [10, 0]) {
         await store.save(report.copyWith(items: [], totalTargets: total));
         await tester.pumpAndSettle();
         expect(_summaryCounts(tester), [0, 0, 0, total]);
-        expect(tester.widget<AnimatedProgressCircleIcon>(summaryIcon).progress, 0.0);
+        expect(summaryIcons, findsNothing);
       }
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
@@ -154,73 +150,26 @@ void main() {
     }
   });
 
-  testWidgets('Scan completion checks retain outcome colors and require a fully finished scan', (tester) async {
-    for (final outcome in [UpdateOutcome.updated, UpdateOutcome.chaptersEmpty, UpdateOutcome.networkError]) {
-      final manager = _Manager();
-      final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1).copyWith(outcome: outcome)]);
-      final container = await _pumpPage(tester, manager: manager, report: report);
-      final store = container.read(updateReportStoreProvider.notifier);
-      final summaryCheck = find.descendant(of: find.byType(SliverAppBar), matching: find.byIcon(Icons.check_circle_outline));
-      final summaryProgress = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
-      expect(summaryCheck, findsOneWidget);
-      expect(_completionIcon('manga-title-1'), findsNothing);
-      final colors = Theme.of(tester.element(summaryCheck)).colorScheme;
-      final color = switch (outcome) {
-        UpdateOutcome.chaptersEmpty => colors.tertiary,
-        UpdateOutcome.networkError => colors.error,
-        _ => colors.onSurface,
-      };
-      expect(tester.widget<Icon>(summaryCheck).color, color);
-
-      for (final phase in [UpdatePhase.running, UpdatePhase.cancelled, UpdatePhase.interrupted]) {
-        if (phase == UpdatePhase.running) {
-          await manager.scan();
-        } else {
-          manager._finish();
-        }
-        await store.save(report.copyWith(phase: phase));
-        await tester.pumpAndSettle();
-        expect(summaryCheck, findsNothing);
-        expect(tester.widget<AnimatedProgressCircleIcon>(summaryProgress).progress, 1.0);
-      }
-
-      await store.save(report.copyWith(totalTargets: 2));
-      await tester.pumpAndSettle();
-      expect(summaryCheck, findsNothing);
-      expect(tester.widget<AnimatedProgressCircleIcon>(summaryProgress).progress, 0.5);
-
-      await store.save(report.copyWith(message: 'fixture-scan-error'));
-      await tester.pumpAndSettle();
-      expect(summaryCheck, findsNothing);
-      expect(IconTheme.of(tester.element(summaryProgress)).color, colors.error);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
-    }
-  });
-
-  testWidgets('Global errors color the summary icon and empty results have no prompts', (tester) async {
+  testWidgets('Global errors keep counts visible and empty results have no prompts', (tester) async {
     final manager = _Manager();
     final container = await _pumpPage(
       tester,
       manager: manager,
       report: updateReportFixture(message: 'query-error').copyWith(totalTargets: 0),
     );
-    final summaryIcon = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(AnimatedProgressCircleIcon));
-    Color? iconColor() => IconTheme.of(tester.element(summaryIcon)).color;
-    final colors = Theme.of(tester.element(summaryIcon)).colorScheme;
+    final summaryIcons = find.descendant(of: find.byType(SliverAppBar), matching: find.byType(Icon));
     expect(_summaryCounts(tester), [0, 0, 0, 0]);
-    expect(iconColor(), colors.error);
+    expect(summaryIcons, findsNothing);
     expect(find.byType(ListTile), findsNothing);
 
     await container.read(updateReportStoreProvider.notifier).save(updateReportFixture().copyWith(totalTargets: 0));
     manager._fail(StateError('save-error'));
     await tester.pumpAndSettle();
-    expect(iconColor(), colors.error);
+    expect(summaryIcons, findsNothing);
     expect(find.widgetWithIcon(FloatingActionButton, Icons.sync_outlined), findsOneWidget);
     manager._finish();
     await tester.pumpAndSettle();
-    expect(iconColor(), colors.onSurface);
+    expect(summaryIcons, findsNothing);
     expect(_summaryCounts(tester), [0, 0, 0, 0]);
     expect(find.byType(AlertDialog), findsNothing);
   });
@@ -697,17 +646,11 @@ void main() {
     _narrowScreen(tester);
     final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
     final container = await _pumpPage(tester, manager: _Manager(), report: report);
-    final plain = TextPainter(
-      text: TextSpan(text: '0 · 0 · 1 / 1', style: tester.widget<Text>(_countText(UpdateFilter.all)).style),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final summaryWidth = tester.getSize(find.byType(UpdateSummary)).width;
-    // 原文字与进度图标之外，每个数字只增加少量水平留白
-    expect(summaryWidth, lessThanOrEqualTo(plain.width + 16.0 + 24.0 + 20.0));
-    plain.dispose();
     for (final filter in UpdateFilter.values) {
       expect(find.descendant(of: _countButton(filter), matching: find.byType(DecoratedBox)), findsNothing);
       expect(tester.widget<Text>(_countText(filter)).style?.decoration, isNot(TextDecoration.underline));
+      final button = tester.getSize(_countButton(filter));
+      expect(button.width, closeTo(button.height, 0.01));
       final count = tester.getRect(_countText(filter));
       await tester.tapAt(Offset(count.left - 4.0, count.center.dy));
       await tester.pumpAndSettle();
@@ -716,9 +659,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<UpdateSummary>(find.byType(UpdateSummary)).selection, isNull);
     }
+    var width = tester.getSize(_countButton(UpdateFilter.all)).width;
     for (final count in [12, 123, 12345]) {
       await container.read(updateReportStoreProvider.notifier).save(report.copyWith(totalTargets: count));
       await tester.pumpAndSettle();
+      final expandedWidth = tester.getSize(_countButton(UpdateFilter.all)).width;
+      expect(expandedWidth, greaterThan(width));
+      width = expandedWidth;
       expect(find.descendant(of: _countButton(UpdateFilter.all), matching: find.byType(DecoratedBox)), findsNothing);
       expect(tester.renderObject<RenderParagraph>(_countText(UpdateFilter.all)).didExceedMaxLines, isFalse);
       expect(tester.takeException(), isNull);
@@ -731,8 +678,14 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     for (final locale in [const Locale('en'), const Locale('zh')]) {
-      await _pumpPage(tester, manager: _Manager(), locale: locale, textScale: 1.3, report: updateReportFixture(totalTargets: 12345));
-      expect(_summaryCounts(tester), [0, 0, 0, 12345]);
+      await _pumpPage(
+        tester,
+        manager: _Manager(),
+        locale: locale,
+        textScale: 1.3,
+        report: updateReportFixture(totalTargets: 1234567890123456789),
+      );
+      expect(_summaryCounts(tester), [0, 0, 0, 1234567890123456789]);
       expect(tester.widget<SliverAppBar>(find.byType(SliverAppBar)).bottom, isNull);
       final text = tester.widget<Text>(_summaryText());
       expect(text.maxLines, 1);
@@ -755,7 +708,7 @@ void main() {
       manager: _Manager(),
       textScale: 1.3,
       report: updateReportFixture(
-        totalTargets: 12345,
+        totalTargets: 1234567890123456789,
         items: [
           updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
           updateReportItemFixture(2),
@@ -773,7 +726,7 @@ void main() {
       expect(tester.renderObject<RenderParagraph>(_summaryText()).didExceedMaxLines, safeArea);
       expect(find.text('manga-title-1'), findsOneWidget);
       expect(find.text('manga-title-2'), findsNothing);
-      expect(_summaryCounts(tester), [1, 0, 1, 12345]);
+      expect(_summaryCounts(tester), [1, 0, 1, 1234567890123456789]);
       expect(tester.widget<UpdateSummary>(find.byType(UpdateSummary)).selection, UpdateFilter.failure);
       expect(tester.takeException(), isNull);
     }

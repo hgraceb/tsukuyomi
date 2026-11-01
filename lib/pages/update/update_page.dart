@@ -16,21 +16,6 @@ import 'update_summary.dart';
 class UpdatePage extends ConsumerWidget {
   const UpdatePage({super.key});
 
-  /// 更新统计的扫描进度
-  Widget _buildSummaryProgress(BuildContext context, UpdateReport? report, bool running, bool error) {
-    final colors = Theme.of(context).colorScheme;
-    final failures = report?.failureCount ?? 0;
-    final warnings = report?.warningCount ?? 0;
-    final processed = report?.items.length ?? 0;
-    final total = report?.totalTargets ?? 0;
-    final color = _getStatusColor(colors, error: error || failures > 0, warning: warnings > 0);
-    final complete = !running && !error && report?.phase == UpdatePhase.finished && total > 0 && processed == total;
-    if (running && total == 0) {
-      return SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 2.0, color: color));
-    }
-    return complete ? Icon(Icons.check_circle_outline, size: 24.0, color: color) : _buildProgress(processed, total, color);
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
@@ -53,7 +38,6 @@ class UpdatePage extends ConsumerWidget {
           report: report,
           selection: selection,
           onChanged: controller.onFilterChanged,
-          progress: _buildSummaryProgress(context, report, running, error),
         ),
       ),
     );
