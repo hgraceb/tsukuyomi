@@ -11,6 +11,7 @@ Future<void> main() async {
   // 引擎组件初始化
   WidgetsFlutterBinding.ensureInitialized();
   // 本地键值对储存
+  SharedPreferences.setPrefix(App.preferencesPrefix);
   final sharedPreferences = await SharedPreferences.getInstance();
   // 设备状态栏高度
   final statusBarHeight = await TsukuyomiMetadata().getStatusBarHeight() ?? 0;
