@@ -8,8 +8,11 @@ class UpdateSummary extends StatelessWidget {
   const UpdateSummary({super.key, required this.report, required this.selection, required this.onChanged, required this.progress});
 
   final UpdateReport? report;
+
   final UpdateFilter? selection;
+
   final ValueChanged<UpdateFilter> onChanged;
+
   final Widget progress;
 
   InlineSpan _buildCount(UpdateFilter filter, int count, TextStyle style) {
@@ -25,8 +28,7 @@ class UpdateSummary extends StatelessWidget {
             '$count',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            // 行内组件由 Text.rich 统一缩放
-            textScaler: TextScaler.noScaling,
+            textScaler: TextScaler.noScaling, // 行内组件由 Text.rich 统一缩放
             style: muted ? style.copyWith(color: color.withValues(alpha: color.a / 3.0)) : style,
           ),
         ),
