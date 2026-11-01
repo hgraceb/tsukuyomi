@@ -84,6 +84,27 @@ const EdgeInsets.all(20.0);
 
 ### 代码换行
 
+- 定义 Widget 字段时优先使用换行进行分割，增强代码的可阅读性，如：
+
+```dart
+// Bad
+class Foo {
+  Foo({required this.bar, required this.baz});
+
+  final int bar;
+  final String baz;
+}
+
+// Good
+class Foo {
+  Foo({required this.bar, required this.baz});
+
+  final int bar;
+
+  final String baz;
+}
+```
+
 - 优先使用 ...[] 语法与组件内部的 if 进行配合使用对齐代码，增强代码的可阅读性，如：
 
 ```dart
