@@ -59,7 +59,6 @@ class _DebugListCaseSlideBouncingState extends State<DebugListCaseSlideBouncing>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: next,
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

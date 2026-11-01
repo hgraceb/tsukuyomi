@@ -15,6 +15,9 @@ class TsukuyomiTheme {
     themeData = ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        shape: CircleBorder(),
+      ),
       cardColor: themeConfig.card,
       cardTheme: CardThemeData(
         elevation: 0,

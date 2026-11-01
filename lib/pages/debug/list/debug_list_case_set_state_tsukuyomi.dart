@@ -43,7 +43,6 @@ class _DebugListCaseSetStateTsukuyomiState extends State<DebugListCaseSetStateTs
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

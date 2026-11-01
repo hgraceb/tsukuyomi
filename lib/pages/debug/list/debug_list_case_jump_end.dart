@@ -52,7 +52,6 @@ class _DebugListCaseJumpEndState extends State<DebugListCaseJumpEnd> {
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

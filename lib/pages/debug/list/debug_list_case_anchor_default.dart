@@ -71,7 +71,6 @@ class _DebugListCaseAnchorDefaultState extends State<DebugListCaseAnchorDefault>
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );

@@ -53,7 +53,6 @@ class _DebugListCaseSetStateDefaultState extends State<DebugListCaseSetStateDefa
           };
           setState(() {});
         },
-        shape: const CircleBorder(),
         child: Text('$step'),
       ),
     );
