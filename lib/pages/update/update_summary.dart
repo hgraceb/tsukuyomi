@@ -41,8 +41,8 @@ class UpdateSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final style = theme.textTheme.bodyLarge!.copyWith(color: colors.onSurface, fontFeatures: const [FontFeature.tabularFigures()]);
     final mutedColor = colors.onSurface.withValues(alpha: colors.onSurface.a / 3.0);
+    final style = theme.textTheme.bodyLarge!.copyWith(color: colors.onSurface, fontFeatures: const [FontFeature.tabularFigures()]);
     final separatorStyle = selection == null ? style : style.copyWith(color: mutedColor);
 
     return Row(
