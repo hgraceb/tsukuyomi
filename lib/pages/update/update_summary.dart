@@ -22,9 +22,9 @@ class UpdateSummary extends StatelessWidget {
       alignment: PlaceholderAlignment.middle,
       child: InkWell(
         onTap: () => onChanged(filter),
-        borderRadius: BorderRadius.circular(18.0),
+        borderRadius: BorderRadius.circular(15.0),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
           child: Text(
             '$count',
             maxLines: 1,
