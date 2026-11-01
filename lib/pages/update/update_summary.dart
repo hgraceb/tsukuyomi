@@ -24,7 +24,7 @@ class UpdateSummary extends StatelessWidget {
         onTap: () => onChanged(filter),
         borderRadius: BorderRadius.circular(18.0),
         child: Padding(
-          padding: const EdgeInsets.all(6.0),
+          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
           child: Text(
             '$count',
             maxLines: 1,

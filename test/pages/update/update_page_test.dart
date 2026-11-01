@@ -689,7 +689,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
     expect(find.text('manga-title-1'), findsOneWidget);
-    expect(tester.getSize(_countButton(UpdateFilter.all)).height, greaterThanOrEqualTo(36.0));
+    expect(tester.getSize(_countButton(UpdateFilter.all)).height, lessThan(36.0));
     expect(tester.takeException(), isNull);
   });
 
