@@ -708,6 +708,13 @@ void main() {
     for (final filter in UpdateFilter.values) {
       expect(find.descendant(of: _countButton(filter), matching: find.byType(DecoratedBox)), findsNothing);
       expect(tester.widget<Text>(_countText(filter)).style?.decoration, isNot(TextDecoration.underline));
+      final count = tester.getRect(_countText(filter));
+      await tester.tapAt(Offset(count.left - 4.0, count.center.dy));
+      await tester.pumpAndSettle();
+      expect(tester.widget<UpdateSummary>(find.byType(UpdateSummary)).selection, filter);
+      await tester.tapAt(Offset(count.right + 4.0, count.center.dy));
+      await tester.pumpAndSettle();
+      expect(tester.widget<UpdateSummary>(find.byType(UpdateSummary)).selection, isNull);
     }
     for (final count in [12, 123, 12345]) {
       await container.read(updateReportStoreProvider.notifier).save(report.copyWith(totalTargets: count));

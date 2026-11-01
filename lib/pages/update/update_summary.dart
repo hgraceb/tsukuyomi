@@ -22,8 +22,9 @@ class UpdateSummary extends StatelessWidget {
       alignment: PlaceholderAlignment.middle,
       child: InkWell(
         onTap: () => onChanged(filter),
+        borderRadius: BorderRadius.circular(18.0),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 6.0),
+          padding: const EdgeInsets.all(6.0),
           child: Text(
             '$count',
             maxLines: 1,
@@ -52,11 +53,11 @@ class UpdateSummary extends StatelessWidget {
             TextSpan(
               children: [
                 _buildCount(UpdateFilter.failure, report?.failureCount ?? 0, style.copyWith(color: colors.error)),
-                TextSpan(text: ' · ', style: separatorStyle),
+                TextSpan(text: '·', style: separatorStyle),
                 _buildCount(UpdateFilter.warning, report?.warningCount ?? 0, style.copyWith(color: colors.tertiary)),
-                TextSpan(text: ' · ', style: separatorStyle),
+                TextSpan(text: '·', style: separatorStyle),
                 _buildCount(UpdateFilter.success, report?.successCount ?? 0, style),
-                TextSpan(text: ' / ', style: separatorStyle),
+                TextSpan(text: '/', style: separatorStyle),
                 _buildCount(UpdateFilter.all, report?.totalTargets ?? 0, style),
               ],
             ),
