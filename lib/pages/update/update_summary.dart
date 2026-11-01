@@ -24,7 +24,7 @@ class UpdateSummary extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 30.0),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5.5, vertical: 3.0),
+            padding: const EdgeInsets.fromLTRB(5.5, 2.0, 5.5, 4.0),
             child: Text(
               '$count',
               maxLines: 1,
