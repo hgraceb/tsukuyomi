@@ -286,16 +286,12 @@ class _MangaPageSliverBodyState extends State<_MangaPageSliverBody> with SingleT
           return InkWell(
             onTap: () {},
             child: ListTile(
-              // 抵消图标按钮自身留白，保持图标与文字的可见边距一致
-              contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 4.0),
               enabled: data.enabled,
+              contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 8.0),
               textColor: 0 < chapter.images && chapter.images <= chapter.progress ? theme.disabledColor : null,
               title: Text(chapter.title, overflow: TextOverflow.ellipsis),
               subtitle: _getChapterSubtitle(theme, data),
-              trailing: SizedBox.square(
-                dimension: 48.0,
-                child: _getChapterTrailing(theme, data),
-              ),
+              trailing: _getChapterTrailing(theme, data),
               onTap: () => context.pushNamed(TsukuyomiRouter.chapter.name, params: {
                 'mangaId': widget.mangaId,
                 'chapterId': '${chapter.id}',

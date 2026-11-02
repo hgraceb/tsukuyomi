@@ -109,14 +109,10 @@ class DownloadPage extends ConsumerWidget {
               return InkWell(
                 onTap: () {},
                 child: ListTile(
-                  // 抵消图标按钮自身留白，保持图标与文字的可见边距一致
-                  contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 4.0),
+                  contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 8.0),
                   title: _buildTitle(data),
                   subtitle: _buildSubTitle(theme, data),
-                  trailing: SizedBox.square(
-                    dimension: 48.0,
-                    child: _buildTrailing(theme, controller, data.download),
-                  ),
+                  trailing: _buildTrailing(theme, controller, data.download),
                 ),
               );
             },

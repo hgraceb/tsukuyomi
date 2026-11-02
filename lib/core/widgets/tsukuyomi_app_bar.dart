@@ -37,12 +37,7 @@ extension on BuildContext {
 
   double getLeadingWidth(bool hasLeading) {
     if (hasLeading) {
-      return switch (Theme.of(this).materialTapTargetSize) {
-        // 移动端的导航图标宽度
-        MaterialTapTargetSize.padded => kMinInteractiveDimension + _kPaddingWidth,
-        // 桌面端的导航图标宽度 [_IconButtonDefaultsM3.minimumSize]
-        MaterialTapTargetSize.shrinkWrap => 40.0 + _kPaddingWidth,
-      };
+      return kMinInteractiveDimension;
     } else {
       return 0.0;
     }
