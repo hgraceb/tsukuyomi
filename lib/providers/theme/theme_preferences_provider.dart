@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/providers/providers.dart';
 
 part 'theme_preferences_provider.freezed.dart';
@@ -21,7 +22,7 @@ class ThemePreference extends _$ThemePreference {
 
   /// 获取主题模式
   ThemeMode _getThemeMode() {
-    return switch (_sharedPreferences.getInt('themeMode')) {
+    return switch (_sharedPreferences.getInt(Keys.themeMode)) {
       0 => ThemeMode.system,
       1 => ThemeMode.light,
       2 => ThemeMode.dark,
@@ -34,11 +35,11 @@ class ThemePreference extends _$ThemePreference {
     state = state.copyWith(themeMode: themeMode);
     switch (themeMode) {
       case ThemeMode.system:
-        _sharedPreferences.setInt('themeMode', 0);
+        _sharedPreferences.setInt(Keys.themeMode, 0);
       case ThemeMode.light:
-        _sharedPreferences.setInt('themeMode', 1);
+        _sharedPreferences.setInt(Keys.themeMode, 1);
       case ThemeMode.dark:
-        _sharedPreferences.setInt('themeMode', 2);
+        _sharedPreferences.setInt(Keys.themeMode, 2);
     }
   }
 }

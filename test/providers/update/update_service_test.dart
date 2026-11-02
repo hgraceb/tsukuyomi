@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/core/exception/tsukuyomi_exception.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
@@ -71,7 +72,7 @@ void main() {
       expect(report.items.single.mangaId, manga.id);
       expect(report.items.single.enqueuedCount, autoDownload ? 2 : 0);
       final preferences = container.read(sharedPreferencesProvider);
-      final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
       expect(UpdateReport.fromJson(json), report);
     }
   });
@@ -182,7 +183,7 @@ void main() {
     expect(report.startedAt, isNotNull);
     expect(report.finishedAt, item.updatedAt);
     final preferences = container.read(sharedPreferencesProvider);
-    final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+    final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
     expect(UpdateReport.fromJson(json), report);
   });
 
@@ -264,7 +265,7 @@ void main() {
     expect(report.failureCount, 1);
     expect(report.items, [item]);
     final preferences = container.read(sharedPreferencesProvider);
-    final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+    final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
     expect(UpdateReport.fromJson(json), report);
   });
 
@@ -303,7 +304,7 @@ void main() {
       final report = container.read(updateReportStoreProvider)!;
       expect(report.failureCount, 1);
       final preferences = container.read(sharedPreferencesProvider);
-      final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
       expect(UpdateReport.fromJson(json), report);
     }
   });
@@ -360,7 +361,7 @@ void main() {
       expect(report.message, isNull);
       expect(container.read(updateManagerProvider).hasError, isFalse);
       final preferences = container.read(sharedPreferencesProvider);
-      final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!) as Map<String, dynamic>;
+      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
       expect(UpdateReport.fromJson(json), report);
     }
   });

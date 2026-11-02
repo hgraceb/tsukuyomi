@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
@@ -63,7 +64,7 @@ void main() {
 
     await container.read(updateReportStoreProvider.notifier).save(report);
     expect(container.read(updateReportStoreProvider), report);
-    final json = jsonDecode(preferences.getString(UpdateReportStore.reportKey)!);
+    final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!);
     expect(json['items'].single['mangaTitle'], 'manga-title');
     final restored = _container(preferences);
     expect(restored.read(updateReportStoreProvider), report);
@@ -89,6 +90,24 @@ void main() {
     expect(container.read(updateReportStoreProvider), secondReport);
   });
 
+  test('Debug report reads and writes preserve the Release report', () async {
+    final release = jsonEncode(_report('release-session').toJson());
+    final debug = _report('debug-session');
+    SharedPreferences.setMockInitialValues({
+      'update.report.latest': release,
+      'debug.update.report.latest': jsonEncode(debug.toJson()),
+    });
+    final preferences = await SharedPreferences.getInstance();
+    final container = _container(preferences);
+    expect(container.read(updateReportStoreProvider), debug);
+
+    final updated = _report('updated-debug-session');
+    await container.read(updateReportStoreProvider.notifier).save(updated);
+    await preferences.reload();
+    expect(_container(preferences).read(updateReportStoreProvider), updated);
+    expect(preferences.getString('update.report.latest'), release);
+  });
+
   test('Restore a running report as interrupted and retain completed results', () async {
     final report = _report('unfinished-session').copyWith(
       phase: UpdatePhase.running,
@@ -96,7 +115,7 @@ void main() {
       totalTargets: 2,
       finishedAt: null,
     );
-    SharedPreferences.setMockInitialValues({UpdateReportStore.reportKey: jsonEncode(report.toJson())});
+    SharedPreferences.setMockInitialValues({Keys.updateReportLatest: jsonEncode(report.toJson())});
     final preferences = await SharedPreferences.getInstance();
     final container = _container(preferences);
 

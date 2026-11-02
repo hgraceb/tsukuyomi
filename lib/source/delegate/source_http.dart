@@ -5,6 +5,7 @@ import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_html/dom.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
@@ -70,7 +71,7 @@ class IsolateDioHttpSource extends DioHttpSource {
   Future<T> isolate<T>(FutureOr<T> Function() callback) async {
     if (mainIsolate != Isolate.current) return await callback();
     // TODO 错误处理和多线程处理（避免同时调用时数据被覆盖）
-    final key = 'source.$id';
+    final key = Keys.sourceStorage(id);
     final value = preferences.getString(key) ?? '{}';
     storage.clear();
     storage.addAll(jsonDecode(value).cast<String, String>());
