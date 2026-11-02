@@ -198,6 +198,132 @@ void main() {
     }
   });
 
+  test('A scan sharing a detail refresh uses newly enabled download settings', () async {
+    for (final initial in [_manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
+      final pending = Completer<void>();
+      final source = UpdateSourceFixture(pending: pending.future);
+      final sync = _Sync(_unchanged);
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+      final mangas = _Mangas(mangas: [initial]);
+      final manager = _Manager();
+      final container = await _createContainer(
+        source,
+        sync,
+        downloads,
+        manga: initial,
+        mangas: mangas,
+        manager: manager,
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(_Library([_manga])),
+          sourceByIdProvider(1).overrideWith((ref) async => source),
+          chapterSyncWithSourceProvider(source, _manga).overrideWithValue(sync),
+        ],
+      );
+      final detail = container.read(updateServiceProvider).updateMangaAndSaveReport(source, initial);
+      await source.requested;
+      mangas.mangas[_manga.id] = _manga;
+      final scan = container.read(updateManagerProvider.notifier).scan();
+      await Future<void>.delayed(Duration.zero);
+
+      pending.complete();
+      final item = await detail;
+      await scan;
+
+      expect(source.calls, 1);
+      expect(sync.calls, 1);
+      expect(downloads.calls, 1);
+      expect(downloads.enqueuedMangas, [_manga]);
+      expect(manager.wakes, 1);
+      expect(item.enqueuedCount, 1);
+      final report = container.read(updateReportStoreProvider)!;
+      expect(report.items, [item]);
+      expect(report.phase, UpdatePhase.finished);
+      final preferences = container.read(sharedPreferencesProvider);
+      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
+      expect(UpdateReport.fromJson(json), report);
+    }
+  });
+
+  test('A shared update skips downloads when settings are disabled during the request', () async {
+    for (final latest in [_manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
+      final pending = Completer<void>();
+      final source = UpdateSourceFixture(pending: pending.future);
+      final sync = _Sync(_unchanged);
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+      final mangas = _Mangas();
+      final manager = _Manager();
+      final container = await _createContainer(
+        source,
+        sync,
+        downloads,
+        mangas: mangas,
+        manager: manager,
+        overrides: [
+          libraryRepositoryProvider.overrideWithValue(_Library([_manga])),
+          sourceByIdProvider(1).overrideWith((ref) async => source),
+          chapterSyncWithSourceProvider(source, latest).overrideWithValue(sync),
+        ],
+      );
+      final scan = container.read(updateManagerProvider.notifier).scan();
+      await source.requested;
+      mangas.mangas[_manga.id] = latest;
+      final detail = container.read(updateServiceProvider).updateMangaAndSaveReport(source, latest);
+
+      pending.complete();
+      final item = await detail;
+      await scan;
+
+      expect(source.calls, 1);
+      expect(sync.calls, 1);
+      expect(downloads.calls, 0);
+      expect(manager.wakes, 0);
+      expect(item.outcome, UpdateOutcome.noUpdate);
+      expect(item.enqueuedCount, 0);
+      expect(container.read(updateReportStoreProvider)!.items, [item]);
+    }
+  });
+
+  test('Auto-download settings are reread after chapter synchronization', () async {
+    final initial = _manga.copyWith(auto: false);
+    final latest = _manga.copyWith(title: 'updated-title');
+    final pending = Completer<void>();
+    final source = UpdateSourceFixture();
+    final sync = _Sync(_unchanged, pending: pending.future);
+    final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+    final mangas = _Mangas(mangas: [initial]);
+    final container = await _createContainer(source, sync, downloads, manga: initial, mangas: mangas);
+    final update = container.read(updateServiceProvider).updateManga(source, initial);
+    await sync.requested;
+    expect(downloads.calls, 0);
+    mangas.mangas[_manga.id] = latest;
+
+    pending.complete();
+    final item = await update;
+
+    expect(source.calls, 1);
+    expect(sync.calls, 1);
+    expect(downloads.enqueuedMangas, [latest]);
+    expect(item.enqueuedCount, 1);
+  });
+
+  test('Latest manga lookup failures retain sync counts and do not enqueue', () async {
+    final source = UpdateSourceFixture();
+    final sync = _Sync(_unchanged);
+    final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+    final mangas = _Mangas(queryError: StateError('latest-manga-error'));
+    final manager = _Manager();
+    final container = await _createContainer(source, sync, downloads, mangas: mangas, manager: manager);
+
+    final item = await container.read(updateServiceProvider).updateManga(source, _manga);
+
+    expect(item.outcome, UpdateOutcome.storageError);
+    expect(item.updateCount, 1);
+    expect(item.sourceCount, 1);
+    expect(item.message, contains('latest-manga-error'));
+    expect(downloads.calls, 0);
+    expect(manager.wakes, 0);
+  });
+
   test('Detail corrections survive later scan progress and scan completion', () async {
     final pending = Completer<void>();
     final scanSource = UpdateSourceFixture(error: TimeoutException('scan-error'));
@@ -529,6 +655,7 @@ void main() {
         source,
         sync,
         downloads,
+        mangas: _Mangas(mangas: [_manga, nextManga]),
         manager: manager,
         overrides: [
           libraryRepositoryProvider.overrideWithValue(_Library([_manga, nextManga])),
@@ -641,7 +768,7 @@ Future<ProviderContainer> _createContainer(
       sharedPreferencesProvider.overrideWithValue(preferences),
       chapterSyncWithSourceProvider(source, manga).overrideWithValue(sync),
       downloadServiceProvider.overrideWithValue(downloads),
-      mangaRepositoryProvider.overrideWithValue(mangas ?? _Mangas()),
+      mangaRepositoryProvider.overrideWithValue(mangas ?? _Mangas(mangas: [manga])),
       downloadManagerProvider.overrideWithValue(manager ?? _Manager()),
       ...overrides,
     ],
@@ -660,14 +787,22 @@ class _MangaController extends MangaController {
 }
 
 class _Sync implements ChapterSyncWithSource {
-  _Sync(this.result, {this.error});
+  _Sync(this.result, {this.error, this.pending});
   final ChapterSyncResult result;
   final Object? error;
+  final Future<void>? pending;
+  final _requested = Completer<void>();
   List<SourceChapter>? chapters;
+  int calls = 0;
+
+  Future<void> get requested => _requested.future;
 
   @override
   Future<ChapterSyncResult> apply(Iterable<SourceChapter> sourceChapters) async {
+    calls++;
     chapters = sourceChapters.toList();
+    if (!_requested.isCompleted) _requested.complete();
+    await pending;
     if (error != null) throw error!;
     return result;
   }
@@ -681,6 +816,7 @@ class _Downloads implements DownloadService {
   final DownloadEnqueueResult result;
   final Map<int, Object> errors;
   int calls = 0;
+  final enqueuedMangas = <DatabaseManga>[];
   final _refreshed = <int>[];
 
   @override
@@ -689,6 +825,7 @@ class _Downloads implements DownloadService {
   @override
   Future<DownloadEnqueueResult> enqueueAutoDownloads(Source source, DatabaseManga manga) async {
     calls++;
+    enqueuedMangas.add(manga);
     final error = errors[manga.id];
     if (error != null) throw error;
     return result;
@@ -726,9 +863,18 @@ class _Manager implements DownloadManager {
 }
 
 class _Mangas implements MangaRepository {
-  _Mangas({this.error});
+  _Mangas({Iterable<DatabaseManga> mangas = const [_manga], this.error, this.queryError})
+    : mangas = {for (final manga in mangas) manga.id: manga};
+  final Map<int, DatabaseManga> mangas;
   final Object? error;
+  final Object? queryError;
   final checkedAt = <int, DateTime>{};
+
+  @override
+  Future<DatabaseManga> queryManga(int mangaId) async {
+    if (queryError != null) throw queryError!;
+    return mangas[mangaId]!;
+  }
 
   @override
   Future<int> updateLastCheckAt(int mangaId, DateTime date) async {

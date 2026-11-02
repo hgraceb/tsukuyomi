@@ -38,15 +38,18 @@ class UpdateService {
     } catch (error) {
       return _result(source, manga, sync, downloads, classifySourceError(error), message: error.toString());
     }
+    DatabaseManga latestManga;
     try {
       sync = await ref.read(chapterSyncWithSourceProvider(source, manga)).apply(chapters);
-      await ref.read(mangaRepositoryProvider).updateLastCheckAt(manga.id, DateTime.now());
+      final repository = ref.read(mangaRepositoryProvider);
+      await repository.updateLastCheckAt(manga.id, DateTime.now());
+      latestManga = await repository.queryManga(manga.id);
     } catch (error) {
       return _result(source, manga, sync, downloads, UpdateOutcome.storageError, message: error.toString());
     }
-    if (manga.favorite && manga.auto) {
+    if (latestManga.favorite && latestManga.auto) {
       try {
-        downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, manga);
+        downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, latestManga);
         if (downloads.enqueuedCount > 0 || downloads.skippedQueued > 0) {
           await ref.read(downloadManagerProvider).next();
         }
