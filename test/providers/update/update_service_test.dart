@@ -779,6 +779,7 @@ Future<ProviderContainer> _createContainer(
 
 class _MangaController extends MangaController {
   _MangaController(this._source, this._manga);
+
   final Source _source;
   final DatabaseManga _manga;
 
@@ -788,6 +789,7 @@ class _MangaController extends MangaController {
 
 class _Sync implements ChapterSyncWithSource {
   _Sync(this.result, {this.error, this.pending});
+
   final ChapterSyncResult result;
   final Object? error;
   final Future<void>? pending;
@@ -813,6 +815,7 @@ class _Sync implements ChapterSyncWithSource {
 
 class _Downloads implements DownloadService {
   _Downloads(this.result, {this.errors = const {}});
+
   final DownloadEnqueueResult result;
   final Map<int, Object> errors;
   int calls = 0;
@@ -837,6 +840,7 @@ class _Downloads implements DownloadService {
 
 class _Library implements LibraryRepository {
   _Library(this.mangas);
+
   final List<DatabaseManga> mangas;
 
   @override
@@ -848,6 +852,7 @@ class _Library implements LibraryRepository {
 
 class _Manager implements DownloadManager {
   _Manager({this.errors = const {}});
+
   final Map<int, Object> errors;
   int wakes = 0;
 
@@ -863,8 +868,12 @@ class _Manager implements DownloadManager {
 }
 
 class _Mangas implements MangaRepository {
-  _Mangas({Iterable<DatabaseManga> mangas = const [_manga], this.error, this.queryError})
-    : mangas = {for (final manga in mangas) manga.id: manga};
+  _Mangas({
+    Iterable<DatabaseManga> mangas = const [_manga],
+    this.error,
+    this.queryError,
+  }) : mangas = {for (final manga in mangas) manga.id: manga};
+
   final Map<int, DatabaseManga> mangas;
   final Object? error;
   final Object? queryError;
