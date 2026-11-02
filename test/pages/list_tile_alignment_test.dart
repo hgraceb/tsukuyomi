@@ -57,9 +57,10 @@ void main() {
             expect(title.left - bounds.left, 16.0);
             expect(bounds.right - tester.getRect(icon).right, 16.0);
             expect(tester.getSize(icon), const Size.square(24.0));
-            final expectedSize = theme.materialTapTargetSize == MaterialTapTargetSize.padded ? 48.0 : 40.0;
             final target = tester.getRect(button);
-            expect(target.size, Size.square(expectedSize));
+            expect(target.size, const Size.square(48.0));
+            final ink = find.descendant(of: button, matching: find.byType(InkWell));
+            expect(tester.widget<InkWell>(ink).splashFactory, theme.splashFactory);
             await tester.tapAt(Offset(target.right - 1.0, target.center.dy));
             await tester.pump();
             if (manga) {

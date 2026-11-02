@@ -774,6 +774,21 @@ void main() {
         expect(tester.getSize(icon), const Size.square(24.0));
         expect(tester.getRect(find.text('source-name')).left - tester.getRect(row).left, 16.0);
         expect(tester.takeException(), isNull);
+
+        final child = tester.widget<ListTile>(row).trailing!;
+        final baseline = SizedBox.square(dimension: 48.0, child: Center(child: child));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: Center(child: baseline)),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.getSize(find.byWidget(baseline)), const Size.square(48.0));
+        expect(tester.getSize(trailing), const Size.square(24.0));
+        if (!complete) {
+          final paint = find.descendant(of: trailing, matching: find.byType(CustomPaint));
+          expect(tester.getSize(paint), const Size.square(24.0));
+        }
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpAndSettle();
       }

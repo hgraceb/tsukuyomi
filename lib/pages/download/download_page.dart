@@ -110,13 +110,13 @@ class DownloadPage extends ConsumerWidget {
                 onTap: () {},
                 child: ListTile(
                   // 抵消图标按钮自身留白，保持图标与文字的可见边距一致
-                  contentPadding: EdgeInsetsDirectional.only(
-                    start: 16.0,
-                    end: theme.materialTapTargetSize == MaterialTapTargetSize.padded ? 4.0 : 8.0,
-                  ),
+                  contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 4.0),
                   title: _buildTitle(data),
                   subtitle: _buildSubTitle(theme, data),
-                  trailing: _buildTrailing(theme, controller, data.download),
+                  trailing: SizedBox.square(
+                    dimension: 48.0,
+                    child: _buildTrailing(theme, controller, data.download),
+                  ),
                 ),
               );
             },

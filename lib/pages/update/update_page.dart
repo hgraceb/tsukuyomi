@@ -147,10 +147,7 @@ class _UpdateItem extends ConsumerWidget {
           ),
         ],
       ),
-      trailing: SizedBox.square(
-        dimension: 24.0,
-        child: Center(child: complete ? completeIcon : progressIcon),
-      ),
+      trailing: complete ? completeIcon : progressIcon,
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );
   }
