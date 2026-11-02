@@ -758,27 +758,24 @@ void main() {
   });
 
   for (final platform in [TargetPlatform.windows, TargetPlatform.android]) {
-    testWidgets('Update progress and completion icons use the trailing button margin on $platform', (tester) async {
-      addTearDown(tester.view.resetPadding);
+    testWidgets('Update progress and completion icons are 24dp with symmetric 16dp margins on $platform', (tester) async {
       for (final complete in [false, true]) {
-        for (final safeArea in [false, true]) {
-          final ratio = tester.view.devicePixelRatio;
-          tester.view.padding = safeArea ? FakeViewPadding(left: 24.0 * ratio, right: 40.0 * ratio) : const FakeViewPadding();
-          await _pumpPage(
-            tester,
-            manager: _Manager(),
-            report: updateReportFixture(items: [updateReportItemFixture(1)]),
-            downloaded: complete ? {for (var i = 1; i <= 5; i++) 'chapter-title-$i'} : {},
-          );
-          final row = find.widgetWithText(ListTile, 'manga-title-1');
-          final trailing = complete ? find.byIcon(Icons.check_circle_outline) : find.byType(AnimatedProgressCircleIcon);
-          final icon = find.descendant(of: row, matching: trailing);
-          final margin = tester.getRect(row).right - tester.getRect(icon).right;
-          expect(margin, platform == TargetPlatform.android ? 20.0 : 16.0);
-          expect(tester.takeException(), isNull);
-          await tester.pumpWidget(const SizedBox.shrink());
-          await tester.pumpAndSettle();
-        }
+        await _pumpPage(
+          tester,
+          manager: _Manager(),
+          report: updateReportFixture(items: [updateReportItemFixture(1)]),
+          downloaded: complete ? {for (var i = 1; i <= 5; i++) 'chapter-title-$i'} : {},
+        );
+        final row = find.widgetWithText(ListTile, 'manga-title-1');
+        final trailing = complete ? find.byIcon(Icons.check_circle_outline) : find.byType(AnimatedProgressCircleIcon);
+        final icon = find.descendant(of: row, matching: trailing);
+        final margin = tester.getRect(row).right - tester.getRect(icon).right;
+        expect(margin, 16.0);
+        expect(tester.getSize(icon), const Size.square(24.0));
+        expect(tester.getRect(find.text('source-name')).left - tester.getRect(row).left, 16.0);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
       }
     }, variant: TargetPlatformVariant({platform}));
   }

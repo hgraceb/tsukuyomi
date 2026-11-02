@@ -100,25 +100,26 @@ class DownloadPage extends ConsumerWidget {
       sliversBody: (builder) => [
         builder(
           select: (state) => state.downloads,
-          data: (downloads) => SliverSafeArea(
-            top: false,
-            bottom: false,
-            sliver: SliverPrototypeExtentList.builder(
-              prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
-              itemCount: downloads.length,
-              itemBuilder: (context, index) {
-                final data = downloads[index];
-                final theme = Theme.of(context);
-                return InkWell(
-                  onTap: () {},
-                  child: ListTile(
-                    title: _buildTitle(data),
-                    subtitle: _buildSubTitle(theme, data),
-                    trailing: _buildTrailing(theme, controller, data.download),
+          data: (downloads) => SliverPrototypeExtentList.builder(
+            prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
+            itemCount: downloads.length,
+            itemBuilder: (context, index) {
+              final data = downloads[index];
+              final theme = Theme.of(context);
+              return InkWell(
+                onTap: () {},
+                child: ListTile(
+                  // 抵消图标按钮自身留白，保持图标与文字的可见边距一致
+                  contentPadding: EdgeInsetsDirectional.only(
+                    start: 16.0,
+                    end: theme.materialTapTargetSize == MaterialTapTargetSize.padded ? 4.0 : 8.0,
                   ),
-                );
-              },
-            ),
+                  title: _buildTitle(data),
+                  subtitle: _buildSubTitle(theme, data),
+                  trailing: _buildTrailing(theme, controller, data.download),
+                ),
+              );
+            },
           ),
         ),
       ],

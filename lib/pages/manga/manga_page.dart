@@ -35,11 +35,7 @@ class _MangaPageState extends ConsumerState<MangaPage> {
         scrollPhysics: const CustomBouncingScrollPhysics(start: false),
         sliverAppBar: (builder) => _MangaPageSliverAppBar(controller: controller, builder: builder),
         sliversBody: (builder) => [
-          SliverSafeArea(
-            top: false,
-            bottom: false,
-            sliver: _MangaPageSliverBody(mangaId: widget.mangaId, controller: controller, builder: builder),
-          ),
+          _MangaPageSliverBody(mangaId: widget.mangaId, controller: controller, builder: builder),
         ],
       ),
     );
@@ -290,6 +286,11 @@ class _MangaPageSliverBodyState extends State<_MangaPageSliverBody> with SingleT
           return InkWell(
             onTap: () {},
             child: ListTile(
+              // 抵消图标按钮自身留白，保持图标与文字的可见边距一致
+              contentPadding: EdgeInsetsDirectional.only(
+                start: 16.0,
+                end: theme.materialTapTargetSize == MaterialTapTargetSize.padded ? 4.0 : 8.0,
+              ),
               enabled: data.enabled,
               textColor: 0 < chapter.images && chapter.images <= chapter.progress ? theme.disabledColor : null,
               title: Text(chapter.title, overflow: TextOverflow.ellipsis),
