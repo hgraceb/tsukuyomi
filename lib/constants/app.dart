@@ -18,5 +18,9 @@ abstract class App {
 abstract class Keys {
   static const String _prefix = kDebugMode ? 'debug.' : '';
 
+  static const String themeMode = '${_prefix}theme.mode';
+
   static const String updateReportLatest = '${_prefix}update.report.latest';
+
+  static String sourceStorage(int id) => '${_prefix}source.storage.$id';
 }

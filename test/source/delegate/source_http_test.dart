@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
+import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -67,6 +71,11 @@ class Example extends HttpSource {
     return getStorage('value', null);
   }
 
+  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) async {
+    await store(manga.name);
+    return <HttpSourceChapter>[];
+  }
+
   dynamic decode(String value) => parseJson(value);
 }
 
@@ -88,10 +97,17 @@ dynamic main() {
     expect(first.id, isNot(second.id));
     expect(await first.delegate.invoke('readId', null), first.id);
     expect(await second.delegate.invoke('readId', null), second.id);
+    final releaseKey = 'source.storage.${first.id}';
+    await preferences.setString(releaseKey, '{"release":"keep"}');
     await expectLater(first.delegate.invoke('store', ['first']), completion('first'));
     await expectLater(second.delegate.invoke('store', ['second']), completion('second'));
     expect(first.storage, {'value': 'first'});
     expect(second.storage, {'value': 'second'});
+    await first.getMangaChapters(const HttpSourceManga(url: 'first', name: 'first', cover: ''));
+    await second.getMangaChapters(const HttpSourceManga(url: 'second', name: 'second', cover: ''));
+    expect(jsonDecode(preferences.getString(Keys.sourceStorage(first.id))!), {'value': 'first'});
+    expect(jsonDecode(preferences.getString(Keys.sourceStorage(second.id))!), {'value': 'second'});
+    expect(preferences.getString(releaseKey), '{"release":"keep"}');
     expect(await first.delegate.invoke('decode', ['{"value":"JSON"}']), {'value': 'JSON'});
     expect(first.delegate.clazz.props['parseJson'], isNull);
   });

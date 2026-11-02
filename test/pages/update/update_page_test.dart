@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseChapter;
 import 'package:tsukuyomi/l10n/l10n.dart';
@@ -768,7 +769,7 @@ Future<ProviderContainer> _pumpPage(
   FutureOr<Set<String>> Function(int)? downloadedForManga,
   Iterable<int> mangaIds = const [],
 }) async {
-  SharedPreferences.setMockInitialValues({if (report != null) UpdateReportStore.reportKey: jsonEncode(report.toJson())});
+  SharedPreferences.setMockInitialValues({if (report != null) Keys.updateReportLatest: jsonEncode(report.toJson())});
   final preferences = await SharedPreferences.getInstance();
   final container = ProviderContainer(
     overrides: [

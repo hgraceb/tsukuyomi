@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 
 import 'update_state.dart';
@@ -10,8 +11,6 @@ part 'update_report_store.g.dart';
 
 @Riverpod(keepAlive: true)
 class UpdateReportStore extends _$UpdateReportStore {
-  static const reportKey = 'update.latestReport';
-
   late SharedPreferences _preferences;
 
   Future<void> _pendingSave = Future.value();
@@ -19,7 +18,7 @@ class UpdateReportStore extends _$UpdateReportStore {
   @override
   UpdateReport? build() {
     _preferences = ref.watch(sharedPreferencesProvider);
-    final json = _preferences.getString(reportKey);
+    final json = _preferences.getString(Keys.updateReportLatest);
     if (json == null) return null;
     final report = UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
     return report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
@@ -29,7 +28,7 @@ class UpdateReportStore extends _$UpdateReportStore {
   Future<void> save(UpdateReport report) {
     state = report;
     final save = _pendingSave.then((_) async {
-      if (!await _preferences.setString(reportKey, jsonEncode(report.toJson()))) {
+      if (!await _preferences.setString(Keys.updateReportLatest, jsonEncode(report.toJson()))) {
         throw StateError('Failed to save update report');
       }
     });
