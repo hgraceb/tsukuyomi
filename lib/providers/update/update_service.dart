@@ -24,7 +24,6 @@ class UpdateService {
     return _updating.putIfAbsent(
       manga.id,
       () => _updateManga(source, manga).whenComplete(() {
-        // 不返回移除的 Future，避免 whenComplete 等待自身
         _updating.remove(manga.id);
       }),
     );
