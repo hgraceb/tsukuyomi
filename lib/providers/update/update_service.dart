@@ -17,56 +17,67 @@ class UpdateService {
 
   final UpdateServiceRef ref;
 
+  final Map<int, Future<UpdateReportItem>> _updating = {};
+
   /// 更新漫画章节并加入下载队列
-  Future<UpdateReportItem> updateManga(Source source, DatabaseManga manga) async {
+  Future<UpdateReportItem> updateManga(Source source, DatabaseManga manga) {
+    return _updating.putIfAbsent(
+      manga.id,
+      () => _updateManga(source, manga).whenComplete(() {
+        _updating.remove(manga.id);
+      }),
+    );
+  }
+
+  /// 更新漫画章节并加入下载队列
+  Future<UpdateReportItem> _updateManga(Source source, DatabaseManga manga) async {
+    UpdateOutcome? failureOutcome;
     var sync = const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
     var downloads = const DownloadEnqueueResult();
-    Iterable<SourceChapter> chapters;
     try {
-      chapters = await source.getMangaChapters(manga.toHttpSourceManga());
-    } catch (error) {
-      return _result(source, manga, sync, downloads, classifySourceError(error), message: error.toString());
-    }
-    try {
+      final chapters = await source.getMangaChapters(manga.toHttpSourceManga());
+      failureOutcome = UpdateOutcome.storageError;
       sync = await ref.read(chapterSyncWithSourceProvider(source, manga)).apply(chapters);
-      await ref.read(mangaRepositoryProvider).updateLastCheckAt(manga.id, DateTime.now());
-    } catch (error) {
-      return _result(source, manga, sync, downloads, UpdateOutcome.storageError, message: error.toString());
-    }
-    if (manga.favorite && manga.auto) {
-      try {
-        downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, manga);
+      final repository = ref.read(mangaRepositoryProvider);
+      await repository.updateLastCheckAt(manga.id, DateTime.now());
+      final latestManga = await repository.queryManga(manga.id);
+      failureOutcome = UpdateOutcome.enqueueFailed;
+      if (latestManga.favorite && latestManga.auto) {
+        downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, latestManga);
         if (downloads.enqueuedCount > 0 || downloads.skippedQueued > 0) {
           await ref.read(downloadManagerProvider).next();
         }
-      } catch (error) {
-        return _result(source, manga, sync, downloads, UpdateOutcome.enqueueFailed, message: error.toString());
       }
+      return _result(source, manga, sync, downloads, _getOutcome(sync, downloads));
+    } catch (error) {
+      final outcome = failureOutcome ?? classifySourceError(error);
+      return _result(source, manga, sync, downloads, outcome, message: error.toString());
     }
-    var outcome = UpdateOutcome.noUpdate;
-    if (sync.insertCount > 0 || downloads.enqueuedCount > 0) outcome = UpdateOutcome.updated;
-    if (sync.deleteCount > 0 && sync.insertCount == 0) outcome = UpdateOutcome.chaptersReduced;
-    if (sync.sourceCount == 0) outcome = UpdateOutcome.chaptersEmpty;
-    if (downloads.failedChapters.isNotEmpty) outcome = UpdateOutcome.enqueueFailed;
-    return _result(source, manga, sync, downloads, outcome);
   }
 
-  /// 更新单部漫画并保存检查报告
+  /// 更新单部漫画并修正当前报告中已有的检查结果
   Future<UpdateReportItem> updateMangaAndSaveReport(Source source, DatabaseManga manga) async {
-    final startedAt = DateTime.now();
+    final sessionId = ref.read(updateReportStoreProvider)?.sessionId;
     final item = await updateManga(source, manga);
-    final report = UpdateReport(
-      version: UpdateReport.currentVersion,
-      phase: UpdatePhase.finished,
-      scanKind: UpdateScanKind.partial,
-      sessionId: startedAt.microsecondsSinceEpoch.toString(),
-      totalTargets: 1,
-      items: [item],
-      startedAt: startedAt,
-      finishedAt: item.updatedAt,
-    );
-    await ref.read(updateReportStoreProvider.notifier).save(report);
+    if (sessionId != null) {
+      await ref.read(updateReportStoreProvider.notifier).update(sessionId, (report) {
+        if (!report.items.any((existing) => existing.mangaId == item.mangaId)) return report;
+        return report.copyWith(
+          items: [
+            for (final existing in report.items) existing.mangaId == item.mangaId ? item : existing,
+          ],
+        );
+      });
+    }
     return item;
+  }
+
+  UpdateOutcome _getOutcome(ChapterSyncResult sync, DownloadEnqueueResult downloads) {
+    if (downloads.failedChapters.isNotEmpty) return UpdateOutcome.enqueueFailed;
+    if (sync.sourceCount == 0) return UpdateOutcome.chaptersEmpty;
+    if (sync.deleteCount > 0 && sync.insertCount == 0) return UpdateOutcome.chaptersReduced;
+    if (sync.insertCount > 0 || downloads.enqueuedCount > 0) return UpdateOutcome.updated;
+    return UpdateOutcome.noUpdate;
   }
 
   UpdateReportItem _result(

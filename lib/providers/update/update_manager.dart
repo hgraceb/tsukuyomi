@@ -14,7 +14,7 @@ part 'update_manager.g.dart';
 @Riverpod(keepAlive: true)
 class UpdateManager extends _$UpdateManager {
   bool _stopped = false;
-  late UpdateReport _report;
+  late String _sessionId;
 
   @override
   AsyncValue<void> build() => const AsyncData(null);
@@ -25,7 +25,7 @@ class UpdateManager extends _$UpdateManager {
     _stopped = false;
     state = const AsyncLoading();
     final startedAt = DateTime.now();
-    _report = UpdateReport(
+    final report = UpdateReport(
       version: UpdateReport.currentVersion,
       phase: UpdatePhase.running,
       scanKind: UpdateScanKind.full,
@@ -34,13 +34,17 @@ class UpdateManager extends _$UpdateManager {
       items: [],
       startedAt: startedAt,
     );
-    final result = await AsyncValue.guard(_scan);
-    _report = _report.copyWith(
-      phase: !result.hasError && _stopped ? UpdatePhase.cancelled : UpdatePhase.finished,
-      finishedAt: DateTime.now(),
-      message: result.error?.toString(),
+    _sessionId = report.sessionId;
+    final result = await AsyncValue.guard(() => _scan(report));
+    final saved = await AsyncValue.guard(
+      () => _update(
+        (report) => report.copyWith(
+          phase: !result.hasError && _stopped ? UpdatePhase.cancelled : UpdatePhase.finished,
+          finishedAt: DateTime.now(),
+          message: result.error?.toString(),
+        ),
+      ),
     );
-    final saved = await AsyncValue.guard(_save);
     state = saved.hasError ? saved : result;
   }
 
@@ -49,12 +53,11 @@ class UpdateManager extends _$UpdateManager {
     if (state.isLoading) _stopped = true;
   }
 
-  Future<void> _scan() async {
-    await _save();
+  Future<void> _scan(UpdateReport report) async {
+    await ref.read(updateReportStoreProvider.notifier).save(report);
     final mangas = await ref.read(libraryRepositoryProvider).queryAutoMangas();
     mangas.sort((a, b) => a.id.compareTo(b.id));
-    _report = _report.copyWith(totalTargets: mangas.length);
-    await _save();
+    await _update((report) => report.copyWith(totalTargets: mangas.length));
     final groups = groupBy(mangas, (manga) => manga.source).values.iterator;
     await Future.wait([_scanGroups(groups), _scanGroups(groups)]);
   }
@@ -75,8 +78,7 @@ class UpdateManager extends _$UpdateManager {
     if (_stopped) return;
     if (result.hasError) {
       final error = result.error!;
-      _report = _report.copyWith(items: [..._report.items, ...mangas.map((manga) => _sourceFailure(manga, error))]);
-      await _save();
+      await _update((report) => report.copyWith(items: [...report.items, ...mangas.map((manga) => _sourceFailure(manga, error))]));
       return;
     }
     final source = result.requireValue;
@@ -84,12 +86,13 @@ class UpdateManager extends _$UpdateManager {
     for (final manga in mangas) {
       if (_stopped) break;
       final item = await service.updateManga(source, manga);
-      _report = _report.copyWith(items: [..._report.items, item]);
-      await _save();
+      await _update((report) => report.copyWith(items: [...report.items, item]));
     }
   }
 
-  Future<void> _save() => ref.read(updateReportStoreProvider.notifier).save(_report);
+  Future<void> _update(UpdateReport Function(UpdateReport report) update) {
+    return ref.read(updateReportStoreProvider.notifier).update(_sessionId, update);
+  }
 
   UpdateReportItem _sourceFailure(DatabaseManga manga, Object error) {
     return UpdateReportItem(
