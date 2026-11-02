@@ -4,7 +4,7 @@ import 'dart:isolate';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_html/dom.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
@@ -49,7 +49,7 @@ class IsolateDioHttpSource extends DioHttpSource {
 
   final ObjInstance delegate;
 
-  final Preferences preferences;
+  final SharedPreferences preferences;
 
   final Map<String, String> storage = {};
 

@@ -61,9 +61,6 @@ dependencies:
   go_router: 6.5.9
   # 本地键值对储存
   shared_preferences: 2.5.3
-  shared_preferences_android: 2.4.15
-  shared_preferences_linux: 2.4.1
-  shared_preferences_windows: 2.4.1
   # Riverpod 状态管理
   flutter_riverpod: 2.6.1
   # Riverpod 代码生成
@@ -106,9 +103,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # 偏好存储的离线测试实现
-  shared_preferences_platform_interface: 2.4.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

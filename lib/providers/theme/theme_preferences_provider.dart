@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/providers/providers.dart';
 
 part 'theme_preferences_provider.freezed.dart';
@@ -10,7 +11,7 @@ part 'theme_preferences_provider.g.dart';
 /// 主题配置
 @Riverpod(keepAlive: true)
 class ThemePreference extends _$ThemePreference {
-  late Preferences _sharedPreferences;
+  late SharedPreferences _sharedPreferences;
 
   @override
   ThemePreferences build() {

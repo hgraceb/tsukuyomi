@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/l10n/l10n.dart';
@@ -10,7 +11,7 @@ Future<void> main() async {
   // 引擎组件初始化
   WidgetsFlutterBinding.ensureInitialized();
   // 本地键值对储存
-  final sharedPreferences = await loadSharedPreferences();
+  final sharedPreferences = await SharedPreferences.getInstance();
   // 设备状态栏高度
   final statusBarHeight = await TsukuyomiMetadata().getStatusBarHeight() ?? 0;
   // 全局的状态管理

@@ -3,11 +3,10 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
-
-import '../../fixtures/preferences_fixtures.dart';
 
 UpdateReport _report(String sessionId) => UpdateReport(
   version: UpdateReport.currentVersion,
@@ -41,7 +40,7 @@ UpdateReport _report(String sessionId) => UpdateReport(
   ],
 );
 
-ProviderContainer _container(Preferences preferences) {
+ProviderContainer _container(SharedPreferences preferences) {
   final container = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(preferences)]);
   addTearDown(container.dispose);
   return container;
@@ -51,12 +50,14 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('Read no report before the first save', () async {
-    final preferences = await preferencesFixture();
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     expect(_container(preferences).read(updateReportStoreProvider), isNull);
   });
 
   test('Save JSON and restore the complete report in a new container', () async {
-    final preferences = await preferencesFixture();
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     final container = _container(preferences);
     final report = _report('session-id');
 
@@ -79,11 +80,11 @@ void main() {
 
     await Future<void>.delayed(Duration.zero);
     expect(preferences.savedSessions, ['first-session']);
-    preferences.pending.single.completeError(StateError('save-error'));
+    preferences.pending.single.complete(false);
     await failed;
     await Future<void>.delayed(Duration.zero);
     expect(preferences.savedSessions, ['first-session', 'second-session']);
-    preferences.pending.last.complete();
+    preferences.pending.last.complete(true);
     await second;
     expect(container.read(updateReportStoreProvider), secondReport);
   });
@@ -95,7 +96,8 @@ void main() {
       totalTargets: 2,
       finishedAt: null,
     );
-    final preferences = await preferencesFixture({UpdateReportStore.reportKey: jsonEncode(report.toJson())});
+    SharedPreferences.setMockInitialValues({UpdateReportStore.reportKey: jsonEncode(report.toJson())});
+    final preferences = await SharedPreferences.getInstance();
     final container = _container(preferences);
 
     final restored = container.read(updateReportStoreProvider)!;
@@ -107,17 +109,17 @@ void main() {
   });
 }
 
-class _Preferences implements Preferences {
+class _Preferences implements SharedPreferences {
   final List<String> savedSessions = [];
-  final List<Completer<void>> pending = [];
+  final List<Completer<bool>> pending = [];
 
   @override
   String? getString(String key) => null;
 
   @override
-  Future<void> setString(String key, String value) {
+  Future<bool> setString(String key, String value) {
     savedSessions.add((jsonDecode(value) as Map<String, dynamic>)['sessionId'] as String);
-    final save = Completer<void>();
+    final save = Completer<bool>();
     pending.add(save);
     return save.future;
   }

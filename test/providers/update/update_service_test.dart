@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/core/exception/tsukuyomi_exception.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
@@ -19,7 +20,6 @@ import 'package:tsukuyomi/providers/update/update_service.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
-import '../../fixtures/preferences_fixtures.dart';
 import '../../fixtures/update_fixtures.dart';
 
 const _manga = DatabaseManga(
@@ -434,7 +434,8 @@ Future<ProviderContainer> _createContainer(
   _Manager? manager,
   List<Override> overrides = const [],
 }) async {
-  final preferences = await preferencesFixture();
+  SharedPreferences.setMockInitialValues({});
+  final preferences = await SharedPreferences.getInstance();
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(preferences),

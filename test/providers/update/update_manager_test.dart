@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
@@ -203,7 +204,7 @@ void main() {
   test('Progress save failure waits for active work before releasing the scan', () async {
     final library = _Library([mangaFixture(1), mangaFixture(2), mangaFixture(3, source: 2)]);
     final updates = _Updates(pendingIds: [1, 2, 3]);
-    final preferences = _Preferences(failOnSave: 3);
+    final preferences = _Preferences()..failOnSave = 3;
     final container = _createContainer(library, updates, preferences: preferences);
     final manager = container.read(updateManagerProvider.notifier);
     var finished = false;
@@ -330,27 +331,23 @@ class _Updates implements UpdateService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _Preferences implements Preferences {
-  _Preferences({this.failOnSave});
-
-  final int? failOnSave;
-  final _values = <String, String>{};
-  final _saves = <String>[];
+class _Preferences implements SharedPreferences {
+  String? value;
+  int saves = 0;
+  int? failOnSave;
   final failed = Completer<void>();
 
-  String? get value => _values[UpdateReportStore.reportKey];
+  @override
+  String? getString(String key) => value;
 
   @override
-  String? getString(String key) => _values[key];
-
-  @override
-  Future<void> setString(String key, String value) async {
-    _saves.add(value);
-    if (_saves.length == failOnSave) {
+  Future<bool> setString(String key, String value) async {
+    if (++saves == failOnSave) {
       failed.complete();
-      throw StateError('Failed to save update report');
+      return false;
     }
-    _values[key] = value;
+    this.value = value;
+    return true;
   }
 
   @override
