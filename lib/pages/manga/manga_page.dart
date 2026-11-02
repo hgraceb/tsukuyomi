@@ -35,7 +35,11 @@ class _MangaPageState extends ConsumerState<MangaPage> {
         scrollPhysics: const CustomBouncingScrollPhysics(start: false),
         sliverAppBar: (builder) => _MangaPageSliverAppBar(controller: controller, builder: builder),
         sliversBody: (builder) => [
-          _MangaPageSliverBody(mangaId: widget.mangaId, controller: controller, builder: builder),
+          SliverSafeArea(
+            top: false,
+            bottom: false,
+            sliver: _MangaPageSliverBody(mangaId: widget.mangaId, controller: controller, builder: builder),
+          ),
         ],
       ),
     );

@@ -106,7 +106,8 @@ class _UpdateItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final chapters = ref.watch(chaptersStreamByMangaProvider(item.mangaId));
     final downloaded = ref.watch(updateDownloadedChaptersProvider(item.mangaId));
     final publicChapters = (chapters.valueOrNull ?? []).where((chapter) => chapter.public);
@@ -148,7 +149,7 @@ class _UpdateItem extends ConsumerWidget {
         ],
       ),
       trailing: SizedBox.square(
-        dimension: 48.0,
+        dimension: theme.materialTapTargetSize == MaterialTapTargetSize.padded ? kMinInteractiveDimension : 40.0,
         child: Center(child: complete ? completeIcon : progressIcon),
       ),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),

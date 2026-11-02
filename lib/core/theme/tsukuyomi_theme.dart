@@ -36,7 +36,7 @@ class TsukuyomiTheme {
         inactiveTrackColor: colorScheme.primary.withOpacity(0.24), // [_SliderDefaultsM2.inactiveTrackColor]
       ),
       listTileTheme: const ListTileThemeData(
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.0), // [_LisTileDefaultsM2.contentPadding]
+        contentPadding: EdgeInsetsDirectional.only(start: 16.0, end: 8.0), // 行末图标按钮与应用栏对齐
       ),
       filledButtonTheme: const FilledButtonThemeData(
         style: buttonStyle,
