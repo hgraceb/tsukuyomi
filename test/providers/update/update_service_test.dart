@@ -13,6 +13,7 @@ import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_controller.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
+import 'package:tsukuyomi/pages/update/update_controller.dart';
 import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_manager.dart';
@@ -41,7 +42,7 @@ const _unchanged = ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('Detail refresh saves a single-manga report and only auto-downloads favorite auto manga', () async {
+  test('Detail refresh without a scan report only auto-downloads favorite auto manga', () async {
     for (final manga in [_manga, _manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
       final source = UpdateSourceFixture();
       final sync = _Sync(_unchanged);
@@ -65,15 +66,9 @@ void main() {
       expect(manager.wakes, autoDownload ? 1 : 0);
       expect(downloads._refreshed, [manga.id]);
       expect((container.read(mangaRepositoryProvider) as _Mangas).checkedAt.keys, [manga.id]);
-      final report = container.read(updateReportStoreProvider)!;
-      expect(report.phase, UpdatePhase.finished);
-      expect(report.scanKind, UpdateScanKind.partial);
-      expect(report.totalTargets, 1);
-      expect(report.items.single.mangaId, manga.id);
-      expect(report.items.single.enqueuedCount, autoDownload ? 2 : 0);
+      expect(container.read(updateReportStoreProvider), isNull);
       final preferences = container.read(sharedPreferencesProvider);
-      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
-      expect(UpdateReport.fromJson(json), report);
+      expect(preferences.getString(Keys.updateReportLatest), isNull);
     }
   });
 
@@ -86,6 +81,7 @@ void main() {
       source,
       sync,
       downloads,
+      report: updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]),
       overrides: [mangaControllerProvider(_manga.id.toString()).overrideWith(() => _MangaController(source, _manga))],
     );
 
@@ -94,10 +90,191 @@ void main() {
     expect(sync.chapters, isNull);
     expect(downloads.calls, 0);
     final report = container.read(updateReportStoreProvider)!;
-    expect(report.scanKind, UpdateScanKind.partial);
+    expect(report.scanKind, UpdateScanKind.full);
     expect(report.failureCount, 1);
     expect(report.items.single.outcome, UpdateOutcome.networkError);
     expect(report.items.single.message, error.toString());
+  });
+
+  test('Detail refresh replaces only its existing row even after auto-download is disabled', () async {
+    for (final manga in [_manga, _manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
+      final source = UpdateSourceFixture();
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 2));
+      final previous = updateReportFixture(
+        phase: UpdatePhase.running,
+        totalTargets: 4,
+        items: [
+          updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.networkError, message: 'other-error'),
+          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
+          updateReportItemFixture(3),
+        ],
+      );
+      final container = await _createContainer(source, _Sync(_unchanged), downloads, manga: manga);
+      await container.read(updateReportStoreProvider.notifier).save(previous);
+      final subscription = container.listen(updateControllerProvider, (_, _) {});
+      addTearDown(subscription.close);
+      container.read(updateControllerProvider.notifier).onFilterChanged(UpdateFilter.failure);
+
+      final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, manga);
+
+      final expected = previous.copyWith(items: [previous.items.first, item, previous.items.last]);
+      final report = container.read(updateReportStoreProvider)!;
+      expect(report, expected);
+      expect(report.failureCount, 1);
+      expect(report.successCount, 2);
+      expect(container.read(updateControllerProvider), UpdateFilter.failure);
+      expect(downloads.calls, manga.favorite && manga.auto ? 1 : 0);
+      final preferences = container.read(sharedPreferencesProvider);
+      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
+      expect(UpdateReport.fromJson(json), expected);
+    }
+  });
+
+  test('Detail refresh does not add manga outside the current report', () async {
+    for (final manga in [_manga, _manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
+      final source = UpdateSourceFixture();
+      final sync = _Sync(_unchanged);
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+      final previous = updateReportFixture(items: [updateReportItemFixture(2), updateReportItemFixture(3)]);
+      final container = await _createContainer(source, sync, downloads, manga: manga, report: previous);
+      final preferences = container.read(sharedPreferencesProvider);
+      final persisted = preferences.getString(Keys.updateReportLatest);
+
+      await container.read(updateServiceProvider).updateMangaAndSaveReport(source, manga);
+
+      expect(sync.chapters, [_chapter]);
+      expect(downloads.calls, manga.favorite && manga.auto ? 1 : 0);
+      expect(container.read(updateReportStoreProvider), previous);
+      expect(preferences.getString(Keys.updateReportLatest), persisted);
+    }
+  });
+
+  test('Late detail results cannot modify a scan report created after the refresh started', () async {
+    for (final previous in [
+      null,
+      updateReportFixture(items: [updateReportItemFixture(1)]),
+    ]) {
+      final pending = Completer<void>();
+      final source = UpdateSourceFixture(pending: pending.future, error: TimeoutException('old-detail-error'));
+      final container = await _createContainer(source, _Sync(_unchanged), _Downloads(const DownloadEnqueueResult()), report: previous);
+      final refresh = container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
+      await source.requested;
+      final next = updateReportFixture(items: [updateReportItemFixture(1), updateReportItemFixture(2)]).copyWith(sessionId: 'next-scan');
+      await container.read(updateReportStoreProvider.notifier).save(next);
+
+      pending.complete();
+      final item = await refresh;
+
+      expect(item.outcome, UpdateOutcome.networkError);
+      expect(container.read(updateReportStoreProvider), next);
+      final preferences = container.read(sharedPreferencesProvider);
+      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
+      expect(UpdateReport.fromJson(json), next);
+    }
+  });
+
+  test('Concurrent refreshes share the same update and later attempts can run again', () async {
+    for (final error in [null, TimeoutException('network-error')]) {
+      final pending = Completer<void>();
+      final source = UpdateSourceFixture(pending: pending.future, error: error);
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+      final container = await _createContainer(source, _Sync(_unchanged), downloads);
+      final service = container.read(updateServiceProvider);
+      final first = service.updateManga(source, _manga);
+      await source.requested;
+      final second = service.updateManga(source, _manga);
+      final detail = service.updateMangaAndSaveReport(source, _manga);
+      expect(source.calls, 1);
+
+      pending.complete();
+      final results = await Future.wait([first, second, detail]);
+
+      expect(results[1], same(results.first));
+      expect(results[2], same(results.first));
+      expect(downloads.calls, error == null ? 1 : 0);
+      await service.updateManga(source, _manga);
+      expect(source.calls, 2);
+      expect(downloads.calls, error == null ? 2 : 0);
+    }
+  });
+
+  test('Detail corrections survive later scan progress and scan completion', () async {
+    final pending = Completer<void>();
+    final scanSource = UpdateSourceFixture(error: TimeoutException('scan-error'));
+    final detailSource = UpdateSourceFixture();
+    final nextSource = UpdateSourceFixture(id: 2, pending: pending.future, error: TimeoutException('other-error'));
+    final sync = _Sync(_unchanged);
+    final container = await _createContainer(
+      scanSource,
+      sync,
+      _Downloads(const DownloadEnqueueResult()),
+      overrides: [
+        libraryRepositoryProvider.overrideWithValue(_Library([_manga, mangaFixture(2, source: 2)])),
+        sourceByIdProvider(1).overrideWith((ref) async => scanSource),
+        sourceByIdProvider(2).overrideWith((ref) async => nextSource),
+        chapterSyncWithSourceProvider(detailSource, _manga).overrideWithValue(sync),
+      ],
+    );
+    final recorded = Completer<void>();
+    final subscription = container.listen(updateReportStoreProvider, (previous, next) {
+      if (next?.items.any((item) => item.mangaId == 1) == true && !recorded.isCompleted) recorded.complete();
+    });
+    addTearDown(subscription.close);
+    final scan = container.read(updateManagerProvider.notifier).scan();
+    await Future.wait([recorded.future, nextSource.requested]);
+    final before = container.read(updateReportStoreProvider)!;
+
+    final corrected = await container.read(updateServiceProvider).updateMangaAndSaveReport(detailSource, _manga);
+    expect(container.read(updateReportStoreProvider), before.copyWith(items: [corrected]));
+    expect(container.read(updateManagerProvider).isLoading, isTrue);
+    pending.complete();
+    await scan;
+
+    final report = container.read(updateReportStoreProvider)!;
+    expect(report.sessionId, before.sessionId);
+    expect(report.phase, UpdatePhase.finished);
+    expect(report.totalTargets, 2);
+    expect(report.items.first, corrected);
+    expect(report.items.last.mangaId, 2);
+    expect(report.failureCount, 1);
+    expect(report.successCount, 1);
+    final preferences = container.read(sharedPreferencesProvider);
+    final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
+    expect(UpdateReport.fromJson(json), report);
+  });
+
+  test('A new scan shares an active detail update without receiving its old report', () async {
+    final pending = Completer<void>();
+    final source = UpdateSourceFixture(pending: pending.future);
+    final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+    final previous = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
+    final container = await _createContainer(
+      source,
+      _Sync(_unchanged),
+      downloads,
+      report: previous,
+      overrides: [
+        libraryRepositoryProvider.overrideWithValue(_Library([_manga])),
+        sourceByIdProvider(1).overrideWith((ref) async => source),
+      ],
+    );
+    final detail = container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
+    await source.requested;
+    final scan = container.read(updateManagerProvider.notifier).scan();
+    await Future<void>.delayed(Duration.zero);
+
+    pending.complete();
+    final item = await detail;
+    await scan;
+
+    final report = container.read(updateReportStoreProvider)!;
+    expect(source.calls, 1);
+    expect(downloads.calls, 1);
+    expect(report.sessionId, isNot(previous.sessionId));
+    expect(report.scanKind, UpdateScanKind.full);
+    expect(report.phase, UpdatePhase.finished);
+    expect(report.totalTargets, 1);
+    expect(report.items, [item]);
   });
 
   test('Delayed offline source responses do not sync or enqueue before completion', () async {
@@ -126,7 +303,7 @@ void main() {
         expect(item.outcome, UpdateOutcome.networkError);
         expect(item.message, error.toString());
       }
-      expect(container.read(updateReportStoreProvider)!.items, [item]);
+      expect(container.read(updateReportStoreProvider), isNull);
       expect(source.calls, 1);
     }
   });
@@ -135,7 +312,12 @@ void main() {
     final source = UpdateSourceFixture(chapters: const []);
     final sync = _Sync(const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0));
     final downloads = _Downloads(const DownloadEnqueueResult());
-    final container = await _createContainer(source, sync, downloads);
+    final container = await _createContainer(
+      source,
+      sync,
+      downloads,
+      report: updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]),
+    );
 
     final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
 
@@ -157,7 +339,8 @@ void main() {
         skippedUnavailable: 5,
       ),
     );
-    final container = await _createContainer(source, sync, downloads);
+    final previous = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
+    final container = await _createContainer(source, sync, downloads, report: previous);
 
     final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
     expect(source.calls, 1);
@@ -177,11 +360,10 @@ void main() {
 
     final report = container.read(updateReportStoreProvider)!;
     expect(report.phase, UpdatePhase.finished);
-    expect(report.scanKind, UpdateScanKind.partial);
+    expect(report.scanKind, UpdateScanKind.full);
     expect(report.totalTargets, 1);
     expect(report.items, [item]);
-    expect(report.startedAt, isNotNull);
-    expect(report.finishedAt, item.updatedAt);
+    expect(report, previous.copyWith(items: [item]));
     final preferences = container.read(sharedPreferencesProvider);
     final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
     expect(UpdateReport.fromJson(json), report);
@@ -252,7 +434,12 @@ void main() {
     final sync = _Sync(_unchanged);
     final error = StateError('enqueue-error');
     final downloads = _Downloads(const DownloadEnqueueResult(), errors: {_manga.id: error});
-    final container = await _createContainer(source, sync, downloads);
+    final container = await _createContainer(
+      source,
+      sync,
+      downloads,
+      report: updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]),
+    );
 
     final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
 
@@ -287,7 +474,13 @@ void main() {
       );
       final error = StateError('start-error');
       final manager = _Manager(errors: {1: error});
-      final container = await _createContainer(source, sync, downloads, manager: manager);
+      final container = await _createContainer(
+        source,
+        sync,
+        downloads,
+        manager: manager,
+        report: updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]),
+      );
 
       final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
 
@@ -375,7 +568,12 @@ void main() {
       final source = UpdateSourceFixture(error: error);
       final sync = _Sync(_unchanged);
       final downloads = _Downloads(const DownloadEnqueueResult());
-      final container = await _createContainer(source, sync, downloads);
+      final container = await _createContainer(
+        source,
+        sync,
+        downloads,
+        report: updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]),
+      );
 
       final item = await container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
       expect(item.outcome, outcome);
@@ -433,9 +631,10 @@ Future<ProviderContainer> _createContainer(
   DatabaseManga manga = _manga,
   _Mangas? mangas,
   _Manager? manager,
+  UpdateReport? report,
   List<Override> overrides = const [],
 }) async {
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues({if (report != null) Keys.updateReportLatest: jsonEncode(report.toJson())});
   final preferences = await SharedPreferences.getInstance();
   final container = ProviderContainer(
     overrides: [

@@ -35,4 +35,12 @@ class UpdateReportStore extends _$UpdateReportStore {
     _pendingSave = save.then((_) {}, onError: (_, _) {});
     return save;
   }
+
+  /// 在当前轮次的最新报告上应用修改
+  Future<void> update(String sessionId, UpdateReport Function(UpdateReport report) update) {
+    final report = state;
+    if (report == null || report.sessionId != sessionId) return Future.value();
+    final updated = update(report);
+    return identical(updated, report) ? Future.value() : save(updated);
+  }
 }

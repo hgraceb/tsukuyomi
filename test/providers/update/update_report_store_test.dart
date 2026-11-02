@@ -70,6 +70,45 @@ void main() {
     expect(restored.read(updateReportStoreProvider), report);
   });
 
+  test('Updates compose on the latest report before pending saves complete', () async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final container = _container(preferences);
+    final store = container.read(updateReportStoreProvider.notifier);
+    final report = _report('session-id');
+    final first = store.save(report);
+    final second = store.update(report.sessionId, (current) => current.copyWith(totalTargets: 3));
+    final third = store.update(report.sessionId, (current) => current.copyWith(message: 'new-message'));
+
+    await Future.wait([first, second, third]);
+
+    final expected = report.copyWith(totalTargets: 3, message: 'new-message');
+    expect(container.read(updateReportStoreProvider), expected);
+    expect(_container(preferences).read(updateReportStoreProvider), expected);
+  });
+
+  test('Updates for a missing or replaced scan do not change the report', () async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final container = _container(preferences);
+    final store = container.read(updateReportStoreProvider.notifier);
+    var calls = 0;
+    UpdateReport update(UpdateReport report) {
+      calls++;
+      return report.copyWith(totalTargets: 5);
+    }
+
+    await store.update('old-session', update);
+    expect(container.read(updateReportStoreProvider), isNull);
+    final report = _report('new-session');
+    await store.save(report);
+    await store.update('old-session', update);
+
+    expect(calls, 0);
+    expect(container.read(updateReportStoreProvider), report);
+    expect(_container(preferences).read(updateReportStoreProvider), report);
+  });
+
   test('Saves keep their order and continue after a storage failure', () async {
     final preferences = _Preferences();
     final container = _container(preferences);

@@ -17,8 +17,18 @@ class UpdateService {
 
   final UpdateServiceRef ref;
 
+  final Map<int, Future<UpdateReportItem>> _updating = {};
+
   /// 更新漫画章节并加入下载队列
-  Future<UpdateReportItem> updateManga(Source source, DatabaseManga manga) async {
+  Future<UpdateReportItem> updateManga(Source source, DatabaseManga manga) {
+    return _updating.putIfAbsent(manga.id, () {
+      return _updateManga(source, manga).whenComplete(() {
+        _updating.remove(manga.id);
+      });
+    });
+  }
+
+  Future<UpdateReportItem> _updateManga(Source source, DatabaseManga manga) async {
     var sync = const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
     var downloads = const DownloadEnqueueResult();
     Iterable<SourceChapter> chapters;
@@ -51,21 +61,20 @@ class UpdateService {
     return _result(source, manga, sync, downloads, outcome);
   }
 
-  /// 更新单部漫画并保存检查报告
+  /// 更新单部漫画并修正当前报告中已有的检查结果
   Future<UpdateReportItem> updateMangaAndSaveReport(Source source, DatabaseManga manga) async {
-    final startedAt = DateTime.now();
+    final sessionId = ref.read(updateReportStoreProvider)?.sessionId;
     final item = await updateManga(source, manga);
-    final report = UpdateReport(
-      version: UpdateReport.currentVersion,
-      phase: UpdatePhase.finished,
-      scanKind: UpdateScanKind.partial,
-      sessionId: startedAt.microsecondsSinceEpoch.toString(),
-      totalTargets: 1,
-      items: [item],
-      startedAt: startedAt,
-      finishedAt: item.updatedAt,
-    );
-    await ref.read(updateReportStoreProvider.notifier).save(report);
+    if (sessionId != null) {
+      await ref.read(updateReportStoreProvider.notifier).update(sessionId, (report) {
+        if (!report.items.any((existing) => existing.mangaId == item.mangaId)) return report;
+        return report.copyWith(
+          items: [
+            for (final existing in report.items) existing.mangaId == item.mangaId ? item : existing,
+          ],
+        );
+      });
+    }
     return item;
   }
 
