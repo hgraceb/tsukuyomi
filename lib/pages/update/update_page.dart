@@ -10,6 +10,7 @@ import 'package:tsukuyomi/widgets/widgets.dart';
 
 import 'update_controller.dart';
 import 'update_progress_provider.dart';
+import 'update_retry_controller.dart';
 import 'update_summary.dart';
 
 /// 更新页面
@@ -135,6 +136,36 @@ class _UpdateItem extends ConsumerWidget {
     );
   }
 
+  /// 根据重试状态或检查结果构建列表项末尾组件
+  Widget _buildTrailing(BuildContext context, WidgetRef ref, Widget statusIcon) {
+    final l10n = TsukuyomiLocalizations.of(context)!;
+    final retrying = ref.watch(updateRetryControllerProvider(item.mangaId));
+    if (retrying) {
+      return GestureDetector(
+        // 拦截等待区域的点击，避免触发整行跳转；空操作不加入读屏语义
+        excludeFromSemantics: true,
+        onTap: () {},
+        child: IconButton(
+          tooltip: l10n.retry,
+          onPressed: null,
+          icon: const SizedBox.square(
+            dimension: 24.0,
+            child: CircularProgressIndicator(strokeWidth: 2.0),
+          ),
+        ),
+      );
+    }
+    if (item.outcome.isFailure) {
+      return IconButton(
+        tooltip: l10n.retry,
+        color: Theme.of(context).colorScheme.error,
+        icon: const Icon(Icons.refresh_outlined),
+        onPressed: ref.read(updateRetryControllerProvider(item.mangaId).notifier).retry,
+      );
+    }
+    return IconButton(onPressed: null, icon: statusIcon);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
@@ -154,7 +185,7 @@ class _UpdateItem extends ConsumerWidget {
     return TsukuyomiIconButtonListTile(
       title: _buildTitle(l10n.updateProgress(completed, total)),
       subtitle: _buildSubTitle(l10n, color),
-      trailing: IconButton(onPressed: null, icon: complete ? completeIcon : progressIcon),
+      trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );
   }

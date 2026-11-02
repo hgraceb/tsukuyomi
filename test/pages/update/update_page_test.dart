@@ -14,6 +14,7 @@ import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/update/update_controller.dart';
 import 'package:tsukuyomi/pages/update/update_page.dart';
 import 'package:tsukuyomi/pages/update/update_progress_provider.dart';
+import 'package:tsukuyomi/pages/update/update_retry_controller.dart';
 import 'package:tsukuyomi/pages/update/update_summary.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/theme/theme_predefined_provider.dart';
@@ -229,10 +230,12 @@ void main() {
       },
     );
     final colors = Theme.of(tester.element(find.text('Request failed'))).colorScheme;
-    for (var id = 1; id <= 3; id++) {
+    for (final id in [1, 3]) {
       expect(_completionIcon('manga-title-$id'), findsOneWidget);
       expect(tester.widget<Icon>(_completionIcon('manga-title-$id')).color, colors.onSurface);
     }
+    expect(_completionIcon('manga-title-2'), findsNothing);
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-2'), matching: find.byTooltip('Retry')), findsOneWidget);
     expect(_completionIcon('manga-title-4'), findsNothing);
     expect(_progress(tester, 'manga-title-4'), 0.8);
     expect(_completionIcon('manga-title-5'), findsNothing);
@@ -616,7 +619,8 @@ void main() {
     expect(find.text('manga-title-1'), findsNothing);
     expect(find.text('manga-title-2'), findsOneWidget);
     expect(_summaryCounts(tester), [1, 0, 1, 10]);
-    expect(_paintedProgress(tester, 'manga-title-2'), 0.4);
+    expect(find.text('2 / 5'), findsOneWidget);
+    expect(_retryButton('manga-title-2'), findsOneWidget);
     await store.save(report.copyWith(items: [...report.items, matching, updateReportItemFixture(3)]));
     await tester.pumpAndSettle();
     expect(find.byType(ListTile), findsOneWidget);
@@ -743,6 +747,120 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Only failures have a retry action, including failures with all chapters downloaded', (tester) async {
+    _narrowScreen(tester);
+    await _pumpPage(
+      tester,
+      manager: _Manager(),
+      locale: const Locale('zh'),
+      textScale: 1.3,
+      downloaded: {for (var id = 1; id <= 7; id++) 'chapter-title-$id'},
+      report: updateReportFixture(
+        items: [
+          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
+          updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersReduced),
+          updateReportItemFixture(3),
+        ],
+      ),
+    );
+
+    expect(find.byTooltip('重试'), findsOneWidget);
+    expect(find.byIcon(Icons.refresh_outlined), findsOneWidget);
+    expect(_completionIcon('manga-title-1'), findsNothing);
+    expect(_completionIcon('manga-title-2'), findsOneWidget);
+    expect(_completionIcon('manga-title-3'), findsOneWidget);
+    final button = tester.getRect(_retryButton('manga-title-1'));
+    expect(button.width, greaterThanOrEqualTo(48.0));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Retry disables its action while pending and preserves the failure filter after success', (tester) async {
+    final pending = Completer<void>();
+    late _Retry retry;
+    final report = updateReportFixture(
+      items: [
+        updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
+        updateReportItemFixture(2),
+      ],
+    );
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      overrides: [
+        updateRetryControllerProvider(1).overrideWith(() => retry = _Retry(pending.future, UpdateOutcome.noUpdate)),
+      ],
+    );
+    await tester.tap(_countButton(UpdateFilter.failure));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Retry'));
+    await tester.pump();
+    expect(retry.calls, 1);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(tester.widget<IconButton>(_retryButton('manga-title-1')).onPressed, isNull);
+    await tester.tap(find.byTooltip('Retry'));
+    await tester.pump();
+    expect(retry.calls, 1);
+    expect(find.widgetWithIcon(FloatingActionButton, Icons.sync_outlined), findsOneWidget);
+    expect(find.text('manga-title-1'), findsOneWidget);
+
+    pending.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('manga-title-1'), findsNothing);
+    expect(find.text('No results for this filter'), findsOneWidget);
+    expect(container.read(updateControllerProvider), UpdateFilter.failure);
+    expect(_summaryCounts(tester), [0, 0, 2, 2]);
+    expect(container.read(updateReportStoreProvider)!.items.last, report.items.last);
+    await tester.tap(_countButton(UpdateFilter.all));
+    await tester.pumpAndSettle();
+    expect(find.text('manga-title-1'), findsOneWidget);
+    expect(find.text('manga-title-2'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Retry failures remain actionable and tapping a row still opens its manga', (tester) async {
+    late _Retry retry;
+    final router = GoRouter(
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const UpdatePage()),
+        GoRoute(
+          name: TsukuyomiRouter.manga.name,
+          path: '/manga/:mangaId',
+          builder: (context, state) => Text('detail-${state.params['mangaId']}'),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await _pumpPage(
+      tester,
+      manager: _Manager(),
+      router: router,
+      report: updateReportFixture(
+        items: [
+          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
+        ],
+      ),
+      overrides: [
+        updateRetryControllerProvider(1).overrideWith(() => retry = _Retry(Future.value(), UpdateOutcome.networkError)),
+      ],
+    );
+
+    await tester.tap(find.byTooltip('Retry'));
+    await tester.pumpAndSettle();
+    expect(retry.calls, 1);
+    expect(find.text('detail-1'), findsNothing);
+    expect(tester.widget<IconButton>(_retryButton('manga-title-1')).onPressed, isNotNull);
+    expect(find.text('Request failed'), findsOneWidget);
+
+    await tester.tap(find.text('manga-title-1'));
+    await tester.pumpAndSettle();
+    expect(find.text('detail-1'), findsOneWidget);
+    expect(retry.calls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('The last result can scroll above the floating scan button', (tester) async {
     await _pumpPage(
       tester,
@@ -805,6 +923,8 @@ Future<ProviderContainer> _pumpPage(
   Set<String>? downloaded,
   FutureOr<Set<String>> Function(int)? downloadedForManga,
   Iterable<int> mangaIds = const [],
+  List<Override> overrides = const [],
+  GoRouter? router,
 }) async {
   SharedPreferences.setMockInitialValues({if (report != null) Keys.updateReportLatest: jsonEncode(report.toJson())});
   final preferences = await SharedPreferences.getInstance();
@@ -817,23 +937,38 @@ Future<ProviderContainer> _pumpPage(
         chaptersStreamByMangaProvider(id).overrideWith((ref) => chapterStream?.call(id) ?? Stream.value(chaptersFixture(id))),
         updateDownloadedChaptersProvider(id).overrideWith((ref) async => downloadedForManga?.call(id) ?? ref.watch(_downloadedProvider)),
       ],
+      ...overrides,
     ],
   );
   addTearDown(container.dispose);
+  final theme = TsukuyomiTheme(container.read(themePredefinedProvider).first).themeData;
+  Widget builder(BuildContext context, Widget? child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
+    child: child!,
+  );
+  final app = router == null
+      ? MaterialApp(
+          theme: theme,
+          locale: locale,
+          localizationsDelegates: TsukuyomiLocalizations.localizationsDelegates,
+          supportedLocales: TsukuyomiLocalizations.supportedLocales,
+          builder: builder,
+          home: const UpdatePage(),
+        )
+      : MaterialApp.router(
+          routerDelegate: router.routerDelegate,
+          routeInformationParser: router.routeInformationParser,
+          routeInformationProvider: router.routeInformationProvider,
+          theme: theme,
+          locale: locale,
+          localizationsDelegates: TsukuyomiLocalizations.localizationsDelegates,
+          supportedLocales: TsukuyomiLocalizations.supportedLocales,
+          builder: builder,
+        );
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: TsukuyomiTheme(container.read(themePredefinedProvider).first).themeData,
-        locale: locale,
-        localizationsDelegates: TsukuyomiLocalizations.localizationsDelegates,
-        supportedLocales: TsukuyomiLocalizations.supportedLocales,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
-          child: child!,
-        ),
-        home: const UpdatePage(),
-      ),
+      child: app,
     ),
   );
   await tester.pumpAndSettle();
@@ -868,6 +1003,8 @@ Finder _completionIcon(String title) {
   final tile = find.widgetWithText(ListTile, title);
   return find.descendant(of: tile, matching: find.byIcon(Icons.check_circle_outline));
 }
+
+Finder _retryButton(String title) => find.descendant(of: find.widgetWithText(ListTile, title), matching: find.byType(IconButton));
 
 double _progress(WidgetTester tester, String title) => tester
     .widget<AnimatedProgressCircleIcon>(
@@ -904,4 +1041,31 @@ class _Manager extends UpdateManager {
   void _finish() => state = const AsyncData(null);
 
   void _fail(Object error) => state = AsyncError(error, StackTrace.current);
+}
+
+class _Retry extends UpdateRetryController {
+  _Retry(this.pending, this.outcome);
+
+  final Future<void> pending;
+  final UpdateOutcome outcome;
+  int calls = 0;
+
+  @override
+  bool build(int mangaId) => false;
+
+  @override
+  Future<void> retry() async {
+    calls++;
+    final keepAlive = ref.keepAlive();
+    final report = ref.read(updateReportStoreProvider)!;
+    state = true;
+    try {
+      await pending;
+      final item = report.items.singleWhere((item) => item.mangaId == mangaId);
+      await ref.read(updateReportStoreProvider.notifier).replaceItem(report.sessionId, item.copyWith(outcome: outcome));
+    } finally {
+      state = false;
+      keepAlive.close();
+    }
+  }
 }

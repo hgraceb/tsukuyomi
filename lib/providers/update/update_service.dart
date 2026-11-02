@@ -60,14 +60,7 @@ class UpdateService {
     final sessionId = ref.read(updateReportStoreProvider)?.sessionId;
     final item = await updateManga(source, manga);
     if (sessionId != null) {
-      await ref.read(updateReportStoreProvider.notifier).update(sessionId, (report) {
-        if (!report.items.any((existing) => existing.mangaId == item.mangaId)) return report;
-        return report.copyWith(
-          items: [
-            for (final existing in report.items) existing.mangaId == item.mangaId ? item : existing,
-          ],
-        );
-      });
+      await ref.read(updateReportStoreProvider.notifier).replaceItem(sessionId, item);
     }
     return item;
   }
