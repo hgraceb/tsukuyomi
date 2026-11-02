@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
@@ -10,7 +10,7 @@ import '../../fixtures/preferences_fixtures.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late SharedPreferencesWithCache preferences;
+  late Preferences preferences;
   setUp(() async {
     preferences = await preferencesFixture();
   });

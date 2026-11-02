@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
@@ -42,7 +41,7 @@ UpdateReport _report(String sessionId) => UpdateReport(
   ],
 );
 
-ProviderContainer _container(SharedPreferencesWithCache preferences) {
+ProviderContainer _container(Preferences preferences) {
   final container = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(preferences)]);
   addTearDown(container.dispose);
   return container;
@@ -108,7 +107,7 @@ void main() {
   });
 }
 
-class _Preferences implements SharedPreferencesWithCache {
+class _Preferences implements Preferences {
   final List<String> savedSessions = [];
   final List<Completer<void>> pending = [];
 

@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
@@ -331,7 +330,7 @@ class _Updates implements UpdateService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _Preferences implements SharedPreferencesWithCache {
+class _Preferences implements Preferences {
   _Preferences({this.failOnSave});
 
   final int? failOnSave;

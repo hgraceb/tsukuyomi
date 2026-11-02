@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 
 import 'update_state.dart';
@@ -12,7 +11,7 @@ part 'update_report_store.g.dart';
 class UpdateReportStore extends _$UpdateReportStore {
   static const reportKey = 'update.latestReport';
 
-  late SharedPreferencesWithCache _preferences;
+  late Preferences _preferences;
 
   Future<void> _pendingSave = Future.value();
 
