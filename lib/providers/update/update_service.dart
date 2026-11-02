@@ -29,40 +29,32 @@ class UpdateService {
     );
   }
 
+  /// 获取并同步章节，再按最新收藏与自动下载设置安排下载
+  ///
+  /// 按失败阶段记录错误，并保留已经完成的章节同步和下载入队计数
   Future<UpdateReportItem> _updateManga(Source source, DatabaseManga manga) async {
     var sync = const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
     var downloads = const DownloadEnqueueResult();
-    Iterable<SourceChapter> chapters;
+    UpdateOutcome? failureOutcome;
     try {
-      chapters = await source.getMangaChapters(manga.toHttpSourceManga());
-    } catch (error) {
-      return _result(source, manga, sync, downloads, classifySourceError(error), message: error.toString());
-    }
-    DatabaseManga latestManga;
-    try {
+      final chapters = await source.getMangaChapters(manga.toHttpSourceManga());
+      failureOutcome = UpdateOutcome.storageError;
       sync = await ref.read(chapterSyncWithSourceProvider(source, manga)).apply(chapters);
       final repository = ref.read(mangaRepositoryProvider);
       await repository.updateLastCheckAt(manga.id, DateTime.now());
-      latestManga = await repository.queryManga(manga.id);
-    } catch (error) {
-      return _result(source, manga, sync, downloads, UpdateOutcome.storageError, message: error.toString());
-    }
-    if (latestManga.favorite && latestManga.auto) {
-      try {
+      final latestManga = await repository.queryManga(manga.id);
+      failureOutcome = UpdateOutcome.enqueueFailed;
+      if (latestManga.favorite && latestManga.auto) {
         downloads = await ref.read(downloadServiceProvider).enqueueAutoDownloads(source, latestManga);
         if (downloads.enqueuedCount > 0 || downloads.skippedQueued > 0) {
           await ref.read(downloadManagerProvider).next();
         }
-      } catch (error) {
-        return _result(source, manga, sync, downloads, UpdateOutcome.enqueueFailed, message: error.toString());
       }
+    } catch (error) {
+      final outcome = failureOutcome ?? classifySourceError(error);
+      return _result(source, manga, sync, downloads, outcome, message: error.toString());
     }
-    var outcome = UpdateOutcome.noUpdate;
-    if (sync.insertCount > 0 || downloads.enqueuedCount > 0) outcome = UpdateOutcome.updated;
-    if (sync.deleteCount > 0 && sync.insertCount == 0) outcome = UpdateOutcome.chaptersReduced;
-    if (sync.sourceCount == 0) outcome = UpdateOutcome.chaptersEmpty;
-    if (downloads.failedChapters.isNotEmpty) outcome = UpdateOutcome.enqueueFailed;
-    return _result(source, manga, sync, downloads, outcome);
+    return _result(source, manga, sync, downloads, _getOutcome(sync, downloads));
   }
 
   /// 更新单部漫画并修正当前报告中已有的检查结果
@@ -80,6 +72,14 @@ class UpdateService {
       });
     }
     return item;
+  }
+
+  UpdateOutcome _getOutcome(ChapterSyncResult sync, DownloadEnqueueResult downloads) {
+    if (downloads.failedChapters.isNotEmpty) return UpdateOutcome.enqueueFailed;
+    if (sync.sourceCount == 0) return UpdateOutcome.chaptersEmpty;
+    if (sync.deleteCount > 0 && sync.insertCount == 0) return UpdateOutcome.chaptersReduced;
+    if (sync.insertCount > 0 || downloads.enqueuedCount > 0) return UpdateOutcome.updated;
+    return UpdateOutcome.noUpdate;
   }
 
   UpdateReportItem _result(
