@@ -29,13 +29,11 @@ class UpdateService {
     );
   }
 
-  /// 获取并同步章节，再按最新收藏与自动下载设置安排下载
-  ///
-  /// 按失败阶段记录错误，并保留已经完成的章节同步和下载入队计数
+  /// 更新漫画章节并加入下载队列
   Future<UpdateReportItem> _updateManga(Source source, DatabaseManga manga) async {
+    UpdateOutcome? failureOutcome;
     var sync = const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
     var downloads = const DownloadEnqueueResult();
-    UpdateOutcome? failureOutcome;
     try {
       final chapters = await source.getMangaChapters(manga.toHttpSourceManga());
       failureOutcome = UpdateOutcome.storageError;
@@ -50,11 +48,11 @@ class UpdateService {
           await ref.read(downloadManagerProvider).next();
         }
       }
+      return _result(source, manga, sync, downloads, _getOutcome(sync, downloads));
     } catch (error) {
       final outcome = failureOutcome ?? classifySourceError(error);
       return _result(source, manga, sync, downloads, outcome, message: error.toString());
     }
-    return _result(source, manga, sync, downloads, _getOutcome(sync, downloads));
   }
 
   /// 更新单部漫画并修正当前报告中已有的检查结果
