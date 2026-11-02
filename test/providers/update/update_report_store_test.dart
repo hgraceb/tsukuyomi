@@ -118,11 +118,11 @@ void main() {
     final secondReport = _report('second-session');
     final second = store.save(secondReport);
 
-    await Future<void>.delayed(Duration.zero);
+    await preferences.waitForSave(1);
     expect(preferences.savedSessions, ['first-session']);
     preferences.pending.single.complete(false);
     await failed;
-    await Future<void>.delayed(Duration.zero);
+    await preferences.waitForSave(2);
     expect(preferences.savedSessions, ['first-session', 'second-session']);
     preferences.pending.last.complete(true);
     await second;
@@ -170,6 +170,9 @@ void main() {
 class _Preferences implements SharedPreferences {
   final List<String> savedSessions = [];
   final List<Completer<bool>> pending = [];
+  final _started = <int, Completer<void>>{};
+
+  Future<void> waitForSave(int count) => _started.putIfAbsent(count, Completer<void>.new).future;
 
   @override
   String? getString(String key) => null;
@@ -179,6 +182,7 @@ class _Preferences implements SharedPreferences {
     savedSessions.add((jsonDecode(value) as Map<String, dynamic>)['sessionId'] as String);
     final save = Completer<bool>();
     pending.add(save);
+    _started.putIfAbsent(savedSessions.length, Completer<void>.new).complete();
     return save.future;
   }
 

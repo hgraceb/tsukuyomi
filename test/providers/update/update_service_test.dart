@@ -130,6 +130,50 @@ void main() {
     }
   });
 
+  test('Concurrent detail corrections preserve both rows and persisted metadata in either order', () async {
+    for (final order in [
+      [0, 1],
+      [1, 0],
+    ]) {
+      final pending = [Completer<void>(), Completer<void>()];
+      final sources = [UpdateSourceFixture(pending: pending[0].future), UpdateSourceFixture(id: 2, pending: pending[1].future)];
+      final mangas = [_manga, mangaFixture(2, source: 2)];
+      final syncs = [_Sync(_unchanged), _Sync(_unchanged)];
+      final previous = updateReportFixture(
+        message: 'original-scan-message',
+        items: [
+          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
+          updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.storageError),
+        ],
+      );
+      final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
+      final container = await _createContainer(
+        sources[0],
+        syncs[0],
+        downloads,
+        mangas: _Mangas(mangas: mangas),
+        report: previous,
+        overrides: [chapterSyncWithSourceProvider(sources[1], mangas[1]).overrideWithValue(syncs[1])],
+      );
+      final service = container.read(updateServiceProvider);
+      final updates = [for (var i = 0; i < mangas.length; i++) service.updateMangaAndSaveReport(sources[i], mangas[i])];
+      await Future.wait(sources.map((source) => source.requested));
+
+      for (final index in order) {
+        pending[index].complete();
+      }
+      final items = await Future.wait(updates);
+
+      expect(container.read(updateReportStoreProvider), previous.copyWith(items: items));
+      expect(sources.map((source) => source.calls), [1, 1]);
+      expect(syncs.map((sync) => sync.calls), [1, 1]);
+      expect(downloads.calls, 2);
+      final preferences = container.read(sharedPreferencesProvider);
+      final json = jsonDecode(preferences.getString(Keys.updateReportLatest)!) as Map<String, dynamic>;
+      expect(UpdateReport.fromJson(json), previous.copyWith(items: items));
+    }
+  });
+
   test('Detail refresh does not add manga outside the current report', () async {
     for (final manga in [_manga, _manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
       final source = UpdateSourceFixture();
@@ -198,6 +242,28 @@ void main() {
     }
   });
 
+  test('A rejected shared Future is cleared and the next refresh can recover', () async {
+    final pending = Completer<void>();
+    final source = _BrokenNameSource(pending.future);
+    final sync = _Sync(_unchanged);
+    final container = await _createContainer(source, sync, _Downloads(const DownloadEnqueueResult()));
+    final service = container.read(updateServiceProvider);
+    final first = service.updateManga(source, _manga);
+    await source.requested;
+    final second = service.updateManga(source, _manga);
+    final failures = Future.wait([expectLater(first, throwsStateError), expectLater(second, throwsStateError)]);
+
+    pending.complete();
+    await failures;
+    expect(source.calls, 1);
+    source.failName = false;
+    final result = await service.updateManga(source, _manga);
+
+    expect(result.outcome, UpdateOutcome.noUpdate);
+    expect(source.calls, 2);
+    expect(sync.calls, 2);
+  });
+
   test('A scan sharing a detail refresh uses newly enabled download settings', () async {
     for (final initial in [_manga.copyWith(favorite: false), _manga.copyWith(auto: false)]) {
       final pending = Completer<void>();
@@ -206,6 +272,7 @@ void main() {
       final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
       final mangas = _Mangas(mangas: [initial]);
       final manager = _Manager();
+      late _ObservedUpdates updates;
       final container = await _createContainer(
         source,
         sync,
@@ -214,6 +281,7 @@ void main() {
         mangas: mangas,
         manager: manager,
         overrides: [
+          updateServiceProvider.overrideWith((ref) => updates = _ObservedUpdates(updateService(ref))),
           libraryRepositoryProvider.overrideWithValue(_Library([_manga])),
           sourceByIdProvider(1).overrideWith((ref) async => source),
           chapterSyncWithSourceProvider(source, _manga).overrideWithValue(sync),
@@ -223,7 +291,7 @@ void main() {
       await source.requested;
       mangas.mangas[_manga.id] = _manga;
       final scan = container.read(updateManagerProvider.notifier).scan();
-      await Future<void>.delayed(Duration.zero);
+      await updates.requested;
 
       pending.complete();
       final item = await detail;
@@ -374,12 +442,14 @@ void main() {
     final source = UpdateSourceFixture(pending: pending.future);
     final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1));
     final previous = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
+    late _ObservedUpdates updates;
     final container = await _createContainer(
       source,
       _Sync(_unchanged),
       downloads,
       report: previous,
       overrides: [
+        updateServiceProvider.overrideWith((ref) => updates = _ObservedUpdates(updateService(ref))),
         libraryRepositoryProvider.overrideWithValue(_Library([_manga])),
         sourceByIdProvider(1).overrideWith((ref) async => source),
       ],
@@ -387,7 +457,7 @@ void main() {
     final detail = container.read(updateServiceProvider).updateMangaAndSaveReport(source, _manga);
     await source.requested;
     final scan = container.read(updateManagerProvider.notifier).scan();
-    await Future<void>.delayed(Duration.zero);
+    await updates.requested;
 
     pending.complete();
     final item = await detail;
@@ -777,6 +847,18 @@ Future<ProviderContainer> _createContainer(
   return container;
 }
 
+class _BrokenNameSource extends UpdateSourceFixture {
+  _BrokenNameSource(Future<void> pending) : super(pending: pending);
+
+  bool failName = true;
+
+  @override
+  String get name {
+    if (failName) throw StateError('source-name-error');
+    return super.name;
+  }
+}
+
 class _MangaController extends MangaController {
   _MangaController(this._source, this._manga);
 
@@ -832,6 +914,31 @@ class _Downloads implements DownloadService {
     final error = errors[manga.id];
     if (error != null) throw error;
     return result;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// 观察扫描何时取得真实服务返回的更新任务
+class _ObservedUpdates implements UpdateService {
+  _ObservedUpdates(this.service);
+
+  final UpdateService service;
+  final _requested = Completer<void>();
+
+  Future<void> get requested => _requested.future;
+
+  @override
+  Future<UpdateReportItem> updateManga(Source source, DatabaseManga manga) {
+    final result = service.updateManga(source, manga);
+    if (!_requested.isCompleted) _requested.complete();
+    return result;
+  }
+
+  @override
+  Future<UpdateReportItem> updateMangaAndSaveReport(Source source, DatabaseManga manga) {
+    return service.updateMangaAndSaveReport(source, manga);
   }
 
   @override
