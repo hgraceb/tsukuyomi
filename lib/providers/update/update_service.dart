@@ -21,11 +21,13 @@ class UpdateService {
 
   /// 更新漫画章节并加入下载队列
   Future<UpdateReportItem> updateManga(Source source, DatabaseManga manga) {
-    return _updating.putIfAbsent(manga.id, () {
-      return _updateManga(source, manga).whenComplete(() {
+    return _updating.putIfAbsent(
+      manga.id,
+      () => _updateManga(source, manga).whenComplete(() {
+        // 不返回移除的 Future，避免 whenComplete 等待自身
         _updating.remove(manga.id);
-      });
-    });
+      }),
+    );
   }
 
   Future<UpdateReportItem> _updateManga(Source source, DatabaseManga manga) async {

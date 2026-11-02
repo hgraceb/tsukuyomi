@@ -37,13 +37,13 @@ class UpdateManager extends _$UpdateManager {
     _sessionId = report.sessionId;
     final result = await AsyncValue.guard(() => _scan(report));
     final saved = await AsyncValue.guard(
-      () => _update((report) {
-        return report.copyWith(
+      () => _update(
+        (report) => report.copyWith(
           phase: !result.hasError && _stopped ? UpdatePhase.cancelled : UpdatePhase.finished,
           finishedAt: DateTime.now(),
           message: result.error?.toString(),
-        );
-      }),
+        ),
+      ),
     );
     state = saved.hasError ? saved : result;
   }
