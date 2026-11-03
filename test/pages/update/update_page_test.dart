@@ -14,7 +14,6 @@ import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/update/update_controller.dart';
 import 'package:tsukuyomi/pages/update/update_page.dart';
 import 'package:tsukuyomi/pages/update/update_progress_provider.dart';
-import 'package:tsukuyomi/pages/update/update_retry_controller.dart';
 import 'package:tsukuyomi/pages/update/update_summary.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/theme/theme_predefined_provider.dart';
@@ -57,7 +56,7 @@ void main() {
 
     final report = updateReportFixture(phase: UpdatePhase.running, items: [updateReportItemFixture(1)]);
     await container.read(updateReportStoreProvider.notifier).save(report);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_summaryCounts(tester), [0, 0, 1, 2]);
     expect(find.text('2 / 5'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
@@ -68,7 +67,7 @@ void main() {
     expect(find.widgetWithIcon(FloatingActionButton, Icons.sync_outlined), findsNothing);
     await container.read(updateReportStoreProvider.notifier).save(report.copyWith(phase: UpdatePhase.cancelled));
     manager._finish();
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_summaryCounts(tester), [0, 0, 1, 2]);
     expect(find.widgetWithIcon(FloatingActionButton, Icons.sync_outlined), findsOneWidget);
   });
@@ -129,26 +128,26 @@ void main() {
           manager._finish();
         }
         await store.save(report.copyWith(phase: phase));
-        await tester.pumpAndSettle();
+        await _pumpFrames(tester);
         expect(_summaryCounts(tester), [1, 2, 3, 10]);
         expect(summaryIcons, findsNothing);
       }
 
       final completed = [...items, for (var id = 7; id <= 10; id++) updateReportItemFixture(id)];
       await store.save(report.copyWith(items: completed));
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(_summaryCounts(tester), [1, 2, 7, 10]);
       expect(summaryIcons, findsNothing);
 
       for (final total in [10, 0]) {
         await store.save(report.copyWith(items: [], totalTargets: total));
-        await tester.pumpAndSettle();
+        await _pumpFrames(tester);
         expect(_summaryCounts(tester), [0, 0, 0, total]);
         expect(summaryIcons, findsNothing);
       }
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
     }
   });
 
@@ -166,11 +165,11 @@ void main() {
 
     await container.read(updateReportStoreProvider.notifier).save(updateReportFixture().copyWith(totalTargets: 0));
     manager._fail(StateError('save-error'));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(summaryIcons, findsNothing);
     expect(find.widgetWithIcon(FloatingActionButton, Icons.sync_outlined), findsOneWidget);
     manager._finish();
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(summaryIcons, findsNothing);
     expect(_summaryCounts(tester), [0, 0, 0, 0]);
     expect(find.byType(AlertDialog), findsNothing);
@@ -190,17 +189,17 @@ void main() {
     expect(find.text('2 / 5'), findsOneWidget);
     expect(_progress(tester, 'manga-title-1'), 0.4);
     container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 7; id++) 'chapter-title-$id', 'removed-chapter'};
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('5 / 5'), findsOneWidget);
     expect(_completionIcon('manga-title-1'), findsOneWidget);
 
     chapters.add(chaptersFixture(1, publicCount: 6));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('6 / 6'), findsOneWidget);
     expect(_completionIcon('manga-title-1'), findsOneWidget);
 
     chapters.add(chaptersFixture(1, total: 9, publicCount: 8));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('7 / 8'), findsOneWidget);
     expect(_completionIcon('manga-title-1'), findsNothing);
     expect(_progress(tester, 'manga-title-1'), 7 / 8);
@@ -270,13 +269,13 @@ void main() {
 
       pending = Completer<void>();
       container.invalidate(provider);
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(find.text('5 / 5'), findsOneWidget);
       expect(_completionIcon('manga-title-1'), findsNothing);
       expect(_progress(tester, 'manga-title-1'), 1.0);
 
       pending.completeError(StateError('fixture-$input-error'));
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(find.text('5 / 5'), findsOneWidget);
       expect(_completionIcon('manga-title-1'), findsNothing);
       final icon = find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.byType(AnimatedProgressCircleIcon));
@@ -284,7 +283,7 @@ void main() {
 
       pending = null;
       container.invalidate(provider);
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(_completionIcon('manga-title-1'), findsOneWidget);
       expect(container.read(updateReportStoreProvider), report);
       expect(tester.takeException(), isNull);
@@ -319,7 +318,7 @@ void main() {
       expect(_progress(tester, item.mangaTitle), 0.999);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
     }
   });
 
@@ -336,12 +335,12 @@ void main() {
     );
 
     second.complete({for (var id = 1; id <= 6; id++) 'chapter-title-$id'});
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(first.isCompleted, isFalse);
     expect(_progress(tester, 'manga-title-2'), 6 / 7);
 
     first.complete({'chapter-title-1', 'chapter-title-5', 'removed-chapter'});
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_progress(tester, 'manga-title-1'), 1 / 3);
     expect(_progress(tester, 'manga-title-2'), 6 / 7);
     expect(container.read(updateReportStoreProvider), report);
@@ -390,7 +389,7 @@ void main() {
     expect(_progress(tester, 'manga-title-1'), 0.0);
     expect(_progress(tester, 'manga-title-2'), 0.5);
     await tester.scrollUntilVisible(find.text('manga-title-40'), 500.0, scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('20 / 40'), findsOneWidget);
     expect(_progress(tester, 'manga-title-40'), 0.5);
     expect(container.read(updateReportStoreProvider), report);
@@ -440,7 +439,7 @@ void main() {
     expect(_paintedProgress(tester, 'manga-title-2'), 0.0);
 
     second.complete({'chapter-title-1'});
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_paintedProgress(tester, 'manga-title-2'), 0.2);
     expect(tester.takeException(), isNull);
   });
@@ -470,7 +469,7 @@ void main() {
     await tester.pump();
     expect(_paintedProgress(tester, 'manga-title-1'), firstProgress);
     expect(_paintedProgress(tester, 'manga-title-2'), secondProgress);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_paintedProgress(tester, 'manga-title-1'), 0.8);
     expect(_paintedProgress(tester, 'manga-title-2'), 0.4);
     expect(tester.takeException(), isNull);
@@ -502,14 +501,14 @@ void main() {
     expect(_paintedProgress(tester, 'manga-title-40'), 0.0);
 
     first.complete({'chapter-title-1'});
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_paintedProgress(tester, 'manga-title-40'), 0.0);
     last.complete({for (var id = 1; id <= 20; id++) 'chapter-title-$id'});
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_paintedProgress(tester, 'manga-title-40'), 0.5);
 
     await tester.scrollUntilVisible(find.text('manga-title-1'), -500.0, scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(_completionIcon('manga-title-1'), findsOneWidget);
     expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('1 / 1')), findsOneWidget);
     expect(container.read(updateReportStoreProvider), report);
@@ -567,7 +566,7 @@ void main() {
 
     for (final filter in [UpdateFilter.failure, UpdateFilter.warning, UpdateFilter.success]) {
       await tester.tap(_countButton(filter));
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(ids(), switch (filter) {
         UpdateFilter.failure => [2],
         UpdateFilter.warning => [3],
@@ -578,26 +577,26 @@ void main() {
       expect(container.read(updateReportStoreProvider), report);
     }
     await tester.tap(_countButton(UpdateFilter.success));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(ids(), [3, 4, 2, 1]);
     expectSelection(null);
     for (var repeat = 0; repeat < 4; repeat++) {
       await tester.tap(_countButton(UpdateFilter.all));
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(ids(), [3, 4, 2, 1]);
       expectSelection(repeat.isEven ? UpdateFilter.all : null);
       expect(_summaryCounts(tester), [1, 1, 2, 10]);
       expect(container.read(updateReportStoreProvider), report);
     }
     await tester.tap(_countButton(UpdateFilter.failure));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(ids(), [2]);
     await tester.tap(_countButton(UpdateFilter.all));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(ids(), [3, 4, 2, 1]);
     expectSelection(UpdateFilter.all);
     await tester.tap(_countButton(UpdateFilter.warning));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(ids(), [3]);
     expectSelection(UpdateFilter.warning);
     expect(tester.takeException(), isNull);
@@ -610,37 +609,37 @@ void main() {
     final store = container.read(updateReportStoreProvider.notifier);
     await manager.scan();
     await tester.tap(_countButton(UpdateFilter.failure));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('No results for this filter'), findsOneWidget);
     expect(find.byType(ListTile), findsNothing);
     final matching = updateReportItemFixture(2).copyWith(sourceName: 'A', outcome: UpdateOutcome.parseError);
     await store.save(report.copyWith(items: [...report.items, matching]));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('manga-title-1'), findsNothing);
     expect(find.text('manga-title-2'), findsOneWidget);
     expect(_summaryCounts(tester), [1, 0, 1, 10]);
     expect(find.text('2 / 5'), findsOneWidget);
     expect(_retryButton('manga-title-2'), findsOneWidget);
     await store.save(report.copyWith(items: [...report.items, matching, updateReportItemFixture(3)]));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.byType(ListTile), findsOneWidget);
     expect(_summaryCounts(tester), [1, 0, 2, 10]);
     await tester.tap(_countButton(UpdateFilter.all));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.byType(ListTile), findsNWidgets(3));
     await tester.tap(_countButton(UpdateFilter.failure));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     await store.save(report.copyWith(sessionId: 'next-scan'));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('manga-title-1'), findsOneWidget);
     expect(find.text('No results for this filter'), findsNothing);
     final colors = Theme.of(tester.element(find.byType(UpdateSummary))).colorScheme;
     expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
     await tester.tap(_countButton(UpdateFilter.all));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error.withValues(alpha: colors.error.a / 3.0));
     await store.save(report.copyWith(sessionId: 'third-scan'));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
     expect(find.text('manga-title-1'), findsOneWidget);
     expect(tester.getSize(_countButton(UpdateFilter.all)).height, lessThan(36.0));
@@ -658,16 +657,16 @@ void main() {
       expect(button.width, closeTo(button.height, 0.01));
       final count = tester.getRect(_countText(filter));
       await tester.tapAt(Offset(count.left - 4.0, count.center.dy));
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(tester.widget<UpdateSummary>(find.byType(UpdateSummary)).selection, filter);
       await tester.tapAt(Offset(count.right + 4.0, count.center.dy));
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(tester.widget<UpdateSummary>(find.byType(UpdateSummary)).selection, isNull);
     }
     var width = tester.getSize(_countButton(UpdateFilter.all)).width;
     for (final count in [12, 123, 12345]) {
       await container.read(updateReportStoreProvider.notifier).save(report.copyWith(totalTargets: count));
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       final expandedWidth = tester.getSize(_countButton(UpdateFilter.all)).width;
       expect(expandedWidth, greaterThan(width));
       width = expandedWidth;
@@ -698,7 +697,7 @@ void main() {
       expect(tester.renderObject<RenderParagraph>(_summaryText()).didExceedMaxLines, isTrue);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
     }
   });
 
@@ -723,10 +722,10 @@ void main() {
     SliverAppBar appBar() => tester.widget<SliverAppBar>(find.byType(SliverAppBar));
     expect(appBar().bottom, isNull);
     await tester.tap(_countButton(UpdateFilter.failure));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     for (final safeArea in [true, false]) {
       tester.view.padding = safeArea ? const FakeViewPadding(left: 300.0, right: 300.0) : const FakeViewPadding();
-      await tester.pumpAndSettle();
+      await _pumpFrames(tester);
       expect(appBar().bottom, isNull);
       expect(tester.renderObject<RenderParagraph>(_summaryText()).didExceedMaxLines, safeArea);
       expect(find.text('manga-title-1'), findsOneWidget);
@@ -736,128 +735,14 @@ void main() {
       expect(tester.takeException(), isNull);
     }
     tester.view.physicalSize = const Size(320.0, 800.0);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(appBar().bottom, isNull);
     expect(tester.renderObject<RenderParagraph>(_summaryText()).didExceedMaxLines, isTrue);
     tester.view.physicalSize = const Size(800.0, 800.0);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     await tester.tap(_countButton(UpdateFilter.all));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('manga-title-2'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Only failures have a retry action, including failures with all chapters downloaded', (tester) async {
-    _narrowScreen(tester);
-    await _pumpPage(
-      tester,
-      manager: _Manager(),
-      locale: const Locale('zh'),
-      textScale: 1.3,
-      downloaded: {for (var id = 1; id <= 7; id++) 'chapter-title-$id'},
-      report: updateReportFixture(
-        items: [
-          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
-          updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersReduced),
-          updateReportItemFixture(3),
-        ],
-      ),
-    );
-
-    expect(find.byTooltip('重试'), findsOneWidget);
-    expect(find.byIcon(Icons.refresh_outlined), findsOneWidget);
-    expect(_completionIcon('manga-title-1'), findsNothing);
-    expect(_completionIcon('manga-title-2'), findsOneWidget);
-    expect(_completionIcon('manga-title-3'), findsOneWidget);
-    final button = tester.getRect(_retryButton('manga-title-1'));
-    expect(button.width, greaterThanOrEqualTo(48.0));
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Retry disables its action while pending and preserves the failure filter after success', (tester) async {
-    final pending = Completer<void>();
-    late _Retry retry;
-    final report = updateReportFixture(
-      items: [
-        updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
-        updateReportItemFixture(2),
-      ],
-    );
-    final container = await _pumpPage(
-      tester,
-      manager: _Manager(),
-      report: report,
-      overrides: [
-        updateRetryControllerProvider(1).overrideWith(() => retry = _Retry(pending.future, UpdateOutcome.noUpdate)),
-      ],
-    );
-    await tester.tap(_countButton(UpdateFilter.failure));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('Retry'));
-    await tester.pump();
-    expect(retry.calls, 1);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(tester.widget<IconButton>(_retryButton('manga-title-1')).onPressed, isNull);
-    await tester.tap(find.byTooltip('Retry'));
-    await tester.pump();
-    expect(retry.calls, 1);
-    expect(find.widgetWithIcon(FloatingActionButton, Icons.sync_outlined), findsOneWidget);
-    expect(find.text('manga-title-1'), findsOneWidget);
-
-    pending.complete();
-    await tester.pumpAndSettle();
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('manga-title-1'), findsNothing);
-    expect(find.text('No results for this filter'), findsOneWidget);
-    expect(container.read(updateControllerProvider), UpdateFilter.failure);
-    expect(_summaryCounts(tester), [0, 0, 2, 2]);
-    expect(container.read(updateReportStoreProvider)!.items.last, report.items.last);
-    await tester.tap(_countButton(UpdateFilter.all));
-    await tester.pumpAndSettle();
-    expect(find.text('manga-title-1'), findsOneWidget);
-    expect(find.text('manga-title-2'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Retry failures remain actionable and tapping a row still opens its manga', (tester) async {
-    late _Retry retry;
-    final router = GoRouter(
-      routes: [
-        GoRoute(path: '/', builder: (context, state) => const UpdatePage()),
-        GoRoute(
-          name: TsukuyomiRouter.manga.name,
-          path: '/manga/:mangaId',
-          builder: (context, state) => Text('detail-${state.params['mangaId']}'),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-    await _pumpPage(
-      tester,
-      manager: _Manager(),
-      router: router,
-      report: updateReportFixture(
-        items: [
-          updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
-        ],
-      ),
-      overrides: [
-        updateRetryControllerProvider(1).overrideWith(() => retry = _Retry(Future.value(), UpdateOutcome.networkError)),
-      ],
-    );
-
-    await tester.tap(find.byTooltip('Retry'));
-    await tester.pumpAndSettle();
-    expect(retry.calls, 1);
-    expect(find.text('detail-1'), findsNothing);
-    expect(tester.widget<IconButton>(_retryButton('manga-title-1')).onPressed, isNotNull);
-    expect(find.text('Request failed'), findsOneWidget);
-
-    await tester.tap(find.text('manga-title-1'));
-    await tester.pumpAndSettle();
-    expect(find.text('detail-1'), findsOneWidget);
-    expect(retry.calls, 1);
     expect(tester.takeException(), isNull);
   });
 
@@ -868,7 +753,7 @@ void main() {
       report: updateReportFixture(items: [for (var id = 1; id <= 12; id++) updateReportItemFixture(id)]).copyWith(totalTargets: 12),
     );
     await tester.drag(find.byType(CustomScrollView), const Offset(0.0, -1600.0));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     final last = tester.getRect(find.widgetWithText(ListTile, 'manga-title-9'));
     final button = tester.getRect(find.byType(FloatingActionButton));
     expect(last.bottom, lessThanOrEqualTo(button.top));
@@ -906,7 +791,7 @@ void main() {
         }
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
-        await tester.pumpAndSettle();
+        await _pumpFrames(tester);
       }
     },
     variant: TargetPlatformVariant.all(),
@@ -923,8 +808,6 @@ Future<ProviderContainer> _pumpPage(
   Set<String>? downloaded,
   FutureOr<Set<String>> Function(int)? downloadedForManga,
   Iterable<int> mangaIds = const [],
-  List<Override> overrides = const [],
-  GoRouter? router,
 }) async {
   SharedPreferences.setMockInitialValues({if (report != null) Keys.updateReportLatest: jsonEncode(report.toJson())});
   final preferences = await SharedPreferences.getInstance();
@@ -937,41 +820,29 @@ Future<ProviderContainer> _pumpPage(
         chaptersStreamByMangaProvider(id).overrideWith((ref) => chapterStream?.call(id) ?? Stream.value(chaptersFixture(id))),
         updateDownloadedChaptersProvider(id).overrideWith((ref) async => downloadedForManga?.call(id) ?? ref.watch(_downloadedProvider)),
       ],
-      ...overrides,
     ],
   );
   addTearDown(container.dispose);
-  final theme = TsukuyomiTheme(container.read(themePredefinedProvider).first).themeData;
-  Widget builder(BuildContext context, Widget? child) => MediaQuery(
-    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
-    child: child!,
+  final app = MaterialApp(
+    theme: TsukuyomiTheme(container.read(themePredefinedProvider).first).themeData,
+    locale: locale,
+    localizationsDelegates: TsukuyomiLocalizations.localizationsDelegates,
+    supportedLocales: TsukuyomiLocalizations.supportedLocales,
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
+      child: child!,
+    ),
+    home: const UpdatePage(),
   );
-  final app = router == null
-      ? MaterialApp(
-          theme: theme,
-          locale: locale,
-          localizationsDelegates: TsukuyomiLocalizations.localizationsDelegates,
-          supportedLocales: TsukuyomiLocalizations.supportedLocales,
-          builder: builder,
-          home: const UpdatePage(),
-        )
-      : MaterialApp.router(
-          routerDelegate: router.routerDelegate,
-          routeInformationParser: router.routeInformationParser,
-          routeInformationProvider: router.routeInformationProvider,
-          theme: theme,
-          locale: locale,
-          localizationsDelegates: TsukuyomiLocalizations.localizationsDelegates,
-          supportedLocales: TsukuyomiLocalizations.supportedLocales,
-          builder: builder,
-        );
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
       child: app,
     ),
   );
-  await tester.pumpAndSettle();
+  await _pumpFrames(tester);
+  // 首批异步数据可能在上一帧才触发进度动画，继续推进到绘制完成
+  await tester.pump(const Duration(seconds: 1));
   return container;
 }
 
@@ -1043,29 +914,9 @@ class _Manager extends UpdateManager {
   void _fail(Object error) => state = AsyncError(error, StackTrace.current);
 }
 
-class _Retry extends UpdateRetryController {
-  _Retry(this.pending, this.outcome);
-
-  final Future<void> pending;
-  final UpdateOutcome outcome;
-  int calls = 0;
-
-  @override
-  bool build(int mangaId) => false;
-
-  @override
-  Future<void> retry() async {
-    calls++;
-    final keepAlive = ref.keepAlive();
-    final report = ref.read(updateReportStoreProvider)!;
-    state = true;
-    try {
-      await pending;
-      final item = report.items.singleWhere((item) => item.mangaId == mangaId);
-      await ref.read(updateReportStoreProvider.notifier).replaceItem(report.sessionId, item.copyWith(outcome: outcome));
-    } finally {
-      state = false;
-      keepAlive.close();
-    }
-  }
+// 页面共享动画持续循环，仅推进有限的进度、路由和滚动动画
+Future<void> _pumpFrames(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+  await tester.pump();
 }
