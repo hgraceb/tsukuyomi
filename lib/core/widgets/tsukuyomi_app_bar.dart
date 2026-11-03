@@ -51,16 +51,6 @@ extension on BuildContext {
     }
   }
 
-  Widget? buildTitle(bool hasLeading, Widget? title) {
-    if (hasLeading || title == null) {
-      // 如果有导航图标或者标题组件则不用额外设置左边距
-      return title;
-    } else {
-      // 如果没有导航图标则为标题组件额外设置左边距以平衡与右侧菜单图标的整体页面视觉效果
-      return Padding(padding: const EdgeInsets.only(left: 16.0), child: title);
-    }
-  }
-
   List<Widget>? buildActions(List<Widget>? actions) {
     if (actions == null) {
       return actions;
@@ -90,11 +80,11 @@ class TsukuyomiAppBar extends StatelessWidget {
     return AppBar(
       elevation: elevation,
       backgroundColor: backgroundColor,
-      titleSpacing: _kPaddingWidth,
+      titleSpacing: hasLeading ? _kPaddingWidth : 16.0,
       toolbarHeight: kToolbarHeight,
       leadingWidth: context.getLeadingWidth(hasLeading),
       leading: context.buildLeading(hasLeading),
-      title: context.buildTitle(hasLeading, title),
+      title: title,
     );
   }
 }
@@ -129,11 +119,11 @@ class TsukuyomiSliverAppBar extends StatelessWidget {
         floating: true,
         scrolledUnderElevation: 0.0,
         backgroundColor: Colors.transparent,
-        titleSpacing: _kPaddingWidth,
+        titleSpacing: hasLeading ? _kPaddingWidth : 16.0,
         toolbarHeight: kToolbarHeight,
         leadingWidth: context.getLeadingWidth(hasLeading),
         leading: const SizedBox.shrink(),
-        title: _FadeSliverAppBarTitle(title: context.buildTitle(hasLeading, title)),
+        title: _FadeSliverAppBarTitle(title: title),
         actions: context.buildActions(actions),
         bottom: bottom,
       ),
