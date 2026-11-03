@@ -64,9 +64,14 @@ UpdateProgress updateProgress(UpdateProgressRef ref, UpdateProgressCache cache, 
 /// 按漫画 id 监听本地已下载章节
 @riverpod
 Future<Set<String>> updateDownloadedChapters(UpdateDownloadedChaptersRef ref, int mangaId) async {
-  final manga = await ref.watch(mangaStreamByIdProvider(mangaId).future);
-  final source = await ref.watch(sourceByIdProvider(manga.source).future);
-  return ref.watch(downloadedByMangaProvider(source, manga).future);
+  final link = ref.keepAlive();
+  try {
+    final manga = await ref.watch(mangaStreamByIdProvider(mangaId).future);
+    final source = await ref.watch(sourceByIdProvider(manga.source).future);
+    return await ref.watch(downloadedByMangaProvider(source, manga).future);
+  } finally {
+    link.close();
+  }
 }
 
 @freezed

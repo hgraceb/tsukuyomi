@@ -155,18 +155,28 @@ Future<List<DownloadTask>> downloadingByManga(DownloadingByMangaRef ref, int man
 
 @riverpod
 Future<Set<String>> downloadedByManga(DownloadedByMangaRef ref, Source source, DatabaseManga manga) async {
-  // 漫画下载路径
-  final directory = await ref.watch(downloadMangaPathProvider(source, manga).future);
-  // 监听下载漫画
-  return ref.watch(downloadedChaptersProvider(directory.path));
+  final link = ref.keepAlive();
+  try {
+    // 漫画下载路径
+    final directory = await ref.watch(downloadMangaPathProvider(source, manga).future);
+    // 监听下载漫画
+    return ref.watch(downloadedChaptersProvider(directory.path));
+  } finally {
+    link.close();
+  }
 }
 
 @riverpod
 Future<List<LocalSourceImage>> downloadedByChapter(AutoDisposeRef ref, Source source, DatabaseManga manga, DatabaseChapter chapter) async {
-  // 章节下载路径
-  final directory = await ref.watch(downloadChapterPathProvider(source, manga, chapter).future);
-  // 监听下载章节
-  return ref.watch(downloadedImagesProvider(directory.path));
+  final link = ref.keepAlive();
+  try {
+    // 章节下载路径
+    final directory = await ref.watch(downloadChapterPathProvider(source, manga, chapter).future);
+    // 监听下载章节
+    return ref.watch(downloadedImagesProvider(directory.path));
+  } finally {
+    link.close();
+  }
 }
 
 @freezed
