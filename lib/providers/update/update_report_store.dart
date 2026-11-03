@@ -43,4 +43,16 @@ class UpdateReportStore extends _$UpdateReportStore {
     final updated = update(report);
     return identical(updated, report) ? Future.value() : save(updated);
   }
+
+  /// 替换当前轮次已有的单部结果，保留其余条目及扫描信息
+  Future<void> replaceItem(String sessionId, UpdateReportItem item) {
+    return update(sessionId, (report) {
+      if (!report.items.any((existing) => existing.mangaId == item.mangaId)) return report;
+      return report.copyWith(
+        items: [
+          for (final existing in report.items) existing.mangaId == item.mangaId ? item : existing,
+        ],
+      );
+    });
+  }
 }
