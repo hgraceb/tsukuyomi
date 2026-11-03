@@ -3,7 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 
 /// 导航图标和菜单图标与屏幕的边距
-const _kPaddingWidth = 8.0;
+const _kPaddingWidth = 4.0;
 
 extension on BuildContext {
   bool get hasDrawer {
@@ -39,7 +39,7 @@ extension on BuildContext {
     if (hasLeading) {
       return kMinInteractiveDimension + _kPaddingWidth;
     } else {
-      return 0.0;
+      return 8.0;
     }
   }
 
