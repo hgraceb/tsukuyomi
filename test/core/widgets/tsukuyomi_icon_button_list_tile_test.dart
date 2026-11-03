@@ -90,7 +90,7 @@ void main() {
             }
           }
         },
-        variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}),
+        variant: TargetPlatformVariant.all(),
       );
     }
   }

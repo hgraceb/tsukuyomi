@@ -17,38 +17,44 @@ void main() {
           final hasLeading = leading != 'none';
           final dismissible = leading == 'back' || leading == 'close';
 
-          Widget page(BuildContext context) => Scaffold(
-            drawer: leading == 'drawer' ? const Drawer(child: Text('Drawer content')) : null,
-            appBar: sliver
-                ? null
-                : const PreferredSize(
-                    preferredSize: Size.fromHeight(kToolbarHeight),
-                    child: TsukuyomiAppBar(title: Text('Title')),
-                  ),
-            body: sliver
-                ? CustomScrollView(
-                    slivers: [
-                      SliverStack(
-                        children: [
-                          TsukuyomiSliverAppBar(
-                            title: const Text('Title'),
-                            shadow: false,
-                            actions: [
-                              IconButton(
-                                key: const ValueKey('actionButton'),
-                                icon: const Icon(Icons.info_outline, key: ValueKey('actionIcon')),
-                                onPressed: () {},
-                              ),
-                            ],
+          Widget page(BuildContext context) {
+            final drawer = leading == 'drawer' ? const Drawer(child: Text('Drawer content')) : null;
+            const list = ListTile(title: Text('List title'));
+            if (!sliver) {
+              return Scaffold(
+                drawer: drawer,
+                appBar: const PreferredSize(
+                  preferredSize: Size.fromHeight(kToolbarHeight),
+                  child: TsukuyomiAppBar(title: Text('Title')),
+                ),
+                body: list,
+              );
+            }
+            return Scaffold(
+              drawer: drawer,
+              body: CustomScrollView(
+                slivers: [
+                  SliverStack(
+                    children: [
+                      TsukuyomiSliverAppBar(
+                        title: const Text('Title'),
+                        shadow: false,
+                        actions: [
+                          IconButton(
+                            key: const ValueKey('actionButton'),
+                            icon: const Icon(Icons.info_outline, key: ValueKey('actionIcon')),
+                            onPressed: () {},
                           ),
-                          const TsukuyomiSliverLeadingAppBar(),
                         ],
                       ),
-                      const SliverToBoxAdapter(child: ListTile(title: Text('List title'))),
+                      const TsukuyomiSliverLeadingAppBar(),
                     ],
-                  )
-                : const ListTile(title: Text('List title')),
-          );
+                  ),
+                  const SliverToBoxAdapter(child: list),
+                ],
+              ),
+            );
+          }
 
           await tester.pumpWidget(
             MaterialApp(
@@ -63,7 +69,9 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          expect(tester.getRect(find.text('Title')).left, hasLeading ? 56.0 : 16.0);
+          // Sliver 用例的 action 和末尾占位会触发原生的标题靠左布局
+          final centered = !sliver && (theme.platform == TargetPlatform.iOS || theme.platform == TargetPlatform.macOS);
+          _expectTitle(tester, centered: centered, start: hasLeading ? 56.0 : 16.0);
           expect(tester.getRect(find.text('List title')).left, 16.0);
           if (sliver) {
             final pageWidth = tester.getSize(find.byType(Scaffold).first).width;
@@ -87,15 +95,47 @@ void main() {
               expect(find.text('Drawer content'), findsOneWidget);
             } else {
               expect(button, findsNothing);
-              expect(tester.getRect(find.text('Title')).left, 16.0);
+              _expectTitle(tester, centered: centered, start: 16.0);
             }
           } else {
             expect(button, findsNothing);
           }
           expect(tester.takeException(), isNull);
         },
-        variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}),
+        variant: TargetPlatformVariant.all(),
       );
     }
+  }
+
+  testWidgets('Sliver app bar without actions retains native title alignment', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final theme = TsukuyomiTheme(container.read(themePredefinedProvider).first).themeData;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: const [
+              TsukuyomiSliverAppBar(title: Text('Title'), shadow: false),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final centered = theme.platform == TargetPlatform.iOS || theme.platform == TargetPlatform.macOS;
+    _expectTitle(tester, centered: centered, start: 16.0);
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.all());
+}
+
+void _expectTitle(WidgetTester tester, {required bool centered, required double start}) {
+  final title = tester.getRect(find.text('Title'));
+  if (centered) {
+    final pageWidth = tester.getSize(find.byType(Scaffold).first).width;
+    expect(title.center.dx, pageWidth / 2.0);
+  } else {
+    expect(title.left, start);
   }
 }

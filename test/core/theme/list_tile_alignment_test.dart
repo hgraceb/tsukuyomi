@@ -25,7 +25,7 @@ void main() {
         expect(row.right - text.right, 16.0);
         expect(tester.takeException(), isNull);
       },
-      variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}),
+      variant: TargetPlatformVariant.all(),
     );
   }
 
@@ -44,7 +44,11 @@ void main() {
     final icon = tester.getRect(find.byType(Icon));
     final title = tester.getRect(find.text('Title'));
     expect(icon.left, 16.0);
-    expect(title.left - icon.right, theme.platform == TargetPlatform.windows ? 12.0 : 16.0);
+    final gap = switch (theme.platform) {
+      TargetPlatform.windows || TargetPlatform.macOS || TargetPlatform.linux => 12.0,
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => 16.0,
+    };
+    expect(title.left - icon.right, gap);
     expect(tester.takeException(), isNull);
-  }, variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}));
+  }, variant: TargetPlatformVariant.all());
 }

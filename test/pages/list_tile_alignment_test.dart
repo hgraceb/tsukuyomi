@@ -15,6 +15,7 @@ import 'package:tsukuyomi/widgets/widgets.dart';
 import '../fixtures/update_fixtures.dart';
 
 void main() {
+  // 页面操作覆盖桌面和移动端代表，平台布局差异由公共组件测试覆盖
   for (final failed in [false, true]) {
     testWidgets(
       'Download actions stay aligned and invoke the correct operation: failed=$failed',
