@@ -19,11 +19,12 @@ class UpdateProgressCache {
 
   Set<int> _mangaIds = {};
 
-  UpdateProgress? read(int mangaId) => _items[mangaId];
-
-  UpdateProgress save(int mangaId, UpdateProgress progress) {
-    if (_mangaIds.contains(mangaId)) _items[mangaId] = progress;
-    return progress;
+  /// 重新读取时保留上次结果，读取失败仍需更新错误反馈
+  UpdateProgress update(int mangaId, UpdateProgress progress) {
+    final previous = _items[mangaId];
+    final value = progress.hasValue || previous == null ? progress : previous.copyWith(hasError: previous.hasError || progress.hasError);
+    if (_mangaIds.contains(mangaId) && (value.hasValue || value.hasError)) _items[mangaId] = value;
+    return value;
   }
 
   /// 按完整报告清理已移除条目，筛选和排序不影响保留范围
@@ -52,25 +53,12 @@ UpdateProgressCache updateProgressCache(UpdateProgressCacheRef ref, String? sess
 UpdateProgress updateProgress(UpdateProgressRef ref, UpdateProgressCache cache, int mangaId) {
   final chapters = ref.watch(chaptersStreamByMangaProvider(mangaId));
   final downloaded = ref.watch(updateDownloadedChaptersProvider(mangaId));
-  final previous = cache.read(mangaId);
+  final publicChapters = (chapters.valueOrNull ?? []).where((chapter) => chapter.public);
+  final completed = publicChapters.where((chapter) => downloaded.valueOrNull?.contains(chapter.title) == true).length;
   final hasError = chapters.hasError || downloaded.hasError;
-  final ready = chapters.hasValue && downloaded.hasValue && !chapters.isLoading && !downloaded.isLoading && !hasError;
-  // 两路数据重新读取期间沿用完整结果，避免先归零或只更新分母
-  if (!ready && previous != null) {
-    return hasError ? cache.save(mangaId, previous.copyWith(hasError: true)) : previous;
-  }
-
-  final downloadedChapters = downloaded.valueOrNull;
-  var completed = 0;
-  var total = 0;
-  for (final chapter in chapters.valueOrNull ?? []) {
-    if (!chapter.public) continue;
-    total++;
-    if (downloadedChapters?.contains(chapter.title) == true) completed++;
-  }
-  final progress = UpdateProgress(completed: completed, total: total, hasValue: ready, hasError: hasError);
-  // 首次读取保留原来的默认显示，完整结果或错误状态才进入缓存
-  return ready || hasError ? cache.save(mangaId, progress) : progress;
+  final hasValue = !chapters.isLoading && !downloaded.isLoading && !hasError;
+  final progress = UpdateProgress(completed: completed, total: publicChapters.length, hasValue: hasValue, hasError: hasError);
+  return cache.update(mangaId, progress);
 }
 
 /// 按漫画 id 监听本地已下载章节
