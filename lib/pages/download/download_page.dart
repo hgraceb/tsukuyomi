@@ -73,7 +73,7 @@ class DownloadPage extends ConsumerWidget {
   }
 
   /// 下载列表项的末尾组件 TODO 使用设置图标和弹窗替换只能进行单个操作的图标
-  Widget _buildTrailing(ThemeData theme, DownloadController controller, DatabaseDownload download) {
+  IconButton _buildTrailing(ThemeData theme, DownloadController controller, DatabaseDownload download) {
     if (download.error?.isNotEmpty == true) {
       return IconButton(
         color: theme.colorScheme.error,
@@ -108,7 +108,7 @@ class DownloadPage extends ConsumerWidget {
               final theme = Theme.of(context);
               return InkWell(
                 onTap: () {},
-                child: ListTile(
+                child: TsukuyomiIconButtonListTile(
                   title: _buildTitle(data),
                   subtitle: _buildSubTitle(theme, data),
                   trailing: _buildTrailing(theme, controller, data.download),

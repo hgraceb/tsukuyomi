@@ -3,7 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 
 /// 导航图标和菜单图标与屏幕的边距
-const _kPaddingWidth = 8.0;
+const _kPaddingWidth = 4.0;
 
 extension on BuildContext {
   bool get hasDrawer {
@@ -37,12 +37,7 @@ extension on BuildContext {
 
   double getLeadingWidth(bool hasLeading) {
     if (hasLeading) {
-      return switch (Theme.of(this).materialTapTargetSize) {
-        // 移动端的导航图标宽度
-        MaterialTapTargetSize.padded => kMinInteractiveDimension + _kPaddingWidth,
-        // 桌面端的导航图标宽度 [_IconButtonDefaultsM3.minimumSize]
-        MaterialTapTargetSize.shrinkWrap => 40.0 + _kPaddingWidth,
-      };
+      return kMinInteractiveDimension + _kPaddingWidth;
     } else {
       return 0.0;
     }
@@ -53,16 +48,6 @@ extension on BuildContext {
       return Row(children: [const SizedBox(width: _kPaddingWidth), appBarLeading]);
     } else {
       return null;
-    }
-  }
-
-  Widget? buildTitle(bool hasLeading, Widget? title) {
-    if (hasLeading || title == null) {
-      // 如果有导航图标或者标题组件则不用额外设置左边距
-      return title;
-    } else {
-      // 如果没有导航图标则为标题组件额外设置左边距以平衡与右侧菜单图标的整体页面视觉效果
-      return Padding(padding: const EdgeInsets.only(left: _kPaddingWidth), child: title);
     }
   }
 
@@ -95,11 +80,11 @@ class TsukuyomiAppBar extends StatelessWidget {
     return AppBar(
       elevation: elevation,
       backgroundColor: backgroundColor,
-      titleSpacing: _kPaddingWidth,
+      titleSpacing: hasLeading ? _kPaddingWidth : 16.0,
       toolbarHeight: kToolbarHeight,
       leadingWidth: context.getLeadingWidth(hasLeading),
       leading: context.buildLeading(hasLeading),
-      title: context.buildTitle(hasLeading, title),
+      title: title,
     );
   }
 }
@@ -134,11 +119,11 @@ class TsukuyomiSliverAppBar extends StatelessWidget {
         floating: true,
         scrolledUnderElevation: 0.0,
         backgroundColor: Colors.transparent,
-        titleSpacing: _kPaddingWidth,
+        titleSpacing: hasLeading ? _kPaddingWidth : 16.0,
         toolbarHeight: kToolbarHeight,
         leadingWidth: context.getLeadingWidth(hasLeading),
         leading: const SizedBox.shrink(),
-        title: _FadeSliverAppBarTitle(title: context.buildTitle(hasLeading, title)),
+        title: _FadeSliverAppBarTitle(title: title),
         actions: context.buildActions(actions),
         bottom: bottom,
       ),

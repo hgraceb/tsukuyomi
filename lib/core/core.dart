@@ -8,6 +8,7 @@ export 'widgets/tsukuyomi_app_bar.dart';
 export 'widgets/tsukuyomi_async_handler.dart';
 export 'widgets/tsukuyomi_async_scaffold.dart';
 export 'widgets/tsukuyomi_background.dart';
+export 'widgets/tsukuyomi_icon_button_list_tile.dart';
 export 'widgets/tsukuyomi_media_query.dart';
 export 'widgets/tsukuyomi_refresh_indicator.dart';
 export 'widgets/tsukuyomi_scaffold.dart';

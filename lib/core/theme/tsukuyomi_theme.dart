@@ -18,6 +18,9 @@ class TsukuyomiTheme {
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         shape: CircleBorder(),
       ),
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(tapTargetSize: MaterialTapTargetSize.padded),
+      ),
       cardColor: themeConfig.card,
       cardTheme: CardThemeData(
         elevation: 0,
