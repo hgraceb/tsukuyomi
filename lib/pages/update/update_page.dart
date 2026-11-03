@@ -14,11 +14,32 @@ import 'update_retry_controller.dart';
 import 'update_summary.dart';
 
 /// 更新页面
-class UpdatePage extends ConsumerWidget {
+class UpdatePage extends ConsumerStatefulWidget {
   const UpdatePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UpdatePage> createState() => _UpdatePageState();
+}
+
+class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProviderStateMixin {
+  late AnimationController _iconController;
+  late Animation<double> _iconAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _iconController = AnimationController(duration: const Duration(milliseconds: 1500), vsync: this)..repeat(reverse: false);
+    _iconAnimation = Tween(begin: 0.0, end: 1.0).animate(_iconController);
+  }
+
+  @override
+  void dispose() {
+    _iconController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final selection = ref.watch(updateControllerProvider);
     final controller = ref.read(updateControllerProvider.notifier);
@@ -59,7 +80,11 @@ class UpdatePage extends ConsumerWidget {
                   prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
                   itemCount: items.length,
                   findChildIndexCallback: (key) => key is ValueKey<int> ? itemIndexes[key.value] : null,
-                  itemBuilder: (context, index) => _UpdateItem(key: ValueKey(items[index].mangaId), item: items[index]),
+                  itemBuilder: (context, index) => _UpdateItem(
+                    key: ValueKey(items[index].mangaId),
+                    item: items[index],
+                    iconAnimation: _iconAnimation,
+                  ),
                 ),
               ),
             ] else if (filter != UpdateFilter.all) ...[
@@ -77,9 +102,11 @@ class UpdatePage extends ConsumerWidget {
 }
 
 class _UpdateItem extends ConsumerWidget {
-  const _UpdateItem({super.key, required this.item});
+  const _UpdateItem({super.key, required this.item, required this.iconAnimation});
 
   final UpdateReportItem item;
+
+  final Animation<double> iconAnimation;
 
   /// 更新列表项的标题
   Widget _buildTitle(String count) {
@@ -143,11 +170,9 @@ class _UpdateItem extends ConsumerWidget {
     if (retrying) {
       return IconButton(
         tooltip: l10n.retry,
+        disabledColor: Theme.of(context).colorScheme.onSurface,
         onPressed: null,
-        icon: const SizedBox.square(
-          dimension: 24.0,
-          child: CircularProgressIndicator(strokeWidth: 2.0),
-        ),
+        icon: AnimatedWaitingDownloadIcon(animation: iconAnimation),
       );
     }
     if (item.outcome.isFailure) {
