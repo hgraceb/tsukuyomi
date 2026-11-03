@@ -80,6 +80,7 @@ class _UpdateItem extends ConsumerWidget {
 
   final UpdateReportItem item;
 
+  /// 更新列表项的标题
   Widget _buildTitle(String count) {
     return LayoutBuilder(
       builder: (context, constraints) => Row(
@@ -103,6 +104,37 @@ class _UpdateItem extends ConsumerWidget {
     );
   }
 
+  /// 更新列表项的副标题
+  Widget _buildSubTitle(TsukuyomiLocalizations l10n, Color color) {
+    final outcome = switch (item.outcome) {
+      UpdateOutcome.updated => l10n.updateOutcomeUpdated,
+      UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
+      UpdateOutcome.chaptersEmpty => l10n.updateOutcomeChaptersEmpty,
+      UpdateOutcome.chaptersReduced => l10n.updateOutcomeChaptersReduced,
+      UpdateOutcome.sourceUnavailable => l10n.updateOutcomeSourceUnavailable,
+      UpdateOutcome.networkError => l10n.updateOutcomeNetworkError,
+      UpdateOutcome.parseError => l10n.updateOutcomeParseError,
+      UpdateOutcome.storageError => l10n.updateOutcomeStorageError,
+      UpdateOutcome.enqueueFailed => l10n.updateOutcomeEnqueueFailed,
+    };
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(child: Text(item.mangaTitle, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        const SizedBox(width: 8.0),
+        Flexible(
+          child: Text(
+            outcome,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: color),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
@@ -116,38 +148,13 @@ class _UpdateItem extends ConsumerWidget {
     final progressLoading = chapters.isLoading || downloaded.isLoading;
     final complete = !progressError && !progressLoading && total > 0 && completed == total;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
-    final outcome = switch (item.outcome) {
-      UpdateOutcome.updated => l10n.updateOutcomeUpdated,
-      UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
-      UpdateOutcome.chaptersEmpty => l10n.updateOutcomeChaptersEmpty,
-      UpdateOutcome.chaptersReduced => l10n.updateOutcomeChaptersReduced,
-      UpdateOutcome.sourceUnavailable => l10n.updateOutcomeSourceUnavailable,
-      UpdateOutcome.networkError => l10n.updateOutcomeNetworkError,
-      UpdateOutcome.parseError => l10n.updateOutcomeParseError,
-      UpdateOutcome.storageError => l10n.updateOutcomeStorageError,
-      UpdateOutcome.enqueueFailed => l10n.updateOutcomeEnqueueFailed,
-    };
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);
     final progressIcon = _buildProgress(completed, total, progressError ? colors.error : color);
 
-    return ListTile(
+    return TsukuyomiIconButtonListTile(
       title: _buildTitle(l10n.updateProgress(completed, total)),
-      subtitle: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(item.mangaTitle, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 8.0),
-          Flexible(
-            child: Text(
-              outcome,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: color),
-            ),
-          ),
-        ],
-      ),
-      trailing: complete ? completeIcon : progressIcon,
+      subtitle: _buildSubTitle(l10n, color),
+      trailing: IconButton(onPressed: null, icon: complete ? completeIcon : progressIcon),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );
   }

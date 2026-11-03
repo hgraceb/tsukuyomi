@@ -28,4 +28,23 @@ void main() {
       variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}),
     );
   }
+
+  testWidgets('Ordinary leading icons retain the default list spacing', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final theme = TsukuyomiTheme(container.read(themePredefinedProvider).first).themeData;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: const Scaffold(
+          body: ListTile(leading: Icon(Icons.info_outline), title: Text('Title')),
+        ),
+      ),
+    );
+    final icon = tester.getRect(find.byType(Icon));
+    final title = tester.getRect(find.text('Title'));
+    expect(icon.left, 16.0);
+    expect(title.left - icon.right, theme.platform == TargetPlatform.windows ? 12.0 : 16.0);
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}));
 }

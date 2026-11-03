@@ -757,8 +757,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final platform in [TargetPlatform.windows, TargetPlatform.android]) {
-    testWidgets('Update progress and completion icons are 24dp with symmetric 16dp margins on $platform', (tester) async {
+  testWidgets(
+    'Update status buttons retain icon size and align text and icons at 16dp',
+    (tester) async {
       for (final complete in [false, true]) {
         await _pumpPage(
           tester,
@@ -767,33 +768,31 @@ void main() {
           downloaded: complete ? {for (var i = 1; i <= 5; i++) 'chapter-title-$i'} : {},
         );
         final row = find.widgetWithText(ListTile, 'manga-title-1');
+        expect(find.widgetWithText(TsukuyomiIconButtonListTile, 'manga-title-1'), findsOneWidget);
+        final tile = tester.widget<ListTile>(row);
+        final button = find.descendant(of: row, matching: find.byType(IconButton));
         final trailing = complete ? find.byIcon(Icons.check_circle_outline) : find.byType(AnimatedProgressCircleIcon);
         final icon = find.descendant(of: row, matching: trailing);
         final margin = tester.getRect(row).right - tester.getRect(icon).right;
         expect(margin, 16.0);
         expect(tester.getSize(icon), const Size.square(24.0));
         expect(tester.getRect(find.text('source-name')).left - tester.getRect(row).left, 16.0);
-        expect(tester.takeException(), isNull);
-
-        final child = tester.widget<ListTile>(row).trailing!;
-        final baseline = SizedBox.square(dimension: 48.0, child: Center(child: child));
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: Center(child: baseline)),
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(tester.getSize(find.byWidget(baseline)), const Size.square(48.0));
-        expect(tester.getSize(trailing), const Size.square(24.0));
+        expect(tester.getRect(icon).left - tester.getRect(find.byWidget(tile.title!)).right, 16.0);
+        expect(tester.getRect(icon).left - tester.getRect(find.byWidget(tile.subtitle!)).right, 16.0);
+        expect(tester.getSize(button), const Size.square(48.0));
+        expect(tester.getSize(find.descendant(of: button, matching: find.byType(InkWell))), const Size.square(40.0));
+        expect(tester.widget<IconButton>(button).onPressed, isNull);
         if (!complete) {
           final paint = find.descendant(of: trailing, matching: find.byType(CustomPaint));
           expect(tester.getSize(paint), const Size.square(24.0));
         }
+        expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpAndSettle();
       }
-    }, variant: TargetPlatformVariant({platform}));
-  }
+    },
+    variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}),
+  );
 }
 
 Future<ProviderContainer> _pumpPage(
