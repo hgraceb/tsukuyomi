@@ -39,7 +39,7 @@ extension on BuildContext {
     if (hasLeading) {
       return kMinInteractiveDimension + _kPaddingWidth;
     } else {
-      return 8.0;
+      return 0.0;
     }
   }
 
@@ -57,7 +57,7 @@ extension on BuildContext {
       return title;
     } else {
       // 如果没有导航图标则为标题组件额外设置左边距以平衡与右侧菜单图标的整体页面视觉效果
-      return Padding(padding: const EdgeInsets.only(left: _kPaddingWidth), child: title);
+      return Padding(padding: const EdgeInsets.only(left: 16.0), child: title);
     }
   }
 
