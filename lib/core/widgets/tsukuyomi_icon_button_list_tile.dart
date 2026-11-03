@@ -23,8 +23,7 @@ class TsukuyomiIconButtonListTile extends StatelessWidget {
 
   final Widget? subtitle;
 
-  /// 行末按钮或保留按钮布局的包装组件
-  final Widget? trailing;
+  final IconButton? trailing;
 
   final GestureTapCallback? onTap;
 

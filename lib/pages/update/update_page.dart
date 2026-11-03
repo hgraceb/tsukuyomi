@@ -137,21 +137,16 @@ class _UpdateItem extends ConsumerWidget {
   }
 
   /// 根据重试状态或检查结果构建列表项末尾组件
-  Widget _buildTrailing(BuildContext context, WidgetRef ref, Widget statusIcon) {
+  IconButton _buildTrailing(BuildContext context, WidgetRef ref, Widget statusIcon) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final retrying = ref.watch(updateRetryControllerProvider(item.mangaId));
     if (retrying) {
-      return GestureDetector(
-        // 拦截等待区域的点击，避免触发整行跳转；空操作不加入读屏语义
-        excludeFromSemantics: true,
-        onTap: () {},
-        child: IconButton(
-          tooltip: l10n.retry,
-          onPressed: null,
-          icon: const SizedBox.square(
-            dimension: 24.0,
-            child: CircularProgressIndicator(strokeWidth: 2.0),
-          ),
+      return IconButton(
+        tooltip: l10n.retry,
+        onPressed: null,
+        icon: const SizedBox.square(
+          dimension: 24.0,
+          child: CircularProgressIndicator(strokeWidth: 2.0),
         ),
       );
     }
