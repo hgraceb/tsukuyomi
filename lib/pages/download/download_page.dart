@@ -109,7 +109,7 @@ class DownloadPage extends ConsumerWidget {
               return InkWell(
                 onTap: () {},
                 child: ListTile(
-                  contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 8.0),
+                  contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 4.0),
                   title: _buildTitle(data),
                   subtitle: _buildSubTitle(theme, data),
                   trailing: _buildTrailing(theme, controller, data.download),

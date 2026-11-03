@@ -37,7 +37,7 @@ extension on BuildContext {
 
   double getLeadingWidth(bool hasLeading) {
     if (hasLeading) {
-      return kMinInteractiveDimension;
+      return kMinInteractiveDimension + _kPaddingWidth;
     } else {
       return 0.0;
     }

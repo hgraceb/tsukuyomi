@@ -287,7 +287,7 @@ class _MangaPageSliverBodyState extends State<_MangaPageSliverBody> with SingleT
             onTap: () {},
             child: ListTile(
               enabled: data.enabled,
-              contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 8.0),
+              contentPadding: const EdgeInsetsDirectional.only(start: 16.0, end: 4.0),
               textColor: 0 < chapter.images && chapter.images <= chapter.progress ? theme.disabledColor : null,
               title: Text(chapter.title, overflow: TextOverflow.ellipsis),
               subtitle: _getChapterSubtitle(theme, data),
