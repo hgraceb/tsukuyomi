@@ -757,7 +757,6 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // 状态切换覆盖桌面和移动端代表，平台布局差异由公共组件测试覆盖
   testWidgets(
     'Update status buttons retain icon size and align text and icons at 16dp',
     (tester) async {
@@ -792,7 +791,7 @@ void main() {
         await tester.pumpAndSettle();
       }
     },
-    variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}),
+    variant: TargetPlatformVariant.all(),
   );
 }
 
