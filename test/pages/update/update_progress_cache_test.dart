@@ -154,6 +154,62 @@ void main() {
     });
   }
 
+  for (final downloadsFirst in [true, false]) {
+    test('A failed first read keeps unconfirmed counts current: downloadsFirst=$downloadsFirst', () async {
+      final chapters = Completer<void>();
+      final downloads = Completer<void>();
+      final error = StateError('initial-download-error');
+      final input = _Input(1)
+        ..chaptersPending = chapters.future
+        ..downloadsPending = downloads.future
+        ..downloadsError = error;
+      final harness = await _Harness.create([input]);
+      final row = harness.watch(1);
+      expect(row.read(), const UpdateProgress());
+
+      if (downloadsFirst) {
+        downloads.complete();
+        await expectLater(harness.container.read(updateDownloadedChaptersProvider(1).future), throwsA(same(error)));
+        await harness.container.pump();
+        expect(row.read(), const UpdateProgress(hasError: true));
+        chapters.complete();
+        await harness.container.read(chaptersStreamByMangaProvider(1).future);
+      } else {
+        chapters.complete();
+        await harness.container.read(chaptersStreamByMangaProvider(1).future);
+        await harness.container.pump();
+        expect(row.read(), const UpdateProgress(total: 5));
+        downloads.complete();
+        await expectLater(harness.container.read(updateDownloadedChaptersProvider(1).future), throwsA(same(error)));
+      }
+      await harness.container.pump();
+      expect(row.read(), const UpdateProgress(total: 5, hasError: true));
+      row.close();
+      await harness.container.pump();
+      expect(harness.container.exists(updateProgressProvider(harness.cache, 1)), isFalse);
+      expect(harness.container.exists(chaptersStreamByMangaProvider(1)), isFalse);
+      expect(harness.container.exists(updateDownloadedChaptersProvider(1)), isFalse);
+
+      final nextChapters = Completer<void>();
+      final nextDownloads = Completer<void>();
+      input
+        ..chapters = chaptersFixture(1, total: 10, publicCount: 8)
+        ..downloaded = {'chapter-title-1', 'chapter-title-2', 'chapter-title-3'}
+        ..chaptersPending = nextChapters.future
+        ..downloadsPending = nextDownloads.future
+        ..downloadsError = null;
+      final returned = harness.watch(1);
+      expect(returned.read(), const UpdateProgress(hasError: true));
+      nextChapters.complete();
+      await harness.container.read(chaptersStreamByMangaProvider(1).future);
+      await harness.container.pump();
+      expect(returned.read(), const UpdateProgress(total: 8, hasError: true));
+      nextDownloads.complete();
+      await harness.settle(1);
+      expect(returned.read(), const UpdateProgress(completed: 3, total: 8, hasValue: true));
+    });
+  }
+
   test('A failed first read has no confirmed result and can recover to a genuine empty result', () async {
     final error = StateError('initial-error');
     final input = _Input(1)..downloadsError = error;

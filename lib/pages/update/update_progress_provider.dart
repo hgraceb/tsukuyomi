@@ -19,10 +19,11 @@ class UpdateProgressCache {
 
   Set<int> _mangaIds = {};
 
-  /// 重新读取时保留上次结果，读取失败仍需更新错误反馈
+  /// 重新读取时保留已确认的计数，读取失败仍需更新错误反馈
   UpdateProgress update(int mangaId, UpdateProgress progress) {
     final previous = _items[mangaId];
-    final value = progress.hasValue || previous == null ? progress : previous.copyWith(hasError: previous.hasError || progress.hasError);
+    final snapshot = previous != null && previous.hasValue ? previous : progress;
+    final value = progress.hasValue ? progress : snapshot.copyWith(hasError: previous?.hasError == true || progress.hasError);
     if (_mangaIds.contains(mangaId) && (value.hasValue || value.hasError)) _items[mangaId] = value;
     return value;
   }
