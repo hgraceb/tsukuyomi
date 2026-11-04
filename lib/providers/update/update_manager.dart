@@ -83,8 +83,7 @@ class UpdateManager extends _$UpdateManager {
   }
 
   Future<void> _scanSource(List<DatabaseManga> mangas) async {
-    final result = await AsyncValue.guard(() => ref.read(sourceByIdProvider(mangas.first.source).future));
-    if (_stopped) return;
+    final source = await AsyncValue.guard(() => ref.read(sourceByIdProvider(mangas.first.source).future));
     final service = ref.read(updateServiceProvider);
     for (final manga in mangas) {
       if (_stopped) break;
@@ -96,23 +95,19 @@ class UpdateManager extends _$UpdateManager {
       final lookup = await AsyncValue.guard(() => ref.read(mangaRepositoryProvider).queryMangaByIdOrNull(manga.id));
       if (_stopped) break;
       if (_pendingTarget(manga.id) == null) continue;
+
+      final latest = lookup.valueOrNull;
+      final UpdateReportItem item;
       if (lookup.hasError) {
-        await _replaceItem(
-          target.copyWith(outcome: UpdateOutcome.storageError, message: lookup.error.toString(), updatedAt: DateTime.now()),
-        );
-        continue;
+        item = target.copyWith(outcome: UpdateOutcome.storageError, message: lookup.error.toString(), updatedAt: DateTime.now());
+      } else if (latest == null || !latest.favorite || !latest.auto) {
+        item = target.copyWith(outcome: UpdateOutcome.skipped, updatedAt: DateTime.now());
+      } else if (source.hasError) {
+        final error = source.error!;
+        item = target.copyWith(outcome: classifySourceError(error), message: error.toString(), updatedAt: DateTime.now());
+      } else {
+        item = await service.updateManga(source.requireValue, latest);
       }
-      final latest = lookup.requireValue;
-      if (latest == null || !latest.favorite || !latest.auto) {
-        await _replaceItem(target.copyWith(outcome: UpdateOutcome.skipped, updatedAt: DateTime.now()));
-        continue;
-      }
-      if (result.hasError) {
-        final error = result.error!;
-        await _replaceItem(target.copyWith(outcome: classifySourceError(error), message: error.toString(), updatedAt: DateTime.now()));
-        continue;
-      }
-      final item = await service.updateManga(result.requireValue, latest);
       await _replaceItem(item.copyWith(sourceName: target.sourceName, mangaTitle: target.mangaTitle));
     }
   }

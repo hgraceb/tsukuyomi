@@ -56,18 +56,7 @@ class UpdateProgressCache {
 @riverpod
 UpdateProgressCache updateProgressCache(UpdateProgressCacheRef ref, String? sessionId) {
   var active = true;
-  var scheduled = false;
-  final cache = UpdateProgressCache(
-    sessionId,
-    onErrorChanged: () {
-      if (!active || scheduled) return;
-      scheduled = true;
-      scheduleMicrotask(() {
-        scheduled = false;
-        if (active) ref.notifyListeners();
-      });
-    },
-  );
+  final cache = UpdateProgressCache(sessionId, onErrorChanged: () => scheduleMicrotask(() => active ? ref.notifyListeners() : null));
   ref.listen(updateReportStoreProvider, (_, report) => cache.retain(report), fireImmediately: true);
   ref.onDispose(() {
     active = false;

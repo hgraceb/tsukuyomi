@@ -80,9 +80,8 @@ class UpdateRetryController extends _$UpdateRetryController {
     ref.invalidate(mangaStreamByIdProvider(mangaId));
     ref.invalidate(chaptersStreamByMangaProvider(mangaId));
     ref.invalidate(updateDownloadedChaptersProvider(mangaId));
-    final cache = ref.listen(updateProgressCacheProvider(sessionId), (_, _) {});
-    final provider = updateProgressProvider(cache.read(), mangaId);
-    final subscription = ref.listen(provider, (_, _) {});
+    final cacheSubscription = ref.listen(updateProgressCacheProvider(sessionId), (_, _) {});
+    final progressSubscription = ref.listen(updateProgressProvider(cacheSubscription.read(), mangaId), (_, _) {});
     try {
       await AsyncValue.guard(
         () => Future.wait<Object>([
@@ -90,10 +89,10 @@ class UpdateRetryController extends _$UpdateRetryController {
           ref.read(updateDownloadedChaptersProvider(mangaId).future),
         ]),
       );
-      ref.read(provider);
+      progressSubscription.read();
     } finally {
-      subscription.close();
-      cache.close();
+      progressSubscription.close();
+      cacheSubscription.close();
     }
   }
 }
