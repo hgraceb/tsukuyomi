@@ -68,7 +68,6 @@ class UpdateService {
   UpdateOutcome _getOutcome(ChapterSyncResult sync, DownloadEnqueueResult downloads) {
     if (downloads.failedChapters.isNotEmpty) return UpdateOutcome.enqueueFailed;
     if (sync.sourceCount == 0) return UpdateOutcome.chaptersEmpty;
-    if (sync.deleteCount > 0 && sync.insertCount == 0) return UpdateOutcome.chaptersReduced;
     if (sync.insertCount > 0 || downloads.enqueuedCount > 0) return UpdateOutcome.updated;
     return UpdateOutcome.noUpdate;
   }

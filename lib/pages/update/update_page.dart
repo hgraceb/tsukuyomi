@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/l10n/l10n.dart';
 import 'package:tsukuyomi/providers/update/update_manager.dart';
+import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
 
@@ -42,7 +43,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
     final selection = ref.watch(updateControllerProvider);
     final controller = ref.read(updateControllerProvider.notifier);
     final manager = ref.watch(updateManagerProvider);
-    final report = ref.watch(updateDisplayReportProvider);
+    final report = ref.watch(updateReportStoreProvider);
     final progressCache = ref.watch(updateProgressCacheProvider(report?.sessionId));
     final scanner = ref.read(updateManagerProvider.notifier);
     final running = manager.isLoading;
@@ -162,7 +163,6 @@ class _UpdateItem extends ConsumerWidget {
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
       UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
       UpdateOutcome.chaptersEmpty => l10n.updateOutcomeChaptersEmpty,
-      UpdateOutcome.chaptersReduced => l10n.updateOutcomeChaptersReduced,
       UpdateOutcome.sourceUnavailable => l10n.updateOutcomeSourceUnavailable,
       UpdateOutcome.networkError => l10n.updateOutcomeNetworkError,
       UpdateOutcome.parseError => l10n.updateOutcomeParseError,
@@ -202,7 +202,7 @@ class _UpdateItem extends ConsumerWidget {
     }
     if (item.outcome.canRetry) {
       return IconButton(
-        tooltip: item.outcome == UpdateOutcome.progressError ? l10n.updateRetryProgress : l10n.retry,
+        tooltip: l10n.retry,
         color: item.outcome.isFailure ? colors.error : colors.tertiary,
         icon: const Icon(Icons.refresh_outlined),
         onPressed: ref.read(updateRetryControllerProvider(item.mangaId).notifier).retry,

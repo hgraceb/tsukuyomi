@@ -21,14 +21,16 @@ class UpdateReportStore extends _$UpdateReportStore {
     final json = _preferences.getString(Keys.updateReportLatest);
     if (json == null) return null;
     final report = UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
-    return report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
+    final restored = report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
+    return restored.markUnchecked();
   }
 
   /// 保存最近的更新报告
   Future<void> save(UpdateReport report) {
-    state = report;
+    final value = report.phase == UpdatePhase.running ? report : report.markUnchecked();
+    state = value;
     final save = _pendingSave.then((_) async {
-      if (!await _preferences.setString(Keys.updateReportLatest, jsonEncode(report.toJson()))) {
+      if (!await _preferences.setString(Keys.updateReportLatest, jsonEncode(value.toJson()))) {
         throw StateError('Failed to save update report');
       }
     });
@@ -53,6 +55,20 @@ class UpdateReportStore extends _$UpdateReportStore {
           for (final existing in report.items) existing.mangaId == item.mangaId ? item : existing,
         ],
       );
+    });
+  }
+
+  /// 本地进度读取失败时标记警告，保留同轮次其他漫画的最新结果
+  Future<void> markProgressError(String sessionId, int mangaId) {
+    return update(sessionId, (report) {
+      var changed = false;
+      final items = report.items.map((item) {
+        if (item.mangaId != mangaId) return item;
+        if (!item.outcome.canReadProgress || item.outcome.isFailure || item.outcome == UpdateOutcome.progressError) return item;
+        changed = true;
+        return item.copyWith(outcome: UpdateOutcome.progressError);
+      }).toList();
+      return changed ? report.copyWith(items: items) : report;
     });
   }
 }

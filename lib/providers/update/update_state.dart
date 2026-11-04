@@ -35,9 +35,6 @@ enum UpdateOutcome {
   /// 返回章节为空
   chaptersEmpty,
 
-  /// 减少且无新增
-  chaptersReduced,
-
   /// 漫画源不可用
   sourceUnavailable,
 
@@ -63,24 +60,16 @@ extension UpdateOutcomeX on UpdateOutcome {
 
   /// 需要关注的检查或本地进度状态
   bool get isWarning => switch (this) {
-    UpdateOutcome.chaptersEmpty ||
-    UpdateOutcome.chaptersReduced ||
-    UpdateOutcome.skipped ||
-    UpdateOutcome.unchecked ||
-    UpdateOutcome.progressError => true,
+    UpdateOutcome.chaptersEmpty || UpdateOutcome.skipped || UpdateOutcome.unchecked || UpdateOutcome.progressError => true,
     _ => false,
   };
 
   /// 失败和可重新处理的警告允许手动重试
-  bool get canRetry => isFailure || isWarning && this != UpdateOutcome.chaptersReduced;
+  bool get canRetry => isFailure || isWarning;
 
   /// 已取得章节检查结果时才读取本地下载进度
   bool get canReadProgress =>
-      isSuccess ||
-      this == UpdateOutcome.chaptersEmpty ||
-      this == UpdateOutcome.chaptersReduced ||
-      this == UpdateOutcome.enqueueFailed ||
-      this == UpdateOutcome.progressError;
+      isSuccess || this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed || this == UpdateOutcome.progressError;
 
   /// 检查或安排下载失败，不包含等待和跳过的条目
   bool get isFailure => switch (this) {
@@ -116,7 +105,9 @@ class UpdateReportItem with _$UpdateReportItem {
     String? message,
   }) = _UpdateReportItem;
 
-  factory UpdateReportItem.fromJson(Map<String, dynamic> json) => _$UpdateReportItemFromJson(json);
+  // 旧报告中的章节减少按正常结果读取
+  factory UpdateReportItem.fromJson(Map<String, dynamic> json) =>
+      _$UpdateReportItemFromJson(json['outcome'] == 'chaptersReduced' ? {...json, 'outcome': 'noUpdate'} : json);
 }
 
 /// 一次扫描会话的持久化报告
@@ -142,14 +133,16 @@ class UpdateReport with _$UpdateReport {
 
   int get failureCount => items.where((item) => item.outcome.isFailure).length;
 
-  int get warningCount {
-    final pendingAreWarnings = phase != UpdatePhase.running;
-    return items.where((item) => item.outcome.isWarning || pendingAreWarnings && item.outcome.isPending).length;
-  }
+  int get warningCount => items.where((item) => item.outcome.isWarning).length;
 
   int get successCount => items.where((item) => item.outcome.isSuccess).length;
 
   int get pendingCount => items.where((item) => item.outcome.isPending || item.outcome == UpdateOutcome.unchecked).length;
 
   int get skippedCount => items.where((item) => item.outcome == UpdateOutcome.skipped).length;
+
+  UpdateReport markUnchecked() {
+    if (!items.any((item) => item.outcome.isPending)) return this;
+    return copyWith(items: [for (final item in items) item.outcome.isPending ? item.copyWith(outcome: UpdateOutcome.unchecked) : item]);
+  }
 }
