@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/l10n/l10n.dart';
-import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/providers/update/update_manager.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
@@ -45,6 +44,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
     final controller = ref.read(updateControllerProvider.notifier);
     final manager = ref.watch(updateManagerProvider);
     final report = ref.watch(updateReportStoreProvider);
+    final progressCache = ref.watch(updateProgressCacheProvider(report?.sessionId));
     final scanner = ref.read(updateManagerProvider.notifier);
     final running = manager.isLoading;
     final error = manager.hasError || report?.message?.isNotEmpty == true;
@@ -84,6 +84,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
                     key: ValueKey(items[index].mangaId),
                     item: items[index],
                     iconAnimation: _iconAnimation,
+                    progressCache: progressCache,
                   ),
                 ),
               ),
@@ -102,11 +103,13 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
 }
 
 class _UpdateItem extends ConsumerWidget {
-  const _UpdateItem({super.key, required this.item, required this.iconAnimation});
+  const _UpdateItem({super.key, required this.item, required this.iconAnimation, required this.progressCache});
 
   final UpdateReportItem item;
 
   final Animation<double> iconAnimation;
+
+  final UpdateProgressCache progressCache;
 
   /// 更新列表项的标题
   Widget _buildTitle(String count) {
@@ -190,17 +193,13 @@ class _UpdateItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
-    final chapters = ref.watch(chaptersStreamByMangaProvider(item.mangaId));
-    final downloaded = ref.watch(updateDownloadedChaptersProvider(item.mangaId));
-    final publicChapters = (chapters.valueOrNull ?? []).where((chapter) => chapter.public);
-    final completed = publicChapters.where((chapter) => downloaded.valueOrNull?.contains(chapter.title) == true).length;
-    final total = publicChapters.length;
-    final progressError = chapters.hasError || downloaded.hasError;
-    final progressLoading = chapters.isLoading || downloaded.isLoading;
-    final complete = !progressError && !progressLoading && total > 0 && completed == total;
+    final progress = ref.watch(updateProgressProvider(progressCache, item.mangaId));
+    final completed = progress.completed;
+    final total = progress.total;
+    final complete = progress.hasValue && !progress.hasError && total > 0 && completed == total;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);
-    final progressIcon = _buildProgress(completed, total, progressError ? colors.error : color);
+    final progressIcon = _buildProgress(completed, total, progress.hasError ? colors.error : color);
 
     return TsukuyomiIconButtonListTile(
       title: _buildTitle(l10n.updateProgress(completed, total)),

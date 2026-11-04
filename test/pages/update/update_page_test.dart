@@ -248,7 +248,7 @@ void main() {
   });
 
   for (final input in ['chapters', 'downloads']) {
-    testWidgets('Retained complete counts do not show a check while $input reload or fail', (tester) async {
+    testWidgets('Retained complete counts keep their check while $input reload and expose failures', (tester) async {
       Completer<void>? pending;
       final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
       final container = await _pumpPage(
@@ -271,8 +271,7 @@ void main() {
       container.invalidate(provider);
       await _pumpFrames(tester);
       expect(find.text('5 / 5'), findsOneWidget);
-      expect(_completionIcon('manga-title-1'), findsNothing);
-      expect(_progress(tester, 'manga-title-1'), 1.0);
+      expect(_completionIcon('manga-title-1'), findsOneWidget);
 
       pending.completeError(StateError('fixture-$input-error'));
       await _pumpFrames(tester);
@@ -393,6 +392,173 @@ void main() {
     expect(find.text('20 / 40'), findsOneWidget);
     expect(_progress(tester, 'manga-title-40'), 0.5);
     expect(container.read(updateReportStoreProvider), report);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final complete in [false, true]) {
+    testWidgets('A 200-row report restores its cached counts and painted icon before delayed reads finish: complete=$complete', (
+      tester,
+    ) async {
+      final chapterReads = <int, int>{};
+      final downloadReads = <int, int>{};
+      Completer<void>? chaptersPending;
+      Completer<void>? downloadsPending;
+      var firstTotal = 5;
+      var firstDownloaded = complete ? 5 : 2;
+      final report = updateReportFixture(
+        totalTargets: 200,
+        items: [
+          for (var id = 1; id <= 200; id++) updateReportItemFixture(id).copyWith(sourceName: 'source-${id.toString().padLeft(3, '0')}'),
+        ],
+      );
+      final container = await _pumpPage(
+        tester,
+        manager: _Manager(),
+        report: report,
+        chapterStream: (id) {
+          chapterReads.update(id, (reads) => reads + 1, ifAbsent: () => 1);
+          final total = id == 1 ? firstTotal : id % 11 + 1;
+          final value = chaptersFixture(id, total: total + 2, publicCount: total);
+          return id == 1 && chaptersPending != null ? Stream.fromFuture(chaptersPending.future.then((_) => value)) : Stream.value(value);
+        },
+        downloadedForManga: (id) async {
+          downloadReads.update(id, (reads) => reads + 1, ifAbsent: () => 1);
+          final count = id == 1 ? firstDownloaded : id % (id % 11 + 1);
+          final value = {for (var chapter = 1; chapter <= count; chapter++) 'chapter-title-$chapter'};
+          if (id == 1) await downloadsPending?.future;
+          return value;
+        },
+      );
+      final initialCount = '$firstDownloaded / 5';
+      void expectCached() {
+        final row = find.widgetWithText(ListTile, 'manga-title-1');
+        expect(find.descendant(of: row, matching: find.text(initialCount)), findsOneWidget);
+        if (complete) {
+          expect(_completionIcon('manga-title-1'), findsOneWidget);
+        } else {
+          expect(_paintedProgress(tester, 'manga-title-1'), 0.4);
+        }
+      }
+
+      expectCached();
+      final cache = container.read(updateProgressCacheProvider(report.sessionId));
+      final saved = container.read(sharedPreferencesProvider).getString(Keys.updateReportLatest);
+      await tester.scrollUntilVisible(find.text('manga-title-200'), 500.0, scrollable: find.byType(Scrollable).first);
+      await _pumpFrames(tester);
+      expect(find.text('manga-title-1'), findsNothing);
+      expect(container.exists(updateProgressProvider(cache, 1)), isFalse);
+      expect(container.exists(chaptersStreamByMangaProvider(1)), isFalse);
+      expect(container.exists(updateDownloadedChaptersProvider(1)), isFalse);
+
+      chaptersPending = Completer<void>();
+      downloadsPending = Completer<void>();
+      firstTotal = 8;
+      firstDownloaded = 3;
+      await tester.scrollUntilVisible(find.text('manga-title-1'), -500.0, scrollable: find.byType(Scrollable).first);
+      await tester.pump();
+      expectCached();
+      expect(chapterReads[1], 2);
+      expect(downloadReads[1], 2);
+      if (complete) {
+        downloadsPending.complete();
+      } else {
+        chaptersPending.complete();
+      }
+      await _pumpFrames(tester);
+      expectCached();
+      if (complete) {
+        chaptersPending.complete();
+      } else {
+        downloadsPending.complete();
+      }
+      await _pumpFrames(tester);
+      final returned = find.widgetWithText(ListTile, 'manga-title-1');
+      expect(find.descendant(of: returned, matching: find.text('3 / 8')), findsOneWidget);
+      expect(_completionIcon('manga-title-1'), findsNothing);
+      expect(_paintedProgress(tester, 'manga-title-1'), 3 / 8);
+      expect(container.read(updateReportStoreProvider), report);
+      expect(container.read(sharedPreferencesProvider).getString(Keys.updateReportLatest), saved);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('Filtering a complete manga out and back retains its icon while progress reloads', (tester) async {
+    Completer<void>? pending;
+    final report = updateReportFixture(
+      items: [
+        updateReportItemFixture(1),
+        updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersReduced),
+      ],
+    );
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      downloadedForManga: (id) async {
+        if (id == 1) await pending?.future;
+        return {for (var chapter = 1; chapter <= 5; chapter++) 'chapter-title-$chapter'};
+      },
+    );
+    expect(_completionIcon('manga-title-1'), findsOneWidget);
+    await tester.tap(_countButton(UpdateFilter.warning));
+    await _pumpFrames(tester);
+    expect(find.text('manga-title-1'), findsNothing);
+    expect(container.exists(updateDownloadedChaptersProvider(1)), isFalse);
+
+    pending = Completer<void>();
+    await tester.tap(_countButton(UpdateFilter.all));
+    await _pumpFrames(tester);
+    expect(_completionIcon('manga-title-1'), findsOneWidget);
+    expect(_summaryCounts(tester), [0, 1, 1, 2]);
+    pending.complete();
+    await _pumpFrames(tester);
+    expect(_completionIcon('manga-title-1'), findsOneWidget);
+    expect(container.read(updateReportStoreProvider), report);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A new report reloads the same manga with its first-read display instead of the previous report icon', (tester) async {
+    Completer<void>? chaptersPending;
+    Completer<void>? downloadsPending;
+    var downloaded = 5;
+    final report = updateReportFixture(totalTargets: 1, items: [updateReportItemFixture(1)]);
+    final container = await _pumpPage(
+      tester,
+      manager: _Manager(),
+      report: report,
+      chapterStream: (_) async* {
+        await chaptersPending?.future;
+        yield chaptersFixture(1);
+      },
+      downloadedForManga: (_) async {
+        final value = {for (var id = 1; id <= downloaded; id++) 'chapter-title-$id'};
+        await downloadsPending?.future;
+        return value;
+      },
+    );
+    expect(_completionIcon('manga-title-1'), findsOneWidget);
+    final store = container.read(updateReportStoreProvider.notifier);
+    final next = report.copyWith(sessionId: 'next-session', items: []);
+    await store.save(next);
+    await _pumpFrames(tester);
+    expect(find.text('manga-title-1'), findsNothing);
+    expect(container.exists(chaptersStreamByMangaProvider(1)), isFalse);
+    expect(container.exists(updateDownloadedChaptersProvider(1)), isFalse);
+
+    chaptersPending = Completer<void>();
+    downloadsPending = Completer<void>();
+    downloaded = 2;
+    await store.save(next.copyWith(items: report.items));
+    await tester.pump();
+    expect(find.text('0 / 0'), findsOneWidget);
+    expect(_completionIcon('manga-title-1'), findsNothing);
+    chaptersPending.complete();
+    await _pumpFrames(tester);
+    expect(find.text('0 / 5'), findsOneWidget);
+    downloadsPending.complete();
+    await _pumpFrames(tester);
+    expect(find.text('2 / 5'), findsOneWidget);
+    expect(_paintedProgress(tester, 'manga-title-1'), 0.4);
     expect(tester.takeException(), isNull);
   });
 
