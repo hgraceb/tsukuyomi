@@ -68,8 +68,10 @@ extension UpdateOutcomeX on UpdateOutcome {
   bool get canRetry => isFailure || isWarning;
 
   /// 已取得章节检查结果时才读取本地下载进度
-  bool get canReadProgress =>
-      isSuccess || this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed || this == UpdateOutcome.progressError;
+  bool get canReadProgress {
+    if (isSuccess) return true;
+    return this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed || this == UpdateOutcome.progressError;
+  }
 
   /// 检查或安排下载失败，不包含等待和跳过的条目
   bool get isFailure => switch (this) {
@@ -106,8 +108,9 @@ class UpdateReportItem with _$UpdateReportItem {
   }) = _UpdateReportItem;
 
   // 旧报告中的章节减少按正常结果读取
-  factory UpdateReportItem.fromJson(Map<String, dynamic> json) =>
-      _$UpdateReportItemFromJson(json['outcome'] == 'chaptersReduced' ? {...json, 'outcome': 'noUpdate'} : json);
+  factory UpdateReportItem.fromJson(Map<String, dynamic> json) => _$UpdateReportItemFromJson(
+    json['outcome'] == 'chaptersReduced' ? {...json, 'outcome': 'noUpdate'} : json,
+  );
 }
 
 /// 一次扫描会话的持久化报告
