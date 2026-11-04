@@ -9,8 +9,17 @@ enum UpdatePhase { idle, running, cancelled, finished, interrupted }
 /// 扫描方式
 enum UpdateScanKind { full, partial }
 
-/// 单部检查结局
+/// 单部检查状态与结局
 enum UpdateOutcome {
+  /// 等待开始检查
+  pending,
+
+  /// 正在检查章节
+  checking,
+
+  /// 已不符合本轮扫描条件
+  skipped,
+
   /// 有可下载章节
   updated,
 
@@ -40,17 +49,27 @@ enum UpdateOutcome {
 }
 
 extension UpdateOutcomeX on UpdateOutcome {
+  /// 尚未完成检查
+  bool get isPending => this == UpdateOutcome.pending || this == UpdateOutcome.checking;
+
   /// 有可下载章节或没有章节变化
   bool get isSuccess => this == UpdateOutcome.updated || this == UpdateOutcome.noUpdate;
 
   /// 章节为空或减少
   bool get isWarning => this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.chaptersReduced;
 
-  /// 不成功且不是警告
-  bool get isFailure => !isSuccess && !isWarning;
+  /// 检查或安排下载失败，不包含等待和跳过的条目
+  bool get isFailure => switch (this) {
+    UpdateOutcome.sourceUnavailable ||
+    UpdateOutcome.networkError ||
+    UpdateOutcome.parseError ||
+    UpdateOutcome.storageError ||
+    UpdateOutcome.enqueueFailed => true,
+    _ => false,
+  };
 }
 
-/// 单部漫画的检查结局条目
+/// 单部漫画的检查状态与结果条目
 @freezed
 class UpdateReportItem with _$UpdateReportItem {
   const factory UpdateReportItem({
@@ -102,4 +121,8 @@ class UpdateReport with _$UpdateReport {
   int get warningCount => items.where((item) => item.outcome.isWarning).length;
 
   int get successCount => items.where((item) => item.outcome.isSuccess).length;
+
+  int get pendingCount => items.where((item) => item.outcome.isPending).length;
+
+  int get skippedCount => items.where((item) => item.outcome == UpdateOutcome.skipped).length;
 }

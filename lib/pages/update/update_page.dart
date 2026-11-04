@@ -53,6 +53,9 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
     final items = results.where(filter.matches).toList()..sort(compareUpdateItems);
     final itemIndexes = {for (var index = 0; index < items.length; index++) items[index].mangaId: index};
     final showSummary = running || error || report != null && report.phase != UpdatePhase.idle;
+    final pending = report?.pendingCount ?? 0;
+    final skipped = report?.skippedCount ?? 0;
+    final scanning = report?.phase == UpdatePhase.running;
     final summary = Flexible(
       child: Padding(
         padding: const EdgeInsets.only(right: 8.0),
@@ -73,6 +76,17 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
               title: Text(l10n.updateTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
               actions: showSummary ? [summary] : null,
             ),
+            if (pending > 0 || skipped > 0) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
+                  child: Text(
+                    scanning ? l10n.updatePendingSummary(pending, skipped) : l10n.updateUncheckedSummary(pending, skipped),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+            ],
             if (items.isNotEmpty) ...[
               SliverPadding(
                 padding: const EdgeInsets.only(bottom: 96.0),
@@ -85,6 +99,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
                     item: items[index],
                     iconAnimation: _iconAnimation,
                     progressCache: progressCache,
+                    scanning: scanning,
                   ),
                 ),
               ),
@@ -103,7 +118,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
 }
 
 class _UpdateItem extends ConsumerWidget {
-  const _UpdateItem({super.key, required this.item, required this.iconAnimation, required this.progressCache});
+  const _UpdateItem({super.key, required this.item, required this.iconAnimation, required this.progressCache, required this.scanning});
 
   final UpdateReportItem item;
 
@@ -111,25 +126,29 @@ class _UpdateItem extends ConsumerWidget {
 
   final UpdateProgressCache progressCache;
 
+  final bool scanning;
+
   /// 更新列表项的标题
-  Widget _buildTitle(String count) {
+  Widget _buildTitle(String? count) {
     return LayoutBuilder(
       builder: (context, constraints) => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(child: Text(item.sourceName, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          ConstrainedBox(
-            constraints: constraints.copyWith(minWidth: 0.0),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Text(
-                count,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+          if (count != null) ...[
+            ConstrainedBox(
+              constraints: constraints.copyWith(minWidth: 0.0),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Text(
+                  count,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -138,6 +157,9 @@ class _UpdateItem extends ConsumerWidget {
   /// 更新列表项的副标题
   Widget _buildSubTitle(TsukuyomiLocalizations l10n, Color color) {
     final outcome = switch (item.outcome) {
+      UpdateOutcome.pending => scanning ? l10n.updatePending : l10n.updateUnchecked,
+      UpdateOutcome.checking => scanning ? l10n.updateChecking : l10n.updateUnchecked,
+      UpdateOutcome.skipped => l10n.updateSkipped,
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
       UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
       UpdateOutcome.chaptersEmpty => l10n.updateOutcomeChaptersEmpty,
@@ -186,6 +208,17 @@ class _UpdateItem extends ConsumerWidget {
         onPressed: ref.read(updateRetryControllerProvider(item.mangaId).notifier).retry,
       );
     }
+    if (item.outcome.isPending) {
+      final checking = scanning && item.outcome == UpdateOutcome.checking;
+      return IconButton(
+        disabledColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        onPressed: null,
+        icon: checking ? AnimatedWaitingDownloadIcon(animation: iconAnimation) : const Icon(Icons.schedule_outlined),
+      );
+    }
+    if (item.outcome == UpdateOutcome.skipped) {
+      return const IconButton(onPressed: null, icon: Icon(Icons.skip_next_outlined));
+    }
     return IconButton(onPressed: null, icon: statusIcon);
   }
 
@@ -193,7 +226,8 @@ class _UpdateItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
-    final progress = ref.watch(updateProgressProvider(progressCache, item.mangaId));
+    final unprocessed = item.outcome.isPending || item.outcome == UpdateOutcome.skipped;
+    final progress = unprocessed ? const UpdateProgress() : ref.watch(updateProgressProvider(progressCache, item.mangaId));
     final completed = progress.completed;
     final total = progress.total;
     final complete = progress.hasValue && !progress.hasError && total > 0 && completed == total;
@@ -202,7 +236,7 @@ class _UpdateItem extends ConsumerWidget {
     final progressIcon = _buildProgress(completed, total, progress.hasError ? colors.error : color);
 
     return TsukuyomiIconButtonListTile(
-      title: _buildTitle(l10n.updateProgress(completed, total)),
+      title: _buildTitle(unprocessed ? null : l10n.updateProgress(completed, total)),
       subtitle: _buildSubTitle(l10n, color),
       trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),

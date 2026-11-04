@@ -20,7 +20,7 @@ class UpdateController extends _$UpdateController {
   }
 }
 
-/// 更新列表的结果筛选，全部不包含尚未产生结果的目标
+/// 更新列表的结果筛选，全部包含等待检查和已跳过的目标
 enum UpdateFilter { all, failure, warning, success }
 
 extension UpdateFilterX on UpdateFilter {

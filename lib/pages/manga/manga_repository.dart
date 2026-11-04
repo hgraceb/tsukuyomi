@@ -36,6 +36,12 @@ class MangaRepository {
     return query.getSingle();
   }
 
+  Future<DatabaseManga?> queryMangaByIdOrNull(int mangaId) {
+    final query = database.select(database.mangaTable);
+    query.where((row) => row.id.equals(mangaId));
+    return query.getSingleOrNull();
+  }
+
   Stream<DatabaseManga> watchManga(int mangaId) {
     final query = database.select(database.mangaTable);
     query.where((tbl) => tbl.id.equals(mangaId));

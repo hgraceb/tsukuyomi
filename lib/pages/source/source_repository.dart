@@ -14,6 +14,15 @@ class SourceRepository {
     return query.getSingleOrNull();
   }
 
+  Future<Map<int, String>> querySourceNames(Iterable<int> sourceIds) async {
+    final table = database.sourceTable;
+    final query = database.selectOnly(table)
+      ..addColumns([table.id, table.name])
+      ..where(table.id.isIn(sourceIds));
+    final rows = await query.get();
+    return {for (final row in rows) row.read(table.id)!: row.read(table.name)!};
+  }
+
   Stream<List<DatabaseSource>> watchSources() {
     return database.select(database.sourceTable).watch();
   }
