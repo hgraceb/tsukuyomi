@@ -26,15 +26,17 @@ class UpdateRetryController extends _$UpdateRetryController {
     if (state) return;
     final report = ref.read(updateReportStoreProvider);
     final item = report?.items.firstWhereOrNull((item) => item.mangaId == mangaId);
-    if (report == null || item == null || item.outcome.isPending) return;
+    if (report == null || item == null) return;
+    final cache = ref.read(updateProgressCacheProvider(report.sessionId));
+    if (!cache.outcomeFor(item).canRetry) return;
     // 条目被筛选隐藏或离开页面时，仍需完成重试和报告保存
     final link = ref.keepAlive();
     state = true;
     try {
       final result = await _retry(item);
-      ref.invalidate(chaptersStreamByMangaProvider(mangaId));
-      ref.invalidate(updateDownloadedChaptersProvider(mangaId));
       await ref.read(updateReportStoreProvider.notifier).replaceItem(report.sessionId, result);
+      final current = ref.read(updateReportStoreProvider);
+      if (current?.sessionId == report.sessionId && result.outcome.canReadProgress) await _refreshProgress(report.sessionId);
     } catch (error, stackTrace) {
       ref.read(errorHandlerProvider).show(error, stackTrace);
     } finally {
@@ -46,10 +48,8 @@ class UpdateRetryController extends _$UpdateRetryController {
   Future<UpdateReportItem> _retry(UpdateReportItem item) async {
     UpdateOutcome? failureOutcome = UpdateOutcome.storageError;
     try {
-      final repository = ref.read(mangaRepositoryProvider);
-      final skipped = item.outcome == UpdateOutcome.skipped;
-      final manga = skipped ? await repository.queryMangaByIdOrNull(mangaId) : await repository.queryManga(mangaId);
-      if (manga == null) return item;
+      final manga = await ref.read(mangaRepositoryProvider).queryMangaByIdOrNull(mangaId);
+      if (manga == null) return item.copyWith(outcome: UpdateOutcome.skipped, updatedAt: DateTime.now(), message: null);
       failureOutcome = null;
       final provider = sourceByIdProvider(manga.source);
       final cached = ref.read(provider);
@@ -70,19 +70,30 @@ class UpdateRetryController extends _$UpdateRetryController {
         mangaId: item.mangaId,
         mangaTitle: item.mangaTitle,
         outcome: failureOutcome ?? classifySourceError(error),
-        insertCount: 0,
-        deleteCount: 0,
-        updateCount: 0,
-        sourceCount: 0,
-        enqueuedCount: 0,
-        enqueueFailedCount: 0,
-        skippedDownloaded: 0,
-        skippedQueued: 0,
-        skippedUnavailable: 0,
-        failedChapters: [],
         updatedAt: DateTime.now(),
         message: error.toString(),
       );
+    }
+  }
+
+  Future<void> _refreshProgress(String sessionId) async {
+    ref.invalidate(mangaStreamByIdProvider(mangaId));
+    ref.invalidate(chaptersStreamByMangaProvider(mangaId));
+    ref.invalidate(updateDownloadedChaptersProvider(mangaId));
+    final cache = ref.listen(updateProgressCacheProvider(sessionId), (_, _) {});
+    final provider = updateProgressProvider(cache.read(), mangaId);
+    final subscription = ref.listen(provider, (_, _) {});
+    try {
+      await AsyncValue.guard(
+        () => Future.wait<Object>([
+          ref.read(chaptersStreamByMangaProvider(mangaId).future),
+          ref.read(updateDownloadedChaptersProvider(mangaId).future),
+        ]),
+      );
+      ref.read(provider);
+    } finally {
+      subscription.close();
+      cache.close();
     }
   }
 }

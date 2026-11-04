@@ -2,6 +2,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 
+import 'update_progress_provider.dart';
+
 part 'update_controller.g.dart';
 
 /// 更新页面控制器
@@ -18,6 +20,14 @@ class UpdateController extends _$UpdateController {
   void onFilterChanged(UpdateFilter filter) {
     state = state == filter ? null : filter;
   }
+}
+
+@riverpod
+UpdateReport? updateDisplayReport(UpdateDisplayReportRef ref) {
+  final report = ref.watch(updateReportStoreProvider);
+  if (report == null) return null;
+  final cache = ref.watch(updateProgressCacheProvider(report.sessionId));
+  return report.copyWith(items: [for (final item in report.items) item.copyWith(outcome: cache.outcomeFor(item))]);
 }
 
 /// 更新列表的结果筛选，全部包含等待检查和已跳过的目标

@@ -23,6 +23,8 @@ enum UpdateOutcome {
   /// 停止或中断后尚未检查
   unchecked,
 
+  progressError,
+
   /// 有可下载章节
   updated,
 
@@ -57,7 +59,7 @@ extension UpdateOutcomeX on UpdateOutcome {
 
   /// 需要关注的检查状态
   bool get isWarning => switch (this) {
-    UpdateOutcome.chaptersEmpty || UpdateOutcome.skipped || UpdateOutcome.unchecked => true,
+    UpdateOutcome.chaptersEmpty || UpdateOutcome.skipped || UpdateOutcome.unchecked || UpdateOutcome.progressError => true,
     _ => false,
   };
 
@@ -67,7 +69,7 @@ extension UpdateOutcomeX on UpdateOutcome {
   /// 已取得章节检查结果时才读取本地下载进度
   bool get canReadProgress {
     if (isSuccess) return true;
-    return this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed;
+    return this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed || this == UpdateOutcome.progressError;
   }
 
   /// 检查或安排下载失败，不包含等待和跳过的条目
@@ -90,16 +92,16 @@ class UpdateReportItem with _$UpdateReportItem {
     required int mangaId,
     required String mangaTitle,
     required UpdateOutcome outcome,
-    required int insertCount,
-    required int deleteCount,
-    required int updateCount,
-    required int sourceCount,
-    required int enqueuedCount,
-    required int enqueueFailedCount,
-    required int skippedDownloaded,
-    required int skippedQueued,
-    required int skippedUnavailable,
-    required List<String> failedChapters,
+    @Default(0) int insertCount,
+    @Default(0) int deleteCount,
+    @Default(0) int updateCount,
+    @Default(0) int sourceCount,
+    @Default(0) int enqueuedCount,
+    @Default(0) int enqueueFailedCount,
+    @Default(0) int skippedDownloaded,
+    @Default(0) int skippedQueued,
+    @Default(0) int skippedUnavailable,
+    @Default([]) List<String> failedChapters,
     DateTime? updatedAt,
     String? message,
   }) = _UpdateReportItem;

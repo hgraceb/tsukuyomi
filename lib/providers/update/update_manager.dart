@@ -89,15 +89,20 @@ class UpdateManager extends _$UpdateManager {
     for (final manga in mangas) {
       if (_stopped) break;
       // 详情刷新可能已经完成此项，使用当前报告避免重复检查
-      final report = ref.read(updateReportStoreProvider);
-      final target = report?.items.firstWhereOrNull((item) => item.mangaId == manga.id);
-      if (report?.sessionId != _sessionId || target == null || !target.outcome.isPending) continue;
+      final target = _pendingTarget(manga.id);
+      if (target == null) continue;
       await _replaceItem(target.copyWith(outcome: UpdateOutcome.checking));
       if (_stopped) break;
-      final latest = await ref.read(mangaRepositoryProvider).queryMangaByIdOrNull(manga.id);
+      final lookup = await AsyncValue.guard(() => ref.read(mangaRepositoryProvider).queryMangaByIdOrNull(manga.id));
       if (_stopped) break;
-      final current = ref.read(updateReportStoreProvider)?.items.firstWhereOrNull((item) => item.mangaId == manga.id);
-      if (current == null || !current.outcome.isPending) continue;
+      if (_pendingTarget(manga.id) == null) continue;
+      if (lookup.hasError) {
+        await _replaceItem(
+          target.copyWith(outcome: UpdateOutcome.storageError, message: lookup.error.toString(), updatedAt: DateTime.now()),
+        );
+        continue;
+      }
+      final latest = lookup.requireValue;
       if (latest == null || !latest.favorite || !latest.auto) {
         await _replaceItem(target.copyWith(outcome: UpdateOutcome.skipped, updatedAt: DateTime.now()));
         continue;
@@ -116,6 +121,12 @@ class UpdateManager extends _$UpdateManager {
     return ref.read(updateReportStoreProvider.notifier).replaceItem(_sessionId, item);
   }
 
+  UpdateReportItem? _pendingTarget(int mangaId) {
+    final report = ref.read(updateReportStoreProvider);
+    if (report?.sessionId != _sessionId) return null;
+    return report?.items.firstWhereOrNull((item) => item.mangaId == mangaId && item.outcome.isPending);
+  }
+
   Future<void> _update(UpdateReport Function(UpdateReport report) update) {
     return ref.read(updateReportStoreProvider.notifier).update(_sessionId, update);
   }
@@ -127,16 +138,6 @@ class UpdateManager extends _$UpdateManager {
       mangaId: manga.id,
       mangaTitle: manga.title,
       outcome: UpdateOutcome.pending,
-      insertCount: 0,
-      deleteCount: 0,
-      updateCount: 0,
-      sourceCount: 0,
-      enqueuedCount: 0,
-      enqueueFailedCount: 0,
-      skippedDownloaded: 0,
-      skippedQueued: 0,
-      skippedUnavailable: 0,
-      failedChapters: [],
     );
   }
 }
