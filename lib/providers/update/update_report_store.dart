@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
+import 'package:tsukuyomi/providers/error/error_handler_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 
 import 'update_state.dart';
@@ -18,9 +19,27 @@ class UpdateReportStore extends _$UpdateReportStore {
   @override
   UpdateReport? build() {
     _preferences = ref.watch(sharedPreferencesProvider);
-    final json = _preferences.getString(Keys.updateReportLatest);
-    if (json == null) return null;
-    final report = UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    final UpdateReport report;
+    try {
+      final json = _preferences.getString(Keys.updateReportLatest);
+      if (json == null) return null;
+      final data = jsonDecode(json) as Map<String, dynamic>;
+      if (data['version'] != UpdateReport.currentVersion) {
+        throw FormatException('Unsupported update report version: ${data['version']}');
+      }
+      report = UpdateReport.fromJson(data);
+    } catch (error, stackTrace) {
+      final handler = ref.read(errorHandlerProvider);
+      handler.print(error, stackTrace);
+      // 历史报告可重新生成，读取失败时丢弃，清理操作排在后续保存之前
+      final discard = _pendingSave.then((_) async {
+        if (!await _preferences.remove(Keys.updateReportLatest)) {
+          throw StateError('Failed to discard update report');
+        }
+      });
+      _pendingSave = discard.then<void>((_) {}, onError: handler.print);
+      return null;
+    }
     final restored = report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
     return restored.markUnchecked();
   }

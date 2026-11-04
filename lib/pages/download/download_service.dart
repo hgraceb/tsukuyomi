@@ -114,8 +114,17 @@ class DownloadService {
 
   /// 更新漫画下载状态
   Future<void> refreshDownloadedByManga(Source source, DatabaseManga manga) async {
-    final chaptersDirectory = await getMangaDir(source, manga);
-    ref.invalidate(downloadedChaptersProvider(chaptersDirectory.path));
+    final link = ref.keepAlive();
+    try {
+      final provider = downloadMangaPathProvider(source, manga);
+      final path = ref.read(provider);
+      if (path.hasError && !path.isLoading) ref.invalidate(provider);
+      final directory = await ref.read(provider.future);
+      // 只刷新目录内容，依赖它的下载状态和进度会自动更新
+      ref.invalidate(downloadedChaptersProvider(directory.path));
+    } finally {
+      link.close();
+    }
   }
 
   /// 更新章节下载状态

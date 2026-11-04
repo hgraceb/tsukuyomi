@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
-import 'package:tsukuyomi/pages/download/providers/downloaded_info_provider.dart';
+import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
@@ -58,10 +57,8 @@ class UpdateRetryController extends _$UpdateRetryController {
         ref.invalidate(provider);
       }
       final source = await ref.read(provider.future);
-      final path = downloadMangaPathProvider(source, manga);
-      final directory = ref.exists(path) ? ref.read(path).valueOrNull : null;
-      ref.invalidate(path);
-      if (directory != null) ref.invalidate(downloadedChaptersProvider(directory.path));
+      // 本地读取失败由进度状态展示，不中断章节检查
+      await AsyncValue.guard(() => ref.read(downloadServiceProvider).refreshDownloadedByManga(source, manga));
       return await ref.read(updateServiceProvider).updateManga(source, manga);
     } catch (error) {
       return UpdateReportItem(
@@ -77,9 +74,16 @@ class UpdateRetryController extends _$UpdateRetryController {
   }
 
   Future<void> _refreshProgress(String sessionId) async {
-    ref.invalidate(mangaStreamByIdProvider(mangaId));
-    ref.invalidate(chaptersStreamByMangaProvider(mangaId));
-    ref.invalidate(updateDownloadedChaptersProvider(mangaId));
+    // 正常查询由数据库变更通知，只重新订阅已失败的流
+    final queries = <AutoDisposeStreamProvider<Object>>[
+      mangaStreamByIdProvider(mangaId),
+      chaptersStreamByMangaProvider(mangaId),
+    ];
+    for (final provider in queries) {
+      if (!ref.exists(provider)) continue;
+      final value = ref.read(provider);
+      if (value.hasError && !value.isLoading) ref.invalidate(provider);
+    }
     final cache = ref.listen(updateProgressCacheProvider(sessionId), (_, _) {});
     final provider = updateProgressProvider(cache.read(), mangaId);
     final subscription = ref.listen(provider, (_, _) {});

@@ -106,16 +106,7 @@ class UpdateReportItem with _$UpdateReportItem {
     String? message,
   }) = _UpdateReportItem;
 
-  // 旧报告中的章节减少和进度错误还原为检查结果
-  factory UpdateReportItem.fromJson(Map<String, dynamic> json) => _$UpdateReportItemFromJson({
-    ...json,
-    'outcome': switch (json['outcome']) {
-      'chaptersReduced' => 'noUpdate',
-      'progressError' when json['sourceCount'] == 0 => 'chaptersEmpty',
-      'progressError' => json['insertCount'] > 0 || json['enqueuedCount'] > 0 ? 'updated' : 'noUpdate',
-      _ => json['outcome'],
-    },
-  });
+  factory UpdateReportItem.fromJson(Map<String, dynamic> json) => _$UpdateReportItemFromJson(json);
 }
 
 /// 一次扫描会话的持久化报告
@@ -135,7 +126,7 @@ class UpdateReport with _$UpdateReport {
     String? message,
   }) = _UpdateReport;
 
-  static const int currentVersion = 1;
+  static const int currentVersion = 2;
 
   factory UpdateReport.fromJson(Map<String, dynamic> json) => _$UpdateReportFromJson(json);
 
