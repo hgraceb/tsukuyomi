@@ -234,7 +234,7 @@ class _UpdateItem extends ConsumerWidget {
     final progressIcon = _buildProgress(completed, total, progress.hasError ? colors.error : color);
 
     return TsukuyomiIconButtonListTile(
-      title: _buildTitle(unprocessed ? null : l10n.updateProgress(completed, total)),
+      title: _buildTitle(item.outcome.isPending ? null : l10n.updateProgress(completed, total)),
       subtitle: _buildSubTitle(l10n, color),
       trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),

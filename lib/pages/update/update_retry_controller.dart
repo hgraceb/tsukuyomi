@@ -17,7 +17,7 @@ class UpdateRetryController extends _$UpdateRetryController {
   @override
   bool build(int mangaId) => false;
 
-  /// 重试失败或跳过的条目，仅替换发起重试时所在轮次的已有结果
+  /// 重试失败、跳过或章节为空的条目，仅替换发起重试时所在轮次的已有结果
   Future<void> retry() async {
     if (state) return;
     final report = ref.read(updateReportStoreProvider);
