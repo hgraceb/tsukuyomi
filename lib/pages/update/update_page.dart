@@ -184,10 +184,7 @@ class _UpdateItem extends ConsumerWidget {
         tooltip: retrying ? l10n.retry : null,
         disabledColor: colors.onSurface,
         onPressed: null,
-        icon: const SizedBox.square(
-          dimension: 24.0,
-          child: CircularProgressIndicator(strokeWidth: 3.0),
-        ),
+        icon: const AnimatedProgressCircleIcon(progress: 0.0),
       );
     }
     if (item.outcome == UpdateOutcome.pending) {
