@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
@@ -60,15 +61,11 @@ class UpdateReportStore extends _$UpdateReportStore {
 
   /// 本地进度读取失败时标记警告，保留同轮次其他漫画的最新结果
   Future<void> markProgressError(String sessionId, int mangaId) {
-    return update(sessionId, (report) {
-      var changed = false;
-      final items = report.items.map((item) {
-        if (item.mangaId != mangaId) return item;
-        if (!item.outcome.canReadProgress || item.outcome.isFailure || item.outcome == UpdateOutcome.progressError) return item;
-        changed = true;
-        return item.copyWith(outcome: UpdateOutcome.progressError);
-      }).toList();
-      return changed ? report.copyWith(items: items) : report;
-    });
+    final report = state;
+    if (report == null || report.sessionId != sessionId) return Future.value();
+    final item = report.items.firstWhereOrNull((item) => item.mangaId == mangaId);
+    if (item == null || !item.outcome.canReadProgress) return Future.value();
+    if (item.outcome.isFailure || item.outcome == UpdateOutcome.progressError) return Future.value();
+    return replaceItem(sessionId, item.copyWith(outcome: UpdateOutcome.progressError));
   }
 }

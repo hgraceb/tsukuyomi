@@ -53,8 +53,6 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
     final items = results.where(filter.matches).toList()..sort(compareUpdateItems);
     final itemIndexes = {for (var index = 0; index < items.length; index++) items[index].mangaId: index};
     final showSummary = running || error || report != null && report.phase != UpdatePhase.idle;
-    final pending = report?.pendingCount ?? 0;
-    final skipped = report?.skippedCount ?? 0;
     final scanning = report?.phase == UpdatePhase.running;
     final summary = Flexible(
       child: Padding(
@@ -76,17 +74,6 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
               title: Text(l10n.updateTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
               actions: showSummary ? [summary] : null,
             ),
-            if (pending > 0 || skipped > 0) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
-                  child: Text(
-                    scanning ? l10n.updatePendingSummary(pending, skipped) : l10n.updateUncheckedSummary(pending, skipped),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  ),
-                ),
-              ),
-            ],
             if (items.isNotEmpty) ...[
               SliverPadding(
                 padding: const EdgeInsets.only(bottom: 96.0),
@@ -192,12 +179,13 @@ class _UpdateItem extends ConsumerWidget {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final retrying = ref.watch(updateRetryControllerProvider(item.mangaId));
-    if (retrying) {
+    final checking = scanning && item.outcome == UpdateOutcome.checking;
+    if (retrying || checking) {
       return IconButton(
-        tooltip: l10n.retry,
+        tooltip: retrying ? l10n.retry : null,
         disabledColor: colors.onSurface,
         onPressed: null,
-        icon: AnimatedWaitingDownloadIcon(animation: iconAnimation),
+        icon: RotationTransition(turns: iconAnimation, child: const Icon(Icons.refresh_outlined)),
       );
     }
     if (item.outcome.canRetry) {
@@ -209,11 +197,10 @@ class _UpdateItem extends ConsumerWidget {
       );
     }
     if (item.outcome.isPending) {
-      final checking = scanning && item.outcome == UpdateOutcome.checking;
       return IconButton(
         disabledColor: colors.onSurfaceVariant,
         onPressed: null,
-        icon: checking ? AnimatedWaitingDownloadIcon(animation: iconAnimation) : const Icon(Icons.schedule_outlined),
+        icon: const Icon(Icons.schedule_outlined),
       );
     }
     return IconButton(onPressed: null, icon: statusIcon);

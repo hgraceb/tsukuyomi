@@ -8,8 +8,6 @@
   "updateChecking": "正在检查",
   "updateUnchecked": "未检查",
   "updateSkipped": "已跳过",
-  "updatePendingSummary": "待处理 {pending} · 已跳过 {skipped}",
-  "updateUncheckedSummary": "未检查 {pending} · 已跳过 {skipped}",
   "updateOutcomeUpdated": "已更新",
   "updateFilterEmpty": "当前筛选暂无结果",
   "updateOutcomeNoUpdate": "无更新",
