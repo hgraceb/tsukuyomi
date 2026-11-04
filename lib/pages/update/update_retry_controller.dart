@@ -1,5 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
+import 'package:tsukuyomi/pages/download/providers/downloaded_info_provider.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
@@ -24,7 +26,7 @@ class UpdateRetryController extends _$UpdateRetryController {
     if (state) return;
     final report = ref.read(updateReportStoreProvider);
     final item = report?.items.firstWhereOrNull((item) => item.mangaId == mangaId);
-    if (report == null || item == null || !item.outcome.canRetry) return;
+    if (report == null || item == null || item.outcome.isPending) return;
     // 条目被筛选隐藏或离开页面时，仍需完成重试和报告保存
     final link = ref.keepAlive();
     state = true;
@@ -56,6 +58,10 @@ class UpdateRetryController extends _$UpdateRetryController {
         ref.invalidate(provider);
       }
       final source = await ref.read(provider.future);
+      final path = downloadMangaPathProvider(source, manga);
+      final directory = ref.exists(path) ? ref.read(path).valueOrNull : null;
+      ref.invalidate(path);
+      if (directory != null) ref.invalidate(downloadedChaptersProvider(directory.path));
       return await ref.read(updateServiceProvider).updateManga(source, manga);
     } catch (error) {
       return UpdateReportItem(

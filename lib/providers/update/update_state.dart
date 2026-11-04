@@ -23,9 +23,6 @@ enum UpdateOutcome {
   /// 停止或中断后尚未检查
   unchecked,
 
-  /// 本地下载进度读取失败
-  progressError,
-
   /// 有可下载章节
   updated,
 
@@ -58,9 +55,9 @@ extension UpdateOutcomeX on UpdateOutcome {
   /// 有可下载章节或没有章节变化
   bool get isSuccess => this == UpdateOutcome.updated || this == UpdateOutcome.noUpdate;
 
-  /// 需要关注的检查或本地进度状态
+  /// 需要关注的检查状态
   bool get isWarning => switch (this) {
-    UpdateOutcome.chaptersEmpty || UpdateOutcome.skipped || UpdateOutcome.unchecked || UpdateOutcome.progressError => true,
+    UpdateOutcome.chaptersEmpty || UpdateOutcome.skipped || UpdateOutcome.unchecked => true,
     _ => false,
   };
 
@@ -70,7 +67,7 @@ extension UpdateOutcomeX on UpdateOutcome {
   /// 已取得章节检查结果时才读取本地下载进度
   bool get canReadProgress {
     if (isSuccess) return true;
-    return this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed || this == UpdateOutcome.progressError;
+    return this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed;
   }
 
   /// 检查或安排下载失败，不包含等待和跳过的条目
@@ -107,10 +104,16 @@ class UpdateReportItem with _$UpdateReportItem {
     String? message,
   }) = _UpdateReportItem;
 
-  // 旧报告中的章节减少按正常结果读取
-  factory UpdateReportItem.fromJson(Map<String, dynamic> json) => _$UpdateReportItemFromJson(
-    json['outcome'] == 'chaptersReduced' ? {...json, 'outcome': 'noUpdate'} : json,
-  );
+  // 旧报告中的章节减少和进度错误还原为检查结果
+  factory UpdateReportItem.fromJson(Map<String, dynamic> json) => _$UpdateReportItemFromJson({
+    ...json,
+    'outcome': switch (json['outcome']) {
+      'chaptersReduced' => 'noUpdate',
+      'progressError' when json['sourceCount'] == 0 => 'chaptersEmpty',
+      'progressError' => json['insertCount'] > 0 || json['enqueuedCount'] > 0 ? 'updated' : 'noUpdate',
+      _ => json['outcome'],
+    },
+  });
 }
 
 /// 一次扫描会话的持久化报告

@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
-import 'package:tsukuyomi/providers/error/error_handler_provider.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 
@@ -62,17 +59,6 @@ UpdateProgress updateProgress(UpdateProgressRef ref, UpdateProgressCache cache, 
   final hasError = chapters.hasError || downloaded.hasError;
   final hasValue = !chapters.isLoading && !downloaded.isLoading && !hasError;
   final progress = UpdateProgress(completed: completed, total: publicChapters.length, hasValue: hasValue, hasError: hasError);
-  final failed = chapters.hasError && !chapters.isLoading || downloaded.hasError && !downloaded.isLoading;
-  final sessionId = cache.sessionId;
-  if (failed && sessionId != null) {
-    final store = ref.read(updateReportStoreProvider.notifier);
-    final handler = ref.read(errorHandlerProvider);
-    var active = true;
-    ref.onDispose(() => active = false);
-    scheduleMicrotask(() {
-      if (active) unawaited(store.markProgressError(sessionId, mangaId).catchError(handler.show));
-    });
-  }
   return cache.update(mangaId, progress);
 }
 

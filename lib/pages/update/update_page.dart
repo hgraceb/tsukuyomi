@@ -53,7 +53,6 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
     final items = results.where(filter.matches).toList()..sort(compareUpdateItems);
     final itemIndexes = {for (var index = 0; index < items.length; index++) items[index].mangaId: index};
     final showSummary = running || error || report != null && report.phase != UpdatePhase.idle;
-    final scanning = report?.phase == UpdatePhase.running;
     final summary = Flexible(
       child: Padding(
         padding: const EdgeInsets.only(right: 8.0),
@@ -86,7 +85,6 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
                     item: items[index],
                     iconAnimation: _iconAnimation,
                     progressCache: progressCache,
-                    scanning: scanning,
                   ),
                 ),
               ),
@@ -105,15 +103,13 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
 }
 
 class _UpdateItem extends ConsumerWidget {
-  const _UpdateItem({super.key, required this.item, required this.iconAnimation, required this.progressCache, required this.scanning});
+  const _UpdateItem({super.key, required this.item, required this.iconAnimation, required this.progressCache});
 
   final UpdateReportItem item;
 
   final Animation<double> iconAnimation;
 
   final UpdateProgressCache progressCache;
-
-  final bool scanning;
 
   /// 更新列表项的标题
   Widget _buildTitle(String count) {
@@ -140,13 +136,12 @@ class _UpdateItem extends ConsumerWidget {
   }
 
   /// 更新列表项的副标题
-  Widget _buildSubTitle(TsukuyomiLocalizations l10n, Color color) {
+  Widget _buildSubTitle(TsukuyomiLocalizations l10n, Color color, {required bool hasProgressError}) {
     final outcome = switch (item.outcome) {
-      UpdateOutcome.pending => scanning ? l10n.updatePending : l10n.updateUnchecked,
-      UpdateOutcome.checking => scanning ? l10n.updateChecking : l10n.updateUnchecked,
+      UpdateOutcome.pending => l10n.updatePending,
+      UpdateOutcome.checking => l10n.updateChecking,
       UpdateOutcome.skipped => l10n.updateSkipped,
       UpdateOutcome.unchecked => l10n.updateUnchecked,
-      UpdateOutcome.progressError => l10n.updateOutcomeProgressError,
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
       UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
       UpdateOutcome.chaptersEmpty => l10n.updateOutcomeChaptersEmpty,
@@ -164,7 +159,7 @@ class _UpdateItem extends ConsumerWidget {
         const SizedBox(width: 8.0),
         Flexible(
           child: Text(
-            outcome,
+            hasProgressError && !item.outcome.isFailure ? l10n.updateOutcomeProgressError : outcome,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: color),
@@ -175,7 +170,7 @@ class _UpdateItem extends ConsumerWidget {
   }
 
   /// 根据重试状态或检查结果构建列表项末尾组件
-  IconButton _buildTrailing(BuildContext context, WidgetRef ref, Widget statusIcon) {
+  IconButton _buildTrailing(BuildContext context, WidgetRef ref, Widget statusIcon, {required bool hasProgressError}) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final retrying = ref.watch(updateRetryControllerProvider(item.mangaId));
@@ -194,7 +189,7 @@ class _UpdateItem extends ConsumerWidget {
         icon: AnimatedWaitingDownloadIcon(animation: iconAnimation),
       );
     }
-    if (item.outcome.canRetry) {
+    if (item.outcome.canRetry || hasProgressError) {
       return IconButton(
         tooltip: l10n.retry,
         color: item.outcome.isFailure ? colors.error : colors.tertiary,
@@ -220,8 +215,8 @@ class _UpdateItem extends ConsumerWidget {
 
     return TsukuyomiIconButtonListTile(
       title: _buildTitle(l10n.updateProgress(completed, total)),
-      subtitle: _buildSubTitle(l10n, color),
-      trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon),
+      subtitle: _buildSubTitle(l10n, color, hasProgressError: progress.hasError),
+      trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon, hasProgressError: progress.hasError),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );
   }
