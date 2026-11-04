@@ -179,8 +179,7 @@ class _UpdateItem extends ConsumerWidget {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final retrying = ref.watch(updateRetryControllerProvider(item.mangaId));
-    final checking = scanning && item.outcome == UpdateOutcome.checking;
-    if (retrying || checking) {
+    if (retrying || item.outcome.isPending) {
       return IconButton(
         tooltip: retrying ? l10n.retry : null,
         disabledColor: colors.onSurface,
@@ -194,13 +193,6 @@ class _UpdateItem extends ConsumerWidget {
         color: item.outcome.isFailure ? colors.error : colors.tertiary,
         icon: const Icon(Icons.refresh_outlined),
         onPressed: ref.read(updateRetryControllerProvider(item.mangaId).notifier).retry,
-      );
-    }
-    if (item.outcome.isPending) {
-      return IconButton(
-        disabledColor: colors.onSurfaceVariant,
-        onPressed: null,
-        icon: const Icon(Icons.schedule_outlined),
       );
     }
     return IconButton(onPressed: null, icon: statusIcon);
