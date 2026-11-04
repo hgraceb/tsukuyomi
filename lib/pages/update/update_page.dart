@@ -179,9 +179,19 @@ class _UpdateItem extends ConsumerWidget {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final retrying = ref.watch(updateRetryControllerProvider(item.mangaId));
-    if (retrying || item.outcome.isPending) {
+    if (retrying || item.outcome == UpdateOutcome.checking) {
       return IconButton(
         tooltip: retrying ? l10n.retry : null,
+        disabledColor: colors.onSurface,
+        onPressed: null,
+        icon: const SizedBox.square(
+          dimension: 24.0,
+          child: CircularProgressIndicator(strokeWidth: 3.0),
+        ),
+      );
+    }
+    if (item.outcome == UpdateOutcome.pending) {
+      return IconButton(
         disabledColor: colors.onSurface,
         onPressed: null,
         icon: AnimatedWaitingDownloadIcon(animation: iconAnimation),
