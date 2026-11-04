@@ -19,29 +19,16 @@ class UpdateReportStore extends _$UpdateReportStore {
   @override
   UpdateReport? build() {
     _preferences = ref.watch(sharedPreferencesProvider);
-    final UpdateReport report;
     try {
       final json = _preferences.getString(Keys.updateReportLatest);
       if (json == null) return null;
-      final data = jsonDecode(json) as Map<String, dynamic>;
-      if (data['version'] != UpdateReport.currentVersion) {
-        throw FormatException('Unsupported update report version: ${data['version']}');
-      }
-      report = UpdateReport.fromJson(data);
+      final report = UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
+      final restored = report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
+      return restored.markUnchecked();
     } catch (error, stackTrace) {
-      final handler = ref.read(errorHandlerProvider);
-      handler.print(error, stackTrace);
-      // 历史报告可重新生成，读取失败时丢弃，清理操作排在后续保存之前
-      final discard = _pendingSave.then((_) async {
-        if (!await _preferences.remove(Keys.updateReportLatest)) {
-          throw StateError('Failed to discard update report');
-        }
-      });
-      _pendingSave = discard.then<void>((_) {}, onError: handler.print);
+      ref.read(errorHandlerProvider).print(error, stackTrace);
       return null;
     }
-    final restored = report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
-    return restored.markUnchecked();
   }
 
   /// 保存最近的更新报告

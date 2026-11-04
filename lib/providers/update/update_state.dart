@@ -126,7 +126,7 @@ class UpdateReport with _$UpdateReport {
     String? message,
   }) = _UpdateReport;
 
-  static const int currentVersion = 2;
+  static const int currentVersion = 1;
 
   factory UpdateReport.fromJson(Map<String, dynamic> json) => _$UpdateReportFromJson(json);
 
