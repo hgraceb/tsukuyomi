@@ -185,7 +185,7 @@ class _UpdateItem extends ConsumerWidget {
         tooltip: retrying ? l10n.retry : null,
         disabledColor: colors.onSurface,
         onPressed: null,
-        icon: RotationTransition(turns: iconAnimation, child: const Icon(Icons.refresh_outlined)),
+        icon: AnimatedWaitingDownloadIcon(animation: iconAnimation),
       );
     }
     if (item.outcome.canRetry) {
