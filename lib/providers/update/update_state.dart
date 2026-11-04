@@ -55,8 +55,11 @@ extension UpdateOutcomeX on UpdateOutcome {
   /// 有可下载章节或没有章节变化
   bool get isSuccess => this == UpdateOutcome.updated || this == UpdateOutcome.noUpdate;
 
-  /// 章节为空或减少
-  bool get isWarning => this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.chaptersReduced;
+  /// 章节为空、减少或扫描已跳过
+  bool get isWarning => this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.chaptersReduced || this == UpdateOutcome.skipped;
+
+  /// 失败和跳过的条目允许手动重试
+  bool get canRetry => isFailure || this == UpdateOutcome.skipped;
 
   /// 检查或安排下载失败，不包含等待和跳过的条目
   bool get isFailure => switch (this) {

@@ -191,19 +191,20 @@ class _UpdateItem extends ConsumerWidget {
   /// 根据重试状态或检查结果构建列表项末尾组件
   IconButton _buildTrailing(BuildContext context, WidgetRef ref, Widget statusIcon) {
     final l10n = TsukuyomiLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
     final retrying = ref.watch(updateRetryControllerProvider(item.mangaId));
     if (retrying) {
       return IconButton(
         tooltip: l10n.retry,
-        disabledColor: Theme.of(context).colorScheme.onSurface,
+        disabledColor: colors.onSurface,
         onPressed: null,
         icon: AnimatedWaitingDownloadIcon(animation: iconAnimation),
       );
     }
-    if (item.outcome.isFailure) {
+    if (item.outcome.canRetry) {
       return IconButton(
         tooltip: l10n.retry,
-        color: Theme.of(context).colorScheme.error,
+        color: item.outcome.isFailure ? colors.error : colors.tertiary,
         icon: const Icon(Icons.refresh_outlined),
         onPressed: ref.read(updateRetryControllerProvider(item.mangaId).notifier).retry,
       );
@@ -211,13 +212,10 @@ class _UpdateItem extends ConsumerWidget {
     if (item.outcome.isPending) {
       final checking = scanning && item.outcome == UpdateOutcome.checking;
       return IconButton(
-        disabledColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        disabledColor: colors.onSurfaceVariant,
         onPressed: null,
         icon: checking ? AnimatedWaitingDownloadIcon(animation: iconAnimation) : const Icon(Icons.schedule_outlined),
       );
-    }
-    if (item.outcome == UpdateOutcome.skipped) {
-      return const IconButton(onPressed: null, icon: Icon(Icons.skip_next_outlined));
     }
     return IconButton(onPressed: null, icon: statusIcon);
   }

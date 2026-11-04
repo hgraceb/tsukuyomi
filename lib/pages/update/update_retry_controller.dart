@@ -17,12 +17,12 @@ class UpdateRetryController extends _$UpdateRetryController {
   @override
   bool build(int mangaId) => false;
 
-  /// 重试失败条目，仅替换发起重试时所在轮次的已有结果
+  /// 重试失败或跳过的条目，仅替换发起重试时所在轮次的已有结果
   Future<void> retry() async {
     if (state) return;
     final report = ref.read(updateReportStoreProvider);
     final item = report?.items.firstWhereOrNull((item) => item.mangaId == mangaId);
-    if (report == null || item == null || !item.outcome.isFailure) return;
+    if (report == null || item == null || !item.outcome.canRetry) return;
     // 条目被筛选隐藏或离开页面时，仍需完成重试和报告保存
     final link = ref.keepAlive();
     state = true;
@@ -40,7 +40,10 @@ class UpdateRetryController extends _$UpdateRetryController {
   Future<UpdateReportItem> _retry(UpdateReportItem item) async {
     UpdateOutcome? failureOutcome = UpdateOutcome.storageError;
     try {
-      final manga = await ref.read(mangaRepositoryProvider).queryManga(mangaId);
+      final repository = ref.read(mangaRepositoryProvider);
+      final skipped = item.outcome == UpdateOutcome.skipped;
+      final manga = skipped ? await repository.queryMangaByIdOrNull(mangaId) : await repository.queryManga(mangaId);
+      if (manga == null) return item;
       failureOutcome = null;
       final provider = sourceByIdProvider(manga.source);
       final cached = ref.read(provider);
