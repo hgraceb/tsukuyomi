@@ -20,6 +20,12 @@ enum UpdateOutcome {
   /// 已不符合本轮扫描条件
   skipped,
 
+  /// 停止或中断后尚未检查
+  unchecked,
+
+  /// 本地下载进度读取失败
+  progressError,
+
   /// 有可下载章节
   updated,
 
@@ -55,11 +61,26 @@ extension UpdateOutcomeX on UpdateOutcome {
   /// 有可下载章节或没有章节变化
   bool get isSuccess => this == UpdateOutcome.updated || this == UpdateOutcome.noUpdate;
 
-  /// 章节为空、减少或扫描已跳过
-  bool get isWarning => this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.chaptersReduced || this == UpdateOutcome.skipped;
+  /// 需要关注的检查或本地进度状态
+  bool get isWarning => switch (this) {
+    UpdateOutcome.chaptersEmpty ||
+    UpdateOutcome.chaptersReduced ||
+    UpdateOutcome.skipped ||
+    UpdateOutcome.unchecked ||
+    UpdateOutcome.progressError => true,
+    _ => false,
+  };
 
-  /// 失败、跳过或章节为空的条目允许手动重试
-  bool get canRetry => isFailure || this == UpdateOutcome.skipped || this == UpdateOutcome.chaptersEmpty;
+  /// 失败和可重新处理的警告允许手动重试
+  bool get canRetry => isFailure || isWarning && this != UpdateOutcome.chaptersReduced;
+
+  /// 已取得章节检查结果时才读取本地下载进度
+  bool get canReadProgress =>
+      isSuccess ||
+      this == UpdateOutcome.chaptersEmpty ||
+      this == UpdateOutcome.chaptersReduced ||
+      this == UpdateOutcome.enqueueFailed ||
+      this == UpdateOutcome.progressError;
 
   /// 检查或安排下载失败，不包含等待和跳过的条目
   bool get isFailure => switch (this) {
@@ -121,11 +142,14 @@ class UpdateReport with _$UpdateReport {
 
   int get failureCount => items.where((item) => item.outcome.isFailure).length;
 
-  int get warningCount => items.where((item) => item.outcome.isWarning).length;
+  int get warningCount {
+    final pendingAreWarnings = phase != UpdatePhase.running;
+    return items.where((item) => item.outcome.isWarning || pendingAreWarnings && item.outcome.isPending).length;
+  }
 
   int get successCount => items.where((item) => item.outcome.isSuccess).length;
 
-  int get pendingCount => items.where((item) => item.outcome.isPending).length;
+  int get pendingCount => items.where((item) => item.outcome.isPending || item.outcome == UpdateOutcome.unchecked).length;
 
   int get skippedCount => items.where((item) => item.outcome == UpdateOutcome.skipped).length;
 }

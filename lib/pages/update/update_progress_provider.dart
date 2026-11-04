@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
@@ -17,26 +19,50 @@ class UpdateProgressCache {
 
   final _items = <int, UpdateProgress>{};
 
+  final _errors = StreamController<Set<int>>.broadcast();
+
   Set<int> _mangaIds = {};
+
+  Set<int> get errors => _items.entries.where((entry) => entry.value.hasError).map((entry) => entry.key).toSet();
 
   /// 重新读取时保留已确认的计数，读取失败仍需更新错误反馈
   UpdateProgress update(int mangaId, UpdateProgress progress) {
     final previous = _items[mangaId];
     final snapshot = previous != null && previous.hasValue ? previous : progress;
     final value = progress.hasValue ? progress : snapshot.copyWith(hasError: previous?.hasError == true || progress.hasError);
-    if (_mangaIds.contains(mangaId) && (value.hasValue || value.hasError)) _items[mangaId] = value;
+    if (_mangaIds.contains(mangaId) && (value.hasValue || value.hasError)) {
+      _items[mangaId] = value;
+      if ((previous?.hasError ?? false) != value.hasError) _notifyErrors();
+    }
     return value;
   }
 
   /// 按完整报告清理已移除条目，筛选和排序不影响保留范围
   void retain(UpdateReport? report) {
     _mangaIds = report != null && report.sessionId == sessionId ? report.items.map((item) => item.mangaId).toSet() : {};
-    _items.removeWhere((mangaId, _) => !_mangaIds.contains(mangaId));
+    var removedError = false;
+    _items.removeWhere((mangaId, progress) {
+      if (_mangaIds.contains(mangaId)) return false;
+      removedError |= progress.hasError;
+      return true;
+    });
+    if (removedError) _notifyErrors();
   }
 
   void clear() {
+    final hadErrors = _items.values.any((progress) => progress.hasError);
     _items.clear();
     _mangaIds.clear();
+    if (hadErrors) _notifyErrors();
+  }
+
+  void _notifyErrors() {
+    if (!_errors.isClosed) _errors.add(errors);
+  }
+
+  void dispose() {
+    clear();
+    unawaited(_errors.close());
   }
 }
 
@@ -45,8 +71,39 @@ class UpdateProgressCache {
 UpdateProgressCache updateProgressCache(UpdateProgressCacheRef ref, String? sessionId) {
   final cache = UpdateProgressCache(sessionId);
   ref.listen(updateReportStoreProvider, (_, report) => cache.retain(report), fireImmediately: true);
-  ref.onDispose(cache.clear);
+  ref.onDispose(cache.dispose);
   return cache;
+}
+
+/// 只广播错误漫画的 ID，汇总与筛选不持有每本漫画的数据订阅
+@riverpod
+Stream<Set<int>> updateProgressErrors(UpdateProgressErrorsRef ref, UpdateProgressCache cache) {
+  return Stream<Set<int>>.multi((controller) {
+    final subscription = cache._errors.stream.listen(controller.add, onError: controller.addError, onDone: controller.close);
+    controller.add(cache.errors);
+    controller.onCancel = subscription.cancel;
+  });
+}
+
+/// 展示警告不改写扫描报告，本地进度恢复后回到原检查结果
+@riverpod
+UpdateReport? updateDisplayReport(UpdateDisplayReportRef ref) {
+  final report = ref.watch(updateReportStoreProvider);
+  if (report == null) return null;
+  final cache = ref.watch(updateProgressCacheProvider(report.sessionId));
+  final errors = ref.watch(updateProgressErrorsProvider(cache)).valueOrNull ?? cache.errors;
+  return report.copyWith(
+    items: [
+      for (final item in report.items) ...[
+        if (report.phase != UpdatePhase.running && item.outcome.isPending)
+          item.copyWith(outcome: UpdateOutcome.unchecked)
+        else if (errors.contains(item.mangaId) && item.outcome.canReadProgress && !item.outcome.isFailure)
+          item.copyWith(outcome: UpdateOutcome.progressError)
+        else
+          item,
+      ],
+    ],
+  );
 }
 
 /// 行在屏幕内时监听数据，离屏后只在报告中保留最后一次统计结果

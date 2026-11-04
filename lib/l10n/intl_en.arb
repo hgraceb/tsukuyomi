@@ -23,6 +23,8 @@
   "updateOutcomeParseError": "Parsing failed",
   "updateOutcomeStorageError": "Storage failed",
   "updateOutcomeEnqueueFailed": "Queue / start failed",
+  "updateOutcomeProgressError": "Progress unavailable",
+  "updateRetryProgress": "Reload local progress",
   "downloadTitle": "Download",
   "settingsTitle": "Settings",
   "appearanceTitle": "Appearance",

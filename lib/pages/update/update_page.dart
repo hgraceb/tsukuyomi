@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/l10n/l10n.dart';
 import 'package:tsukuyomi/providers/update/update_manager.dart';
-import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
 
@@ -43,7 +42,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> with SingleTickerProvid
     final selection = ref.watch(updateControllerProvider);
     final controller = ref.read(updateControllerProvider.notifier);
     final manager = ref.watch(updateManagerProvider);
-    final report = ref.watch(updateReportStoreProvider);
+    final report = ref.watch(updateDisplayReportProvider);
     final progressCache = ref.watch(updateProgressCacheProvider(report?.sessionId));
     final scanner = ref.read(updateManagerProvider.notifier);
     final running = manager.isLoading;
@@ -129,26 +128,24 @@ class _UpdateItem extends ConsumerWidget {
   final bool scanning;
 
   /// 更新列表项的标题
-  Widget _buildTitle(String? count) {
+  Widget _buildTitle(String count) {
     return LayoutBuilder(
       builder: (context, constraints) => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(child: Text(item.sourceName, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          if (count != null) ...[
-            ConstrainedBox(
-              constraints: constraints.copyWith(minWidth: 0.0),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 8.0),
-                child: Text(
-                  count,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
-                ),
+          ConstrainedBox(
+            constraints: constraints.copyWith(minWidth: 0.0),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Text(
+                count,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -160,6 +157,8 @@ class _UpdateItem extends ConsumerWidget {
       UpdateOutcome.pending => scanning ? l10n.updatePending : l10n.updateUnchecked,
       UpdateOutcome.checking => scanning ? l10n.updateChecking : l10n.updateUnchecked,
       UpdateOutcome.skipped => l10n.updateSkipped,
+      UpdateOutcome.unchecked => l10n.updateUnchecked,
+      UpdateOutcome.progressError => l10n.updateOutcomeProgressError,
       UpdateOutcome.updated => l10n.updateOutcomeUpdated,
       UpdateOutcome.noUpdate => l10n.updateOutcomeNoUpdate,
       UpdateOutcome.chaptersEmpty => l10n.updateOutcomeChaptersEmpty,
@@ -203,7 +202,7 @@ class _UpdateItem extends ConsumerWidget {
     }
     if (item.outcome.canRetry) {
       return IconButton(
-        tooltip: l10n.retry,
+        tooltip: item.outcome == UpdateOutcome.progressError ? l10n.updateRetryProgress : l10n.retry,
         color: item.outcome.isFailure ? colors.error : colors.tertiary,
         icon: const Icon(Icons.refresh_outlined),
         onPressed: ref.read(updateRetryControllerProvider(item.mangaId).notifier).retry,
@@ -224,17 +223,17 @@ class _UpdateItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
-    final unprocessed = item.outcome.isPending || item.outcome == UpdateOutcome.skipped;
-    final progress = unprocessed ? const UpdateProgress() : ref.watch(updateProgressProvider(progressCache, item.mangaId));
-    final completed = progress.completed;
-    final total = progress.total;
+    final progress = item.outcome.canReadProgress ? ref.watch(updateProgressProvider(progressCache, item.mangaId)) : const UpdateProgress();
+    final unknownError = progress.hasError && !progress.hasValue;
+    final completed = unknownError ? 0 : progress.completed;
+    final total = unknownError ? 0 : progress.total;
     final complete = progress.hasValue && !progress.hasError && total > 0 && completed == total;
-    final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
+    final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning || progress.hasError);
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);
-    final progressIcon = _buildProgress(completed, total, progress.hasError ? colors.error : color);
+    final progressIcon = _buildProgress(completed, total, color);
 
     return TsukuyomiIconButtonListTile(
-      title: _buildTitle(item.outcome.isPending ? null : l10n.updateProgress(completed, total)),
+      title: _buildTitle(l10n.updateProgress(completed, total)),
       subtitle: _buildSubTitle(l10n, color),
       trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),

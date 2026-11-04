@@ -1,7 +1,9 @@
 import 'package:collection/collection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
+import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
+import 'package:tsukuyomi/pages/update/update_progress_provider.dart';
 import 'package:tsukuyomi/providers/error/error_handler_provider.dart';
 import 'package:tsukuyomi/providers/update/update_error.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
@@ -17,23 +19,43 @@ class UpdateRetryController extends _$UpdateRetryController {
   @override
   bool build(int mangaId) => false;
 
-  /// 重试失败、跳过或章节为空的条目，仅替换发起重试时所在轮次的已有结果
+  /// 重试当前条目，本地进度失败只重新读取本地数据
   Future<void> retry() async {
     if (state) return;
-    final report = ref.read(updateReportStoreProvider);
+    final report = ref.read(updateDisplayReportProvider);
     final item = report?.items.firstWhereOrNull((item) => item.mangaId == mangaId);
     if (report == null || item == null || !item.outcome.canRetry) return;
     // 条目被筛选隐藏或离开页面时，仍需完成重试和报告保存
     final link = ref.keepAlive();
     state = true;
     try {
-      final result = await _retry(item);
-      await ref.read(updateReportStoreProvider.notifier).replaceItem(report.sessionId, result);
+      if (item.outcome == UpdateOutcome.progressError) {
+        await _retryProgress(report.sessionId);
+      } else {
+        final result = await _retry(item);
+        await ref.read(updateReportStoreProvider.notifier).replaceItem(report.sessionId, result);
+      }
     } catch (error, stackTrace) {
       ref.read(errorHandlerProvider).show(error, stackTrace);
     } finally {
       state = false;
       link.close();
+    }
+  }
+
+  Future<void> _retryProgress(String sessionId) async {
+    final cache = ref.read(updateProgressCacheProvider(sessionId));
+    final subscription = ref.listen(updateProgressProvider(cache, mangaId), (_, _) {});
+    try {
+      ref.invalidate(chaptersStreamByMangaProvider(mangaId));
+      ref.invalidate(updateDownloadedChaptersProvider(mangaId));
+      await Future.wait<Object>([
+        ref.read(chaptersStreamByMangaProvider(mangaId).future),
+        ref.read(updateDownloadedChaptersProvider(mangaId).future),
+      ]);
+      ref.read(updateProgressProvider(cache, mangaId));
+    } finally {
+      subscription.close();
     }
   }
 
