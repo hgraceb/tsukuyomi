@@ -2,6 +2,7 @@ import 'package:tsukuyomi/database/database.dart';
 
 /// 章节列表
 @UseRowClass(DatabaseChapter)
+@TableIndex(name: 'chapter_manga_url', columns: {#manga, #url}, unique: true)
 class ChapterTable extends Table {
   @override
   String get tableName => 'chapter';
