@@ -5,8 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/l10n/l10n.dart';
-import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
-import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/update/update_controller.dart';
 import 'package:tsukuyomi/pages/update/update_page.dart';
 import 'package:tsukuyomi/pages/update/update_retry_controller.dart';
@@ -38,7 +36,7 @@ void main() {
           totalTargets: 4,
           items: [
             retryFailureFixture(1),
-            updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersReduced),
+            updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.skipped),
             updateReportItemFixture(3),
             updateReportItemFixture(4),
           ],
@@ -47,13 +45,15 @@ void main() {
       );
       await _pumpPage(tester, container, locale: const Locale('zh'));
 
-      expect(find.byTooltip('重试'), findsOneWidget);
+      expect(find.byTooltip('重试'), findsNWidgets(2));
       expect(tester.widget<IconButton>(_button(1)).onPressed, isNotNull);
       expect(tester.widget<IconButton>(_button(1)).color, Theme.of(tester.element(_button(1))).colorScheme.error);
       expect(find.descendant(of: _row(1), matching: find.byIcon(Icons.check_circle_outline)), findsNothing);
       expect(find.descendant(of: _row(3), matching: find.byIcon(Icons.check_circle_outline)), findsOneWidget);
       expect(find.descendant(of: _row(4), matching: find.byType(AnimatedProgressCircleIcon)), findsOneWidget);
-      for (final id in [2, 3, 4]) {
+      expect(tester.widget<IconButton>(_button(2)).onPressed, isNotNull);
+      expect(tester.widget<IconButton>(_button(2)).color, Theme.of(tester.element(_button(2))).colorScheme.tertiary);
+      for (final id in [3, 4]) {
         expect(tester.widget<IconButton>(_button(id)).onPressed, isNull);
       }
       expect(tester.getSize(_button(1)), const Size.square(48.0));
@@ -85,7 +85,7 @@ void main() {
     await tester.tap(_button(1));
     await tester.pump();
     await _pumpUntil(tester, () => source.calls == 1);
-    expect(_waiting(1), findsOneWidget);
+    expect(_busyIcon(1), findsOneWidget);
     expect(tester.widget<IconButton>(_button(1)).onPressed, isNull);
     expect(tester.widget<IconButton>(_button(2)).onPressed, isNotNull);
     expect(find.widgetWithIcon(FloatingActionButton, Icons.sync_outlined), findsOneWidget);
@@ -110,7 +110,7 @@ void main() {
     expect(_row(1), findsOneWidget);
     expect(_row(2), findsOneWidget);
     expect(_row(3), findsOneWidget);
-    expect(find.byType(AnimatedWaitingDownloadIcon), findsNothing);
+    expect(_busyIcon(1), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -138,15 +138,15 @@ void main() {
     expect(sync.calls, 2);
     expect(readUpdateReportFixture(container)!.items.first.outcome, UpdateOutcome.updated);
     expect(readUpdateReportFixture(container)!.items.first.message, isNull);
-    expect(find.byType(AnimatedWaitingDownloadIcon), findsNothing);
+    expect(_busyIcon(1), findsNothing);
     expect(tester.widget<IconButton>(_button(1)).onPressed, isNull);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('An empty retry response becomes a passive warning instead of another retry action', (tester) async {
+  testWidgets('An empty retry response remains an error and allows another attempt', (tester) async {
     final source = UpdateSourceFixture(chapters: []);
-    final sync = UpdateSyncFixture()..result = const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
-    final downloads = UpdateDownloadsFixture()..result = const DownloadEnqueueResult();
+    final sync = UpdateSyncFixture();
+    final downloads = UpdateDownloadsFixture();
     final container = await createUpdateRetryContainer(
       source: source,
       downloads: downloads,
@@ -159,15 +159,19 @@ void main() {
     await _pumpFrames(tester);
 
     expect(readUpdateReportFixture(container)!.items.single.outcome, UpdateOutcome.chaptersEmpty);
-    expect(find.text('No chapters'), findsOneWidget);
-    expect(tester.widget<IconButton>(_button(1)).onPressed, isNull);
-    expect(_summaryCounts(tester), [0, 1, 0, 1]);
+    expect(find.text('Source returned no chapters'), findsOneWidget);
+    expect(tester.widget<IconButton>(_button(1)).onPressed, isNotNull);
+    expect(tester.widget<IconButton>(_button(1)).color, Theme.of(tester.element(_button(1))).colorScheme.error);
+    expect(_summaryCounts(tester), [1, 0, 0, 1]);
     await container.read(updateRetryControllerProvider(1).notifier).retry();
-    expect(source.calls, 1);
+    expect(source.calls, 2);
+    expect(sync.calls, 0);
+    expect(downloads.mangas, isEmpty);
+    await _pumpFrames(tester);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Waiting icons started at different times share one advancing animation through reordering', (tester) async {
+  testWidgets('Concurrent retries keep their busy indicators with each manga through reordering', (tester) async {
     final pending = [Completer<void>(), Completer<void>()];
     final syncs = {1: UpdateSyncFixture(pending[0].future), 2: UpdateSyncFixture(pending[1].future)};
     final container = await createUpdateRetryContainer(
@@ -180,17 +184,14 @@ void main() {
     await tester.pump();
     await _pumpUntil(tester, () => syncs[1]!.calls == 1);
     await tester.pump(const Duration(milliseconds: 375));
-    final first = tester.widget<AnimatedWaitingDownloadIcon>(_waiting(1)).animation;
+    expect(_busyIcon(1), findsOneWidget);
+    expect(tester.widget<IconButton>(_button(1)).onPressed, isNull);
 
     await tester.tap(_button(2));
     await tester.pump();
     await _pumpUntil(tester, () => syncs[2]!.calls == 1);
-    expect(tester.widget<AnimatedWaitingDownloadIcon>(_waiting(2)).animation, same(first));
-    expect(_waitingPhase(tester, 2), closeTo(_waitingPhase(tester, 1), 0.000001));
-    final phase = _waitingPhase(tester, 1);
-    await tester.pump(const Duration(milliseconds: 150));
-    expect(_waitingPhase(tester, 1), isNot(closeTo(phase, 0.000001)));
-    expect(_waitingPhase(tester, 2), closeTo(_waitingPhase(tester, 1), 0.000001));
+    expect(_busyIcon(2), findsOneWidget);
+    expect(tester.widget<IconButton>(_button(2)).onPressed, isNull);
 
     final store = container.read(updateReportStoreProvider.notifier);
     final report = container.read(updateReportStoreProvider)!;
@@ -205,18 +206,20 @@ void main() {
     );
     await tester.pump();
     for (final id in [1, 2]) {
-      expect(tester.widget<AnimatedWaitingDownloadIcon>(_waiting(id)).animation, same(first));
+      expect(_busyIcon(id), findsOneWidget);
+      expect(tester.widget<IconButton>(_button(id)).onPressed, isNull);
     }
-    expect(_waitingPhase(tester, 2), closeTo(_waitingPhase(tester, 1), 0.000001));
-    expect(tester.getSize(find.descendant(of: _waiting(2), matching: find.byType(CustomPaint))), const Size.square(24.0));
+    expect(tester.getSize(find.descendant(of: _busyIcon(2), matching: find.byType(CustomPaint))), const Size.square(24.0));
 
     pending[0].complete();
     await _pumpFrames(tester);
-    expect(_waiting(1), findsNothing);
-    expect(tester.widget<AnimatedWaitingDownloadIcon>(_waiting(2)).animation, same(first));
+    expect(container.read(updateRetryControllerProvider(1)), isFalse);
+    expect(_busyIcon(1), findsNothing);
+    expect(container.read(updateRetryControllerProvider(2)), isTrue);
+    expect(_busyIcon(2), findsOneWidget);
     pending[1].complete();
     await _pumpFrames(tester);
-    expect(find.byType(AnimatedWaitingDownloadIcon), findsNothing);
+    expect(container.read(updateRetryControllerProvider(2)), isFalse);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     expect(tester.binding.transientCallbackCount, 0);
@@ -246,7 +249,7 @@ void main() {
       router.pop();
       await _pumpFrames(tester);
       expect(_row(1), findsOneWidget);
-      expect(find.byType(AnimatedWaitingDownloadIcon), findsNothing);
+      expect(_busyIcon(1), findsNothing);
       expect(tester.takeException(), isNull);
     },
     variant: TargetPlatformVariant({TargetPlatform.windows, TargetPlatform.android}),
@@ -289,8 +292,11 @@ void main() {
       final report = readUpdateReportFixture(container)!;
       expect(report.phase, stopScan ? UpdatePhase.cancelled : UpdatePhase.finished);
       expect(report.totalTargets, 2);
-      expect(report.items.map((item) => item.mangaId), stopScan ? [1] : [1, 2]);
-      expect(report.items.every((item) => item.outcome.isSuccess), isTrue);
+      expect(report.items.map((item) => item.mangaId), [1, 2]);
+      expect(report.items.map((item) => item.outcome), [
+        UpdateOutcome.updated,
+        stopScan ? UpdateOutcome.unchecked : UpdateOutcome.updated,
+      ]);
       expect(downloads.mangas.map((manga) => manga.id), stopScan ? [1] : [1, 2]);
       expect(source.calls, stopScan ? 1 : 2);
       expect(container.read(updateManagerProvider).isLoading, isFalse);
@@ -367,12 +373,10 @@ Finder _row(int id) => find.widgetWithText(ListTile, 'manga-title-$id');
 
 Finder _button(int id) => find.descendant(of: _row(id), matching: find.byType(IconButton));
 
-Finder _waiting(int id) => find.descendant(of: _row(id), matching: find.byType(AnimatedWaitingDownloadIcon));
-
-double _waitingPhase(WidgetTester tester, int id) {
-  final paint = tester.widget<CustomPaint>(find.descendant(of: _waiting(id), matching: find.byType(CustomPaint)));
-  return (paint.painter! as WaitingDownloadIconPainter).progress;
-}
+Finder _busyIcon(int id) => find.descendant(
+  of: _row(id),
+  matching: find.byWidgetPredicate((widget) => widget is AnimatedProgressCircleIcon && widget.progress == 0.0),
+);
 
 Finder _countButton(UpdateFilter filter) {
   final index = [UpdateFilter.failure, UpdateFilter.warning, UpdateFilter.success, UpdateFilter.all].indexOf(filter);

@@ -2,6 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 
 void main() {
+  test('Empty source is a retryable failure and does not expose stale local progress', () {
+    expect(UpdateOutcome.chaptersEmpty.isFailure, isTrue);
+    expect(UpdateOutcome.chaptersEmpty.isWarning, isFalse);
+    expect(UpdateOutcome.chaptersEmpty.canRetry, isTrue);
+    expect(UpdateOutcome.chaptersEmpty.canReadProgress, isFalse);
+  });
+
+  test('Progress failures and interrupted or skipped checks can be retried', () {
+    for (final outcome in [UpdateOutcome.progressError, UpdateOutcome.unchecked, UpdateOutcome.skipped]) {
+      expect(outcome.isWarning, isTrue);
+      expect(outcome.isSuccess, isFalse);
+      expect(outcome.canRetry, isTrue);
+    }
+    for (final outcome in [UpdateOutcome.pending, UpdateOutcome.checking, UpdateOutcome.updated, UpdateOutcome.noUpdate]) {
+      expect(outcome.canRetry, isFalse);
+    }
+    expect(UpdateOutcome.enqueueFailed.canReadProgress, isTrue);
+  });
+
   test('UpdateReport serialization', () {
     final report = UpdateReport(
       version: UpdateReport.currentVersion,

@@ -6,16 +6,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
 import 'package:tsukuyomi/pages/library/library_repository.dart';
+import 'package:tsukuyomi/pages/manga/manga_repository.dart';
+import 'package:tsukuyomi/pages/source/source_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_manager.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_service.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
-import 'package:tsukuyomi/source/delegate/source_stub.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 import '../../fixtures/update_fixtures.dart';
+import '../../fixtures/update_retry_fixtures.dart';
 
 void main() {
   test('Empty scan saves a finished report and ignores a repeated start', () async {
@@ -60,7 +62,12 @@ void main() {
     updates.complete(1);
     await updates.waitFor(2);
     expect(updates.calls, [1, 3, 2]);
-    expect(container.read(updateReportStoreProvider)!.items.map((item) => item.mangaId), [1]);
+    final progress = container.read(updateReportStoreProvider)!;
+    expect(progress.items.map((item) => item.mangaId), [1, 2, 3, 4]);
+    expect(progress.items.first.outcome, UpdateOutcome.updated);
+    expect(progress.items[1].outcome, UpdateOutcome.checking);
+    expect(progress.items[2].outcome, UpdateOutcome.checking);
+    expect(progress.items.last.outcome, UpdateOutcome.pending);
     updates.complete(2);
     await updates.waitFor(4);
     expect(sourceCalls, [1, 2, 3]);
@@ -109,8 +116,8 @@ void main() {
     final report = container.read(updateReportStoreProvider)!;
     expect(report.items, items);
     expect(report.totalTargets, 5);
-    expect(report.failureCount, 1);
-    expect(report.warningCount, 1);
+    expect(report.failureCount, 2);
+    expect(report.warningCount, 0);
     expect(report.phase, UpdatePhase.finished);
     expect(updates.calls, [1, 2, 3, 4, 5]);
     expect(container.read(updateManagerProvider).hasError, isFalse);
@@ -136,7 +143,12 @@ void main() {
     expect(updates.calls, [1, 3]);
     expect(report.phase, UpdatePhase.cancelled);
     expect(report.totalTargets, 4);
-    expect(report.items.length, 2);
+    expect(report.items.map((item) => item.outcome), [
+      UpdateOutcome.updated,
+      UpdateOutcome.unchecked,
+      UpdateOutcome.updated,
+      UpdateOutcome.unchecked,
+    ]);
   });
 
   test('Stop during target preparation does not load any source', () async {
@@ -183,6 +195,87 @@ void main() {
     expect(container.read(updateManagerProvider).hasError, isFalse);
   });
 
+  test('Ineligible and missing targets are skipped while lookup and source failures stay isolated', () async {
+    final targets = [for (var id = 1; id <= 6; id++) mangaFixture(id, source: id == 6 ? 2 : 1)];
+    final mangas = UpdateMangasFixture(targets)
+      ..mangas[1] = targets[0].copyWith(favorite: false)
+      ..mangas[2] = targets[1].copyWith(auto: false)
+      ..mangas.remove(3)
+      ..errors[4] = StateError('lookup-error');
+    final updates = _Updates();
+    final container = _createContainer(_Library(targets), updates, mangas: mangas, sourceErrors: {2: TimeoutException('source-error')});
+
+    await container.read(updateManagerProvider.notifier).scan();
+
+    final report = container.read(updateReportStoreProvider)!;
+    expect(report.phase, UpdatePhase.finished);
+    expect(report.items.map((item) => item.outcome), [
+      UpdateOutcome.skipped,
+      UpdateOutcome.skipped,
+      UpdateOutcome.skipped,
+      UpdateOutcome.storageError,
+      UpdateOutcome.updated,
+      UpdateOutcome.networkError,
+    ]);
+    expect(updates.calls, [5]);
+    expect(report.items.map((item) => item.sourceName), everyElement('source-name'));
+    expect(container.read(updateManagerProvider).hasError, isFalse);
+  });
+
+  test('An ineligible target stays skipped even when its source fails', () async {
+    final targets = [mangaFixture(1), mangaFixture(2)];
+    final mangas = UpdateMangasFixture(targets)..mangas[1] = targets[0].copyWith(auto: false);
+    final updates = _Updates();
+    final container = _createContainer(_Library(targets), updates, mangas: mangas, sourceErrors: {1: TimeoutException('source-error')});
+
+    await container.read(updateManagerProvider.notifier).scan();
+
+    expect(container.read(updateReportStoreProvider)!.items.map((item) => item.outcome), [
+      UpdateOutcome.skipped,
+      UpdateOutcome.networkError,
+    ]);
+    expect(updates.calls, isEmpty);
+  });
+
+  test('Stopping during the latest-manga lookup does not start an update', () async {
+    final targets = [mangaFixture(1), mangaFixture(2)];
+    final pending = Completer<void>();
+    final mangas = UpdateMangasFixture(targets, pending: pending.future);
+    final updates = _Updates();
+    final container = _createContainer(_Library(targets), updates, mangas: mangas);
+    final manager = container.read(updateManagerProvider.notifier);
+
+    final scan = manager.scan();
+    await mangas.requested;
+    manager.stop();
+    pending.complete();
+    await scan;
+
+    expect(updates.calls, isEmpty);
+    final report = container.read(updateReportStoreProvider)!;
+    expect(report.phase, UpdatePhase.cancelled);
+    expect(report.items.map((item) => item.outcome), everyElement(UpdateOutcome.unchecked));
+  });
+
+  test('A detail result arriving during lookup prevents a duplicate update', () async {
+    final targets = [mangaFixture(1), mangaFixture(2)];
+    final pending = Completer<void>();
+    final mangas = UpdateMangasFixture(targets, pending: pending.future);
+    final updates = _Updates();
+    final container = _createContainer(_Library(targets), updates, mangas: mangas);
+
+    final scan = container.read(updateManagerProvider.notifier).scan();
+    await mangas.requested;
+    final report = container.read(updateReportStoreProvider)!;
+    final detail = report.items.first.copyWith(outcome: UpdateOutcome.noUpdate);
+    await container.read(updateReportStoreProvider.notifier).replaceItem(report.sessionId, detail);
+    pending.complete();
+    await scan;
+
+    expect(updates.calls, [2]);
+    expect(container.read(updateReportStoreProvider)!.items.first, detail);
+  });
+
   test('Target query failure is saved and allows a new scan', () async {
     final library = _Library([])..error = StateError('query-error');
     final container = _createContainer(library, _Updates());
@@ -204,7 +297,7 @@ void main() {
   test('Progress save failure waits for active work before releasing the scan', () async {
     final library = _Library([mangaFixture(1), mangaFixture(2), mangaFixture(3, source: 2)]);
     final updates = _Updates(pendingIds: [1, 2, 3]);
-    final preferences = _Preferences()..failOnSave = 3;
+    final preferences = _Preferences();
     final container = _createContainer(library, updates, preferences: preferences);
     final manager = container.read(updateManagerProvider.notifier);
     var finished = false;
@@ -213,6 +306,7 @@ void main() {
       finished = true;
     });
     await Future.wait([updates.waitFor(1), updates.waitFor(3)]);
+    preferences.failOnSave = preferences.saves + 1;
     updates.complete(1);
     await preferences.failed.future;
     await manager.scan();
@@ -224,7 +318,11 @@ void main() {
     expect(updates.calls, [1, 3]);
     expect(container.read(updateManagerProvider).hasError, isTrue);
     expect(container.read(updateReportStoreProvider)!.message, contains('Failed to save update report'));
-    expect(container.read(updateReportStoreProvider)!.items.length, 2);
+    expect(container.read(updateReportStoreProvider)!.items.map((item) => item.outcome), [
+      UpdateOutcome.updated,
+      UpdateOutcome.unchecked,
+      UpdateOutcome.updated,
+    ]);
     updates.pending.clear();
     await manager.scan();
     expect(library.queries, 2);
@@ -238,17 +336,20 @@ ProviderContainer _createContainer(
   _Preferences? preferences,
   List<int>? sourceCalls,
   Map<int, Object> sourceErrors = const {},
+  UpdateMangasFixture? mangas,
 }) {
   final container = ProviderContainer(
     overrides: [
       libraryRepositoryProvider.overrideWithValue(library),
+      mangaRepositoryProvider.overrideWithValue(mangas ?? UpdateMangasFixture(library.mangas)),
+      sourceRepositoryProvider.overrideWithValue(UpdateSourcesFixture()),
       updateServiceProvider.overrideWithValue(updates),
       sharedPreferencesProvider.overrideWithValue(preferences ?? _Preferences()),
       for (final id in [1, 2, 3])
         sourceByIdProvider(id).overrideWith((ref) async {
           sourceCalls?.add(id);
           if (sourceErrors.containsKey(id)) throw sourceErrors[id]!;
-          return NoInstalledSource(id);
+          return UpdateSourceFixture(id: id);
         }),
     ],
   );

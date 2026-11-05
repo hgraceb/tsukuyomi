@@ -81,25 +81,28 @@ void main() {
       chapterStream: (id) => Stream.value(id == 2 ? [] : chaptersFixture(id)),
       report: updateReportFixture(
         phase: UpdatePhase.running,
+        totalTargets: 3,
         items: [
           updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.enqueueFailed, message: 'queue-error', sourceCount: 8),
           updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersEmpty, sourceCount: 0),
+          updateReportItemFixture(3).copyWith(outcome: UpdateOutcome.skipped),
         ],
       ),
     );
 
     expect(container.read(updateReportStoreProvider)!.phase, UpdatePhase.interrupted);
-    final colors = Theme.of(tester.element(find.text('Queue / start failed'))).colorScheme;
-    expect(_summaryCounts(tester), [1, 1, 0, 2]);
+    final colors = Theme.of(tester.element(find.text('Download scheduling failed'))).colorScheme;
+    expect(_summaryCounts(tester), [2, 1, 0, 3]);
     expect(tester.widget<Text>(_countText(UpdateFilter.failure)).style?.color, colors.error);
     expect(tester.widget<Text>(_countText(UpdateFilter.warning)).style?.color, colors.tertiary);
     expect(tester.widget<Text>(_countText(UpdateFilter.success)).style?.color, colors.onSurface);
     expect(tester.widget<Text>(_countText(UpdateFilter.all)).style?.color, colors.onSurface);
-    expect(tester.widget<Text>(find.text('Queue / start failed')).style?.color, colors.error);
-    expect(tester.widget<Text>(find.text('No chapters')).style?.color, colors.tertiary);
+    expect(tester.widget<Text>(find.text('Download scheduling failed')).style?.color, colors.error);
+    expect(tester.widget<Text>(find.text('Source returned no chapters')).style?.color, colors.error);
+    expect(tester.widget<Text>(find.text('Skipped')).style?.color, colors.tertiary);
     expect(find.text('2 / 5'), findsOneWidget);
-    expect(find.text('0 / 0'), findsOneWidget);
-    expect(_progress(tester, 'manga-title-2'), 0.0);
+    expect(find.text('0 / 0'), findsNWidgets(2));
+    expect(tester.widget<IconButton>(_retryButton('manga-title-2')).color, colors.error);
     expect(find.byIcon(Icons.info_outline), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
     expect(tester.takeException(), isNull);
@@ -109,7 +112,7 @@ void main() {
     final items = [
       updateReportItemFixture(1).copyWith(outcome: UpdateOutcome.networkError),
       updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersEmpty),
-      updateReportItemFixture(3).copyWith(outcome: UpdateOutcome.chaptersReduced),
+      updateReportItemFixture(3).copyWith(outcome: UpdateOutcome.skipped),
       updateReportItemFixture(4),
       updateReportItemFixture(5).copyWith(outcome: UpdateOutcome.noUpdate),
       updateReportItemFixture(6),
@@ -129,14 +132,14 @@ void main() {
         }
         await store.save(report.copyWith(phase: phase));
         await _pumpFrames(tester);
-        expect(_summaryCounts(tester), [1, 2, 3, 10]);
+        expect(_summaryCounts(tester), [2, 1, 3, 10]);
         expect(summaryIcons, findsNothing);
       }
 
       final completed = [...items, for (var id = 7; id <= 10; id++) updateReportItemFixture(id)];
       await store.save(report.copyWith(items: completed));
       await _pumpFrames(tester);
-      expect(_summaryCounts(tester), [1, 2, 7, 10]);
+      expect(_summaryCounts(tester), [2, 1, 7, 10]);
       expect(summaryIcons, findsNothing);
 
       for (final total in [10, 0]) {
@@ -213,7 +216,7 @@ void main() {
       items: [
         updateReportItemFixture(1),
         updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.networkError),
-        updateReportItemFixture(3).copyWith(outcome: UpdateOutcome.chaptersReduced),
+        updateReportItemFixture(3).copyWith(deleteCount: 2),
         updateReportItemFixture(4).copyWith(outcome: UpdateOutcome.noUpdate),
         updateReportItemFixture(5),
       ],
@@ -239,10 +242,9 @@ void main() {
     expect(_progress(tester, 'manga-title-4'), 0.8);
     expect(_completionIcon('manga-title-5'), findsNothing);
     expect(_progress(tester, 'manga-title-5'), 0.0);
-    expect(find.text('0 / 0'), findsOneWidget);
+    expect(find.text('0 / 0'), findsNWidgets(2));
     expect(tester.widget<Text>(find.text('Request failed')).style?.color, colors.error);
-    expect(tester.widget<Text>(find.text('Chapters removed')).style?.color, colors.tertiary);
-    expect(_summaryCounts(tester), [1, 1, 3, 5]);
+    expect(_summaryCounts(tester), [1, 0, 4, 5]);
     expect(container.read(updateReportStoreProvider), report);
     expect(tester.takeException(), isNull);
   });
@@ -277,8 +279,9 @@ void main() {
       await _pumpFrames(tester);
       expect(find.text('5 / 5'), findsOneWidget);
       expect(_completionIcon('manga-title-1'), findsNothing);
-      final icon = find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.byType(AnimatedProgressCircleIcon));
-      expect(IconTheme.of(tester.element(icon)).color, Theme.of(tester.element(icon)).colorScheme.error);
+      final button = _retryButton('manga-title-1');
+      expect(tester.widget<IconButton>(button).color, Theme.of(tester.element(button)).colorScheme.tertiary);
+      expect(_summaryCounts(tester), [0, 1, 0, 1]);
 
       pending = null;
       container.invalidate(provider);
@@ -346,29 +349,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A local progress error leaves other manga and scan results observable', (tester) async {
+  testWidgets('A local progress error and recovery move the row between filters without rewriting scan results', (tester) async {
     final error = StateError('fixture-directory-error');
+    var fail = true;
     final report = updateReportFixture(items: [updateReportItemFixture(1), updateReportItemFixture(2)]);
     final container = await _pumpPage(
       tester,
       manager: _Manager(),
       report: report,
       downloadedForManga: (id) {
-        if (id == 1) throw error;
+        if (id == 1 && fail) throw error;
         return {'chapter-title-1', 'chapter-title-2', 'chapter-title-3'};
       },
     );
 
-    final firstIcon = find.descendant(
-      of: find.widgetWithText(ListTile, 'manga-title-1'),
-      matching: find.byType(AnimatedProgressCircleIcon),
-    );
+    final firstIcon = _retryButton('manga-title-1');
     final colors = Theme.of(tester.element(firstIcon)).colorScheme;
     expect(container.read(updateDownloadedChaptersProvider(1)).error, same(error));
-    expect(IconTheme.of(tester.element(firstIcon)).color, colors.error);
+    expect(tester.widget<IconButton>(firstIcon).color, colors.tertiary);
+    expect(_summaryCounts(tester), [0, 1, 1, 2]);
     expect(_progress(tester, 'manga-title-2'), 0.6);
     expect(container.read(updateReportStoreProvider), report);
     expect(report.failureCount, 0);
+
+    await tester.tap(_countButton(UpdateFilter.warning));
+    await _pumpFrames(tester);
+    expect(find.text('manga-title-1'), findsOneWidget);
+    expect(find.text('manga-title-2'), findsNothing);
+    fail = false;
+    container.invalidate(updateDownloadedChaptersProvider(1));
+    await _pumpFrames(tester);
+    expect(_summaryCounts(tester), [0, 0, 2, 2]);
+    expect(find.text('No results for this filter'), findsOneWidget);
+    await tester.tap(_countButton(UpdateFilter.success));
+    await _pumpFrames(tester);
+    expect(find.text('manga-title-1'), findsOneWidget);
+    expect(find.text('manga-title-2'), findsOneWidget);
+    expect(container.read(updateReportStoreProvider), report);
     expect(tester.takeException(), isNull);
   });
 
@@ -487,7 +504,7 @@ void main() {
     final report = updateReportFixture(
       items: [
         updateReportItemFixture(1),
-        updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.chaptersReduced),
+        updateReportItemFixture(2).copyWith(outcome: UpdateOutcome.skipped),
       ],
     );
     final container = await _pumpPage(
@@ -687,7 +704,7 @@ void main() {
       items: [
         updateReportItemFixture(1).copyWith(sourceName: 'B', mangaTitle: 'A'),
         updateReportItemFixture(2).copyWith(sourceName: 'A', mangaTitle: 'Z', outcome: UpdateOutcome.networkError),
-        updateReportItemFixture(3).copyWith(sourceName: 'A', mangaTitle: 'A', outcome: UpdateOutcome.chaptersEmpty),
+        updateReportItemFixture(3).copyWith(sourceName: 'A', mangaTitle: 'A', outcome: UpdateOutcome.skipped),
         updateReportItemFixture(4).copyWith(sourceName: 'A', mangaTitle: 'M', outcome: UpdateOutcome.noUpdate),
       ],
     );
@@ -784,7 +801,7 @@ void main() {
     expect(find.text('manga-title-1'), findsNothing);
     expect(find.text('manga-title-2'), findsOneWidget);
     expect(_summaryCounts(tester), [1, 0, 1, 10]);
-    expect(find.text('2 / 5'), findsOneWidget);
+    expect(find.text('0 / 0'), findsOneWidget);
     expect(_retryButton('manga-title-2'), findsOneWidget);
     await store.save(report.copyWith(items: [...report.items, matching, updateReportItemFixture(3)]));
     await _pumpFrames(tester);

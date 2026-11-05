@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
+import 'package:tsukuyomi/providers/error/error_handler_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
@@ -41,8 +42,13 @@ UpdateReport _report(String sessionId) => UpdateReport(
   ],
 );
 
-ProviderContainer _container(SharedPreferences preferences) {
-  final container = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(preferences)]);
+ProviderContainer _container(SharedPreferences preferences, {_Errors? errors}) {
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      if (errors != null) errorHandlerProvider.overrideWithValue(errors),
+    ],
+  );
   addTearDown(container.dispose);
   return container;
 }
@@ -55,6 +61,28 @@ void main() {
     final preferences = await SharedPreferences.getInstance();
     expect(_container(preferences).read(updateReportStoreProvider), isNull);
   });
+
+  for (final (reason, invalid) in [
+    ('malformed JSON', '{'),
+    ('wrong root type', '[]'),
+    ('missing required fields', '{}'),
+    ('unknown outcome', jsonEncode(_report('invalid').toJson()).replaceFirst('enqueueFailed', 'removedOutcome')),
+    ('wrong field type', jsonEncode(_report('invalid').toJson()).replaceFirst('"totalTargets":1', '"totalTargets":"invalid"')),
+  ]) {
+    test('Unreadable report is discarded and a new save can replace it: $reason', () async {
+      SharedPreferences.setMockInitialValues({Keys.updateReportLatest: invalid});
+      final preferences = await SharedPreferences.getInstance();
+      final errors = _Errors();
+      final container = _container(preferences, errors: errors);
+
+      expect(container.read(updateReportStoreProvider), isNull);
+      expect(errors.errors, hasLength(1));
+
+      final report = _report('recovered');
+      await container.read(updateReportStoreProvider.notifier).save(report);
+      expect(_container(preferences).read(updateReportStoreProvider), report);
+    });
+  }
 
   test('Save JSON and restore the complete report in a new container', () async {
     SharedPreferences.setMockInitialValues({});
@@ -151,20 +179,39 @@ void main() {
     final report = _report('unfinished-session').copyWith(
       phase: UpdatePhase.running,
       scanKind: UpdateScanKind.full,
-      totalTargets: 2,
+      totalTargets: 3,
       finishedAt: null,
     );
-    SharedPreferences.setMockInitialValues({Keys.updateReportLatest: jsonEncode(report.toJson())});
+    final unfinished = report.copyWith(
+      items: [
+        ...report.items,
+        report.items.single.copyWith(mangaId: 3, outcome: UpdateOutcome.pending),
+        report.items.single.copyWith(mangaId: 4, outcome: UpdateOutcome.checking),
+      ],
+    );
+    SharedPreferences.setMockInitialValues({Keys.updateReportLatest: jsonEncode(unfinished.toJson())});
     final preferences = await SharedPreferences.getInstance();
     final container = _container(preferences);
 
     final restored = container.read(updateReportStoreProvider)!;
-    expect(restored, report.copyWith(phase: UpdatePhase.interrupted));
-    expect(restored.items.length, 1);
+    expect(restored.phase, UpdatePhase.interrupted);
+    expect(restored.items.first, report.items.single);
+    expect(restored.items.skip(1).map((item) => item.outcome), [UpdateOutcome.unchecked, UpdateOutcome.unchecked]);
+    expect(restored.totalTargets, 3);
     expect(restored.finishedAt, isNull);
     await container.read(updateReportStoreProvider.notifier).save(restored);
     expect(_container(preferences).read(updateReportStoreProvider), restored);
   });
+}
+
+class _Errors implements ErrorHandler {
+  final errors = <Object>[];
+
+  @override
+  void print(Object error, [StackTrace? stackTrace]) => errors.add(error);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Preferences implements SharedPreferences {

@@ -11,6 +11,7 @@ import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
+import 'package:tsukuyomi/pages/source/source_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi/pages/update/update_progress_provider.dart';
 import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
@@ -47,6 +48,7 @@ Future<ProviderContainer> createUpdateRetryContainer({
     overrides: [
       sharedPreferencesProvider.overrideWithValue(await SharedPreferences.getInstance()),
       mangaRepositoryProvider.overrideWithValue(repository),
+      sourceRepositoryProvider.overrideWithValue(UpdateSourcesFixture()),
       libraryRepositoryProvider.overrideWithValue(UpdateLibraryFixture(repository.mangas.values.toList())),
       sourceByIdProvider(1).overrideWith((ref) => loadSource?.call() ?? Future.value(currentSource)),
       for (final manga in repository.mangas.values) ...[
@@ -80,17 +82,22 @@ class UpdateMangasFixture implements MangaRepository {
   final _requested = Completer<void>();
   final checkedAt = <int, DateTime>{};
   Object? error;
+  final errors = <int, Object>{};
   int queries = 0;
 
   Future<void> get requested => _requested.future;
 
   @override
-  Future<DatabaseManga> queryManga(int mangaId) async {
+  Future<DatabaseManga> queryManga(int mangaId) async => (await queryMangaByIdOrNull(mangaId))!;
+
+  @override
+  Future<DatabaseManga?> queryMangaByIdOrNull(int mangaId) async {
     queries++;
     if (!_requested.isCompleted) _requested.complete();
     await pending;
     if (error != null) throw error!;
-    return mangas[mangaId]!;
+    if (errors.containsKey(mangaId)) throw errors[mangaId]!;
+    return mangas[mangaId];
   }
 
   @override

@@ -7,8 +7,10 @@ import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart'
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_controller.dart';
+import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi/pages/update/update_controller.dart';
+import 'package:tsukuyomi/pages/update/update_progress_provider.dart';
 import 'package:tsukuyomi/pages/update/update_retry_controller.dart';
 import 'package:tsukuyomi/providers/error/error_handler_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
@@ -132,8 +134,11 @@ void main() {
       expect(report.sessionId, isNot(previous.sessionId));
       expect(report.phase, stopScan ? UpdatePhase.cancelled : UpdatePhase.finished);
       expect(report.totalTargets, 2);
-      expect(report.items.map((item) => item.mangaId), stopScan ? [1] : [1, 2]);
-      expect(report.items.every((item) => item.outcome.isSuccess), isTrue);
+      expect(report.items.map((item) => item.mangaId), [1, 2]);
+      expect(report.items.map((item) => item.outcome), [
+        UpdateOutcome.updated,
+        stopScan ? UpdateOutcome.unchecked : UpdateOutcome.updated,
+      ]);
       expect(downloads.mangas.map((manga) => manga.id), stopScan ? [1] : [1, 2]);
       expect(source.calls, stopScan ? 1 : 2);
       expect(readUpdateReportFixture(container), report);
@@ -386,7 +391,7 @@ void main() {
     expect(readUpdateReportFixture(container)!.items.single.outcome, UpdateOutcome.updated);
   });
 
-  test('Missing reports and non-failure or missing rows do not start an update', () async {
+  test('Missing reports and successful, pending or missing rows do not start an update', () async {
     final source = UpdateSourceFixture();
     final mangas = UpdateMangasFixture([mangaFixture(1)]);
     final container = await createUpdateRetryContainer(source: source, mangas: mangas);
@@ -394,9 +399,10 @@ void main() {
     for (final items in [
       <UpdateReportItem>[],
       [updateReportItemFixture(1)],
-      [_failed.copyWith(outcome: UpdateOutcome.chaptersEmpty)],
+      [_failed.copyWith(outcome: UpdateOutcome.pending)],
+      [_failed.copyWith(outcome: UpdateOutcome.checking)],
     ]) {
-      await store.save(updateReportFixture(items: items));
+      await store.save(updateReportFixture(phase: UpdatePhase.running, items: items));
       await container.read(updateRetryControllerProvider(1).notifier).retry();
     }
     SharedPreferences.setMockInitialValues({});
@@ -408,6 +414,38 @@ void main() {
     expect(mangas.queries, 0);
     expect(empty.read(updateReportStoreProvider), isNull);
   });
+
+  for (final fail in [false, true]) {
+    test('Retry resolves local progress without a visible row and only persists the scan result: error=$fail', () async {
+      final pending = Completer<void>();
+      final requested = Completer<void>();
+      final container = await createUpdateRetryContainer(
+        overrides: [
+          chaptersStreamByMangaProvider(1).overrideWith((ref) => Stream.value(chaptersFixture(1))),
+          updateDownloadedChaptersProvider(1).overrideWith((ref) async {
+            if (!requested.isCompleted) requested.complete();
+            await pending.future;
+            if (fail) throw StateError('local-progress-error');
+            return {'chapter-title-1'};
+          }),
+        ],
+      );
+      final display = container.listen(updateDisplayReportProvider, (_, _) {});
+      addTearDown(display.close);
+      final retry = container.read(updateRetryControllerProvider(1).notifier).retry();
+      await requested.future;
+      expect(container.read(updateRetryControllerProvider(1)), isTrue);
+
+      pending.complete();
+      await retry;
+      await container.pump();
+
+      expect(display.read()!.items.single.outcome, fail ? UpdateOutcome.progressError : UpdateOutcome.updated);
+      expect(display.read()!.warningCount, fail ? 1 : 0);
+      expect(display.read()!.successCount, fail ? 0 : 1);
+      expect(readUpdateReportFixture(container)!.items.single.outcome, UpdateOutcome.updated);
+    });
+  }
 
   test('A report persistence failure is shown and releases the retry state', () async {
     final errors = _Errors();

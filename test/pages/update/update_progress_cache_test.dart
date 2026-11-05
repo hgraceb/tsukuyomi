@@ -18,6 +18,52 @@ import '../../fixtures/update_fixtures.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('Multiple progress failures and recoveries keep displayed counts and filters in sync', () async {
+    final harness = await _Harness.create([for (var id = 1; id <= 3; id++) _Input(id)]);
+    final display = harness.container.listen(updateDisplayReportProvider, (_, _) {});
+    addTearDown(display.close);
+
+    for (var id = 1; id <= 3; id++) {
+      harness.cache.update(id, const UpdateProgress(hasError: true));
+    }
+    await harness.container.pump();
+    expect(display.read()!.warningCount, 3);
+    expect(display.read()!.successCount, 0);
+    expect(display.read()!.items.where(UpdateFilter.warning.matches), hasLength(3));
+
+    for (var id = 1; id <= 3; id++) {
+      harness.cache.update(id, const UpdateProgress(hasValue: true, completed: 1, total: 5));
+    }
+    await harness.container.pump();
+    expect(display.read()!.warningCount, 0);
+    expect(display.read()!.successCount, 3);
+    expect(display.read()!.items.where(UpdateFilter.warning.matches), isEmpty);
+    expect(harness.container.read(updateReportStoreProvider), harness.report);
+  });
+
+  test('A progress error cannot replace a scan failure, including an empty source response', () {
+    final outcomes = [
+      UpdateOutcome.chaptersEmpty,
+      UpdateOutcome.sourceUnavailable,
+      UpdateOutcome.networkError,
+      UpdateOutcome.parseError,
+      UpdateOutcome.storageError,
+      UpdateOutcome.enqueueFailed,
+    ];
+    final report = updateReportFixture(
+      items: [
+        for (var i = 0; i < outcomes.length; i++) updateReportItemFixture(i + 1).copyWith(outcome: outcomes[i]),
+      ],
+    );
+    final cache = UpdateProgressCache(report.sessionId)..retain(report);
+    for (final item in report.items) {
+      cache.update(item.mangaId, const UpdateProgress(hasError: true));
+      expect(cache.outcomeFor(item), item.outcome);
+    }
+    expect(report.failureCount, outcomes.length);
+    expect(report.warningCount, 0);
+  });
+
   test('First reads retain the default display and count only downloaded public chapters', () async {
     final chapters = Completer<void>();
     final downloads = Completer<void>();
