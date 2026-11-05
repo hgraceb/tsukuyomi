@@ -9,6 +9,7 @@ import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
+import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
 
 import '../../fixtures/update_fixtures.dart';
@@ -54,6 +55,33 @@ void main() {
     final unchanged = await sync.sync();
     expect(unchanged, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 2));
     expect(await database.select(database.chapterTable).get(), unorderedEquals(rows));
+  });
+
+  test('Watched chapters retain insertion order after synchronization and later updates', () async {
+    final container = await _container();
+    final chapters = StreamIterator(container.read(mangaRepositoryProvider).watchChapters(_manga.id));
+    addTearDown(chapters.cancel);
+    expect(await chapters.moveNext(), isTrue);
+    expect(chapters.current, isEmpty);
+    const first = HttpSourceChapter(url: 'chapter/1', name: 'chapter-1');
+    const second = HttpSourceChapter(url: 'chapter/2', name: 'chapter-2');
+    const tenth = HttpSourceChapter(url: 'chapter/10', name: 'chapter-10');
+    final source = UpdateSourceFixture(chapters: [first, second, tenth]);
+    final sync = container.read(chapterSyncWithSourceProvider(source, _manga));
+
+    await sync.sync();
+
+    expect(await chapters.moveNext(), isTrue);
+    expect(chapters.current.map((chapter) => chapter.url), [first.url, second.url, tenth.url]);
+
+    const added = HttpSourceChapter(url: 'chapter/0', name: 'new-chapter');
+    const renamed = HttpSourceChapter(url: 'chapter/2', name: 'renamed-chapter', public: false);
+    await sync.apply([added, first, renamed, tenth]);
+
+    expect(await chapters.moveNext(), isTrue);
+    expect(chapters.current.map((chapter) => chapter.url), [first.url, second.url, tenth.url, added.url]);
+    expect(chapters.current[1].title, renamed.name);
+    expect(chapters.current[1].public, isFalse);
   });
 
   test('Metadata changes preserve the chapter identity, reading progress and queued download', () async {
