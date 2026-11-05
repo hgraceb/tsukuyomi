@@ -25,13 +25,13 @@ enum UpdateOutcome {
 
   progressError,
 
-  /// 有可下载章节
+  /// 章节数据有变化或已安排下载
   updated,
 
-  /// 没有章节变化
+  /// 无需变更章节或安排下载
   noUpdate,
 
-  /// 返回章节为空
+  /// 源未返回任何章节
   chaptersEmpty,
 
   /// 漫画源不可用
@@ -40,13 +40,13 @@ enum UpdateOutcome {
   /// 网络请求失败
   networkError,
 
-  /// 源码解析失效
+  /// 源执行失败
   parseError,
 
-  /// 信息存储异常
+  /// 数据读写失败
   storageError,
 
-  /// 加入下载失败
+  /// 下载入队或启动失败
   enqueueFailed,
 }
 
@@ -54,12 +54,12 @@ extension UpdateOutcomeX on UpdateOutcome {
   /// 尚未完成检查
   bool get isPending => this == UpdateOutcome.pending || this == UpdateOutcome.checking;
 
-  /// 有可下载章节或没有章节变化
+  /// 已完成章节检查和下载安排
   bool get isSuccess => this == UpdateOutcome.updated || this == UpdateOutcome.noUpdate;
 
   /// 需要关注的检查状态
   bool get isWarning => switch (this) {
-    UpdateOutcome.chaptersEmpty || UpdateOutcome.skipped || UpdateOutcome.unchecked || UpdateOutcome.progressError => true,
+    UpdateOutcome.skipped || UpdateOutcome.unchecked || UpdateOutcome.progressError => true,
     _ => false,
   };
 
@@ -69,11 +69,12 @@ extension UpdateOutcomeX on UpdateOutcome {
   /// 已取得章节检查结果时才读取本地下载进度
   bool get canReadProgress {
     if (isSuccess) return true;
-    return this == UpdateOutcome.chaptersEmpty || this == UpdateOutcome.enqueueFailed || this == UpdateOutcome.progressError;
+    return this == UpdateOutcome.enqueueFailed || this == UpdateOutcome.progressError;
   }
 
   /// 检查或安排下载失败，不包含等待和跳过的条目
   bool get isFailure => switch (this) {
+    UpdateOutcome.chaptersEmpty ||
     UpdateOutcome.sourceUnavailable ||
     UpdateOutcome.networkError ||
     UpdateOutcome.parseError ||

@@ -23,15 +23,18 @@ class ChapterSyncWithSource {
   }
 
   Future<ChapterSyncResult> apply(Iterable<SourceChapter> sourceChapters) async {
+    // 空返回可能是源失效，保留本地章节和关联数据
+    if (sourceChapters.isEmpty) {
+      return const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
+    }
     final databaseChapters = await chapterRepository.queryChaptersByMangaId(manga.id);
     final deletes = <int>[];
     final inserts = <ChapterTableCompanion>[];
     final updates = <ChapterTableCompanion>[];
 
     // 获取待删除的章节列表
-    deletes.addAll(databaseChapters.where((row) {
-      return !sourceChapters.any((sourceChapter) => sourceChapter.url == row.url);
-    }).map((row) => row.id));
+    final deletedChapters = databaseChapters.where((row) => !sourceChapters.any((chapter) => chapter.url == row.url));
+    deletes.addAll(deletedChapters.map((row) => row.id));
 
     // 获取待更新和插入的章节列表 TODO 完善章节数据
     for (final sourceChapter in sourceChapters) {
@@ -39,7 +42,11 @@ class ChapterSyncWithSource {
       if (databaseChapter == null) {
         inserts.add(sourceChapter.toInsertable(manga.id));
       } else {
-        updates.add(sourceChapter.toUpdatable(databaseChapter));
+        final update = sourceChapter.toUpdatable(databaseChapter);
+        final titleChanged = update.title.value != databaseChapter.title;
+        final dateChanged = update.date.value != databaseChapter.date;
+        final publicChanged = update.public.value != databaseChapter.public;
+        if (titleChanged || dateChanged || publicChanged) updates.add(update);
       }
     }
 
