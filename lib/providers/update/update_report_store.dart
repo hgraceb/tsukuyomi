@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
+import 'package:tsukuyomi/providers/error/error_handler_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 
 import 'update_state.dart';
@@ -18,17 +19,24 @@ class UpdateReportStore extends _$UpdateReportStore {
   @override
   UpdateReport? build() {
     _preferences = ref.watch(sharedPreferencesProvider);
-    final json = _preferences.getString(Keys.updateReportLatest);
-    if (json == null) return null;
-    final report = UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
-    return report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
+    try {
+      final json = _preferences.getString(Keys.updateReportLatest);
+      if (json == null) return null;
+      final report = UpdateReport.fromJson(jsonDecode(json) as Map<String, dynamic>);
+      final restored = report.phase == UpdatePhase.running ? report.copyWith(phase: UpdatePhase.interrupted) : report;
+      return restored.markUnchecked();
+    } catch (error, stackTrace) {
+      ref.read(errorHandlerProvider).print(error, stackTrace);
+      return null;
+    }
   }
 
   /// 保存最近的更新报告
   Future<void> save(UpdateReport report) {
-    state = report;
+    final value = report.phase == UpdatePhase.running ? report : report.markUnchecked();
+    state = value;
     final save = _pendingSave.then((_) async {
-      if (!await _preferences.setString(Keys.updateReportLatest, jsonEncode(report.toJson()))) {
+      if (!await _preferences.setString(Keys.updateReportLatest, jsonEncode(value.toJson()))) {
         throw StateError('Failed to save update report');
       }
     });

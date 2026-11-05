@@ -2,6 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/library/library_repository.dart';
+import 'package:tsukuyomi/pages/manga/manga_repository.dart';
+import 'package:tsukuyomi/pages/source/source_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
 
 import 'update_error.dart';
@@ -56,8 +58,15 @@ class UpdateManager extends _$UpdateManager {
   Future<void> _scan(UpdateReport report) async {
     await ref.read(updateReportStoreProvider.notifier).save(report);
     final mangas = await ref.read(libraryRepositoryProvider).queryAutoMangas();
+    if (mangas.isEmpty) return;
     mangas.sort((a, b) => a.id.compareTo(b.id));
-    await _update((report) => report.copyWith(totalTargets: mangas.length));
+    final sourceNames = await ref.read(sourceRepositoryProvider).querySourceNames(mangas.map((manga) => manga.source).toSet());
+    await _update(
+      (report) => report.copyWith(
+        totalTargets: mangas.length,
+        items: [for (final manga in mangas) _pendingItem(manga, sourceNames[manga.source])],
+      ),
+    );
     final groups = groupBy(mangas, (manga) => manga.source).values.iterator;
     await Future.wait([_scanGroups(groups), _scanGroups(groups)]);
   }
@@ -74,45 +83,56 @@ class UpdateManager extends _$UpdateManager {
   }
 
   Future<void> _scanSource(List<DatabaseManga> mangas) async {
-    final result = await AsyncValue.guard(() => ref.read(sourceByIdProvider(mangas.first.source).future));
-    if (_stopped) return;
-    if (result.hasError) {
-      final error = result.error!;
-      await _update((report) => report.copyWith(items: [...report.items, ...mangas.map((manga) => _sourceFailure(manga, error))]));
-      return;
-    }
-    final source = result.requireValue;
+    final source = await AsyncValue.guard(() => ref.read(sourceByIdProvider(mangas.first.source).future));
     final service = ref.read(updateServiceProvider);
     for (final manga in mangas) {
       if (_stopped) break;
-      final item = await service.updateManga(source, manga);
-      await _update((report) => report.copyWith(items: [...report.items, item]));
+      // 详情刷新可能已经完成此项，使用当前报告避免重复检查
+      final target = _pendingTarget(manga.id);
+      if (target == null) continue;
+      await _replaceItem(target.copyWith(outcome: UpdateOutcome.checking));
+      if (_stopped) break;
+      final lookup = await AsyncValue.guard(() => ref.read(mangaRepositoryProvider).queryMangaByIdOrNull(manga.id));
+      if (_stopped) break;
+      if (_pendingTarget(manga.id) == null) continue;
+
+      final latest = lookup.valueOrNull;
+      final UpdateReportItem item;
+      if (lookup.hasError) {
+        item = target.copyWith(outcome: UpdateOutcome.storageError, message: lookup.error.toString(), updatedAt: DateTime.now());
+      } else if (latest == null || !latest.favorite || !latest.auto) {
+        item = target.copyWith(outcome: UpdateOutcome.skipped, updatedAt: DateTime.now());
+      } else if (source.hasError) {
+        final error = source.error!;
+        item = target.copyWith(outcome: classifySourceError(error), message: error.toString(), updatedAt: DateTime.now());
+      } else {
+        item = await service.updateManga(source.requireValue, latest);
+      }
+      await _replaceItem(item.copyWith(sourceName: target.sourceName, mangaTitle: target.mangaTitle));
     }
+  }
+
+  Future<void> _replaceItem(UpdateReportItem item) {
+    return ref.read(updateReportStoreProvider.notifier).replaceItem(_sessionId, item);
+  }
+
+  UpdateReportItem? _pendingTarget(int mangaId) {
+    final report = ref.read(updateReportStoreProvider);
+    if (report?.sessionId != _sessionId) return null;
+    return report?.items.firstWhereOrNull((item) => item.mangaId == mangaId && item.outcome.isPending);
   }
 
   Future<void> _update(UpdateReport Function(UpdateReport report) update) {
     return ref.read(updateReportStoreProvider.notifier).update(_sessionId, update);
   }
 
-  UpdateReportItem _sourceFailure(DatabaseManga manga, Object error) {
+  UpdateReportItem _pendingItem(DatabaseManga manga, String? sourceName) {
     return UpdateReportItem(
       sourceId: manga.source,
-      sourceName: manga.source.toString(),
+      sourceName: sourceName ?? manga.source.toString(),
       mangaId: manga.id,
       mangaTitle: manga.title,
-      outcome: classifySourceError(error),
-      insertCount: 0,
-      deleteCount: 0,
-      updateCount: 0,
-      sourceCount: 0,
-      enqueuedCount: 0,
-      enqueueFailedCount: 0,
-      skippedDownloaded: 0,
-      skippedQueued: 0,
-      skippedUnavailable: 0,
-      failedChapters: [],
-      updatedAt: DateTime.now(),
-      message: error.toString(),
+      outcome: UpdateOutcome.pending,
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
@@ -11,9 +13,11 @@ part 'update_progress_provider.g.dart';
 
 /// 当前报告内的轻量进度结果，不持有章节列表或数据订阅
 class UpdateProgressCache {
-  UpdateProgressCache(this.sessionId);
+  UpdateProgressCache(this.sessionId, {this.onErrorChanged});
 
   final String? sessionId;
+
+  final void Function()? onErrorChanged;
 
   final _items = <int, UpdateProgress>{};
 
@@ -24,8 +28,16 @@ class UpdateProgressCache {
     final previous = _items[mangaId];
     final snapshot = previous != null && previous.hasValue ? previous : progress;
     final value = progress.hasValue ? progress : snapshot.copyWith(hasError: previous?.hasError == true || progress.hasError);
-    if (_mangaIds.contains(mangaId) && (value.hasValue || value.hasError)) _items[mangaId] = value;
+    if (_mangaIds.contains(mangaId) && (value.hasValue || value.hasError)) {
+      _items[mangaId] = value;
+      if ((previous?.hasError ?? false) != value.hasError) onErrorChanged?.call();
+    }
     return value;
+  }
+
+  UpdateOutcome outcomeFor(UpdateReportItem item) {
+    if (item.outcome.isFailure || !item.outcome.canReadProgress) return item.outcome;
+    return _items[item.mangaId]?.hasError == true ? UpdateOutcome.progressError : item.outcome;
   }
 
   /// 按完整报告清理已移除条目，筛选和排序不影响保留范围
@@ -43,9 +55,13 @@ class UpdateProgressCache {
 /// 由更新页持有当前轮次的结果，旧轮次只能写入自己的实例
 @riverpod
 UpdateProgressCache updateProgressCache(UpdateProgressCacheRef ref, String? sessionId) {
-  final cache = UpdateProgressCache(sessionId);
+  var active = true;
+  final cache = UpdateProgressCache(sessionId, onErrorChanged: () => scheduleMicrotask(() => active ? ref.notifyListeners() : null));
   ref.listen(updateReportStoreProvider, (_, report) => cache.retain(report), fireImmediately: true);
-  ref.onDispose(cache.clear);
+  ref.onDispose(() {
+    active = false;
+    cache.clear();
+  });
   return cache;
 }
 

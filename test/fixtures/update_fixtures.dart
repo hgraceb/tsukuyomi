@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi/pages/source/source_repository.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/source/delegate/source_stub.dart';
 import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
@@ -64,6 +65,14 @@ UpdateReportItem updateReportItemFixture(int id) => UpdateReportItem(
   skippedUnavailable: 2,
   failedChapters: [],
 );
+
+class UpdateSourcesFixture implements SourceRepository {
+  @override
+  Future<Map<int, String>> querySourceNames(Iterable<int> sourceIds) async => {for (final id in sourceIds) id: 'source-name'};
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 class UpdateSourceFixture extends NoInstalledSource {
   UpdateSourceFixture({

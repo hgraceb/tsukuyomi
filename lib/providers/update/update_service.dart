@@ -36,6 +36,7 @@ class UpdateService {
     var downloads = const DownloadEnqueueResult();
     try {
       final chapters = await source.getMangaChapters(manga.toHttpSourceManga());
+      if (chapters.isEmpty) return _result(source, manga, sync, downloads, UpdateOutcome.chaptersEmpty);
       failureOutcome = UpdateOutcome.storageError;
       sync = await ref.read(chapterSyncWithSourceProvider(source, manga)).apply(chapters);
       final repository = ref.read(mangaRepositoryProvider);
@@ -67,9 +68,8 @@ class UpdateService {
 
   UpdateOutcome _getOutcome(ChapterSyncResult sync, DownloadEnqueueResult downloads) {
     if (downloads.failedChapters.isNotEmpty) return UpdateOutcome.enqueueFailed;
-    if (sync.sourceCount == 0) return UpdateOutcome.chaptersEmpty;
-    if (sync.deleteCount > 0 && sync.insertCount == 0) return UpdateOutcome.chaptersReduced;
-    if (sync.insertCount > 0 || downloads.enqueuedCount > 0) return UpdateOutcome.updated;
+    final chaptersChanged = sync.insertCount > 0 || sync.deleteCount > 0 || sync.updateCount > 0;
+    if (chaptersChanged || downloads.enqueuedCount > 0) return UpdateOutcome.updated;
     return UpdateOutcome.noUpdate;
   }
 
