@@ -34,22 +34,29 @@ class ChapterSyncWithSource {
     final deletes = <int>[];
     final inserts = <ChapterTableCompanion>[];
     final updates = <ChapterTableCompanion>[];
+    // 仅统计内容变化，位置调整不计为章节更新
+    var updateCount = 0;
 
     // 获取待删除的章节列表
     final deletedChapters = databaseChapters.where((row) => !chapterUrls.contains(row.url));
     deletes.addAll(deletedChapters.map((row) => row.id));
 
     // 获取待更新和插入的章节列表 TODO 完善章节数据
-    for (final sourceChapter in chapters) {
+    for (final (index, sourceChapter) in chapters.indexed) {
       final databaseChapter = databaseChapters.firstWhereOrNull((row) => sourceChapter.url == row.url);
       if (databaseChapter == null) {
-        inserts.add(sourceChapter.toInsertable(manga.id));
+        inserts.add(sourceChapter.toInsertable(manga.id, index: index));
       } else {
         final update = sourceChapter.toUpdatable(databaseChapter.id);
         final titleChanged = update.title.value != databaseChapter.title;
         final dateChanged = update.date.value != databaseChapter.date;
         final publicChanged = update.public.value != databaseChapter.public;
-        if (titleChanged || dateChanged || publicChanged) updates.add(update);
+        if (titleChanged || dateChanged || publicChanged) {
+          updates.add(update.copyWith(index: Value(index)));
+          updateCount++;
+        } else if (databaseChapter.index != index) {
+          updates.add(ChapterTableCompanion(id: Value(databaseChapter.id), index: Value(index)));
+        }
       }
     }
 
@@ -57,7 +64,7 @@ class ChapterSyncWithSource {
     return ChapterSyncResult(
       insertCount: inserts.length,
       deleteCount: deletes.length,
-      updateCount: updates.length,
+      updateCount: updateCount,
       sourceCount: chapters.length,
     );
   }

@@ -10,7 +10,7 @@ import '../../fixtures/update_fixtures.dart';
 const _chapter = DatabaseChapter(
   id: 1,
   manga: 1,
-  index: 4,
+  index: 0,
   title: 'chapter꞉1',
   url: 'chapter-url',
   date: 'chapter-date',
@@ -49,6 +49,18 @@ void main() {
     expect(repository.deletes, isEmpty);
   });
 
+  test('A source position change only writes the position and does not count as a content update', () async {
+    final repository = _Chapters([_chapter.copyWith(index: 4)]);
+
+    final result = await _sync(repository).apply([_sourceChapter]);
+
+    expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 1));
+    final update = repository.updates.single;
+    expect(update.id.value, _chapter.id);
+    expect(update.index.value, 0);
+    expect(update.toColumns(true).keys, unorderedEquals(['id', 'index']));
+  });
+
   for (final (field, source, expected) in [
     ('title', const HttpSourceChapter(url: 'chapter-url', name: 'renamed', date: 'chapter-date'), _chapter.copyWith(title: 'renamed')),
     ('date', const HttpSourceChapter(url: 'chapter-url', name: 'chapter:1', date: 'new-date'), _chapter.copyWith(date: 'new-date')),
@@ -69,7 +81,8 @@ void main() {
       expect(update.date.value, expected.date);
       expect(update.public.value, expected.public);
       expect(update.id.value, _chapter.id);
-      expect(update.toColumns(true).keys, unorderedEquals(['id', 'title', 'date', 'public']));
+      expect(update.index.value, 0);
+      expect(update.toColumns(true).keys, unorderedEquals(['id', 'index', 'title', 'date', 'public']));
     });
   }
 
