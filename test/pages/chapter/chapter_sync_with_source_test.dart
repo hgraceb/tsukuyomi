@@ -58,7 +58,7 @@ void main() {
       _chapter.copyWith(public: false),
     ),
   ]) {
-    test('A changed $field counts once and preserves local reading metadata', () async {
+    test('A changed $field counts once and only writes source metadata', () async {
       final repository = _Chapters([_chapter]);
 
       final result = await _sync(repository).apply([source]);
@@ -69,11 +69,7 @@ void main() {
       expect(update.date.value, expected.date);
       expect(update.public.value, expected.public);
       expect(update.id.value, _chapter.id);
-      expect(update.manga.value, _chapter.manga);
-      expect(update.index.value, _chapter.index);
-      expect(update.url.value, _chapter.url);
-      expect(update.images.value, _chapter.images);
-      expect(update.progress.value, _chapter.progress);
+      expect(update.toColumns(true).keys, unorderedEquals(['id', 'title', 'date', 'public']));
     });
   }
 

@@ -23,20 +23,6 @@ class DatabaseChapter with _$DatabaseChapter, $ChapterTableTableToColumns {
 }
 
 extension DatabaseChapterExtension on DatabaseChapter {
-  ChapterTableCompanion toUpdatable() {
-    return ChapterTableCompanion.insert(
-      id: Value(id),
-      manga: manga,
-      index: index,
-      title: title,
-      url: url,
-      date: date,
-      public: public,
-      images: Value(images),
-      progress: Value(progress),
-    );
-  }
-
   // TODO 判断是否可以做通用处理直接返回不同类型的 SourceChapter
   HttpSourceChapter toHttpSourceChapter() {
     return HttpSourceChapter(
@@ -58,17 +44,12 @@ extension DatabaseChapterExtension on DatabaseChapter {
 }
 
 extension SourceChapterExtension on SourceChapter {
-  ChapterTableCompanion toUpdatable(DatabaseChapter chapter) {
-    return ChapterTableCompanion.insert(
-      id: Value(chapter.id),
-      manga: chapter.manga,
-      index: chapter.index,
-      title: name.toValidDirectoryName,
-      url: url,
-      date: date,
-      public: public,
-      images: Value(chapter.images),
-      progress: Value(chapter.progress),
+  ChapterTableCompanion toUpdatable(int chapterId) {
+    return ChapterTableCompanion(
+      id: Value(chapterId),
+      title: Value(name.toValidDirectoryName),
+      date: Value(date),
+      public: Value(public),
     );
   }
 

@@ -20,15 +20,21 @@ class ChapterRepository {
     return query.watchSingle();
   }
 
-  Future<bool> updateChapter(ChapterTableCompanion chapter) {
-    return database.update(database.chapterTable).replace(chapter);
+  Future<bool> updateChapter(ChapterTableCompanion chapter) async {
+    final query = database.update(database.chapterTable);
+    query.whereSamePrimaryKey(chapter);
+    return await query.write(chapter) > 0;
   }
 
   Future<void> batch({Iterable<int>? deletes, Iterable<ChapterTableCompanion>? inserts, Iterable<ChapterTableCompanion>? updates}) {
     return database.batch((batch) {
       if (deletes != null && deletes.isNotEmpty) batch.deleteWhere(database.chapterTable, (row) => row.id.isIn(deletes));
       if (inserts != null && inserts.isNotEmpty) batch.insertAll(database.chapterTable, inserts);
-      if (updates != null && updates.isNotEmpty) batch.replaceAll(database.chapterTable, updates);
+      if (updates != null) {
+        for (final chapter in updates) {
+          batch.update(database.chapterTable, chapter, where: (row) => row.id.equals(chapter.id.value));
+        }
+      }
     });
   }
 }

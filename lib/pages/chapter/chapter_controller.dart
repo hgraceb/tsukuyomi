@@ -81,7 +81,7 @@ class ChapterController extends _$ChapterController with AsyncNotifierMixin {
     }
     // 更新数据库的章节阅读进度
     if (progress != state.chapter.progress) {
-      ref.read(chapterServiceProvider).updateChapter(state.chapter.copyWith(progress: progress));
+      ref.read(chapterServiceProvider).updateChapterProgress(state.chapter.id, images: state.chapter.images, progress: progress);
     }
   }
 
