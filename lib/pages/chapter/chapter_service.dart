@@ -16,8 +16,9 @@ class ChapterService {
 
   final ChapterServiceRef ref;
 
-  Future<bool> updateChapter(DatabaseChapter chapter) {
-    return ref.read(chapterRepositoryProvider).updateChapter(chapter.toUpdatable());
+  Future<bool> updateChapterProgress(int chapterId, {required int images, required int progress}) {
+    final chapter = ChapterTableCompanion(id: Value(chapterId), images: Value(images), progress: Value(progress));
+    return ref.read(chapterRepositoryProvider).updateChapter(chapter);
   }
 
   Future<ChapterSyncResult> syncWithSource(Source source, DatabaseManga manga) {

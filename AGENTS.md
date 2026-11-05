@@ -84,6 +84,17 @@ const EdgeInsets.all(20.0);
 
 ### 代码换行
 
+- 单行代码的 `// ignore:` 注释统一放在对应代码行末尾，不单独换行，避免打断连续的 `import` 等语句，如：
+
+```dart
+// Bad
+// ignore: depend_on_referenced_packages
+import 'package:sqlite3/open.dart';
+
+// Good
+import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
+```
+
 - 定义 Widget 字段时优先使用换行进行分割，增强代码的可阅读性，如：
 
 ```dart

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 
@@ -16,6 +17,9 @@ part 'database.g.dart';
 @DriftDatabase(tables: [SourceTable, MangaTable, ChapterTable, DownloadTable], include: {'sql/sql.drift'})
 class TsukuyomiDatabase extends _$TsukuyomiDatabase {
   TsukuyomiDatabase._() : super(connect());
+
+  @visibleForTesting
+  TsukuyomiDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
   int get schemaVersion => 1;

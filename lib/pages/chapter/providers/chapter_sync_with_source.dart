@@ -42,7 +42,7 @@ class ChapterSyncWithSource {
       if (databaseChapter == null) {
         inserts.add(sourceChapter.toInsertable(manga.id));
       } else {
-        final update = sourceChapter.toUpdatable(databaseChapter);
+        final update = sourceChapter.toUpdatable(databaseChapter.id);
         final titleChanged = update.title.value != databaseChapter.title;
         final dateChanged = update.date.value != databaseChapter.date;
         final publicChanged = update.public.value != databaseChapter.public;
