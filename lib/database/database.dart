@@ -19,7 +19,7 @@ class TsukuyomiDatabase extends _$TsukuyomiDatabase {
   TsukuyomiDatabase._() : super(connect());
 
   @visibleForTesting
-  TsukuyomiDatabase.forTesting(QueryExecutor executor) : super(executor);
+  TsukuyomiDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => 1;

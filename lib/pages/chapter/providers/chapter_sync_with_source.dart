@@ -23,8 +23,11 @@ class ChapterSyncWithSource {
   }
 
   Future<ChapterSyncResult> apply(Iterable<SourceChapter> sourceChapters) async {
+    // 同一漫画内按 URL 识别章节，重复项保留源返回的第一项
+    final chapterUrls = <String>{};
+    final chapters = sourceChapters.where((chapter) => chapterUrls.add(chapter.url)).toList(growable: false);
     // 空返回可能是源失效，保留本地章节和关联数据
-    if (sourceChapters.isEmpty) {
+    if (chapters.isEmpty) {
       return const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
     }
     final databaseChapters = await chapterRepository.queryChaptersByMangaId(manga.id);
@@ -33,11 +36,11 @@ class ChapterSyncWithSource {
     final updates = <ChapterTableCompanion>[];
 
     // 获取待删除的章节列表
-    final deletedChapters = databaseChapters.where((row) => !sourceChapters.any((chapter) => chapter.url == row.url));
+    final deletedChapters = databaseChapters.where((row) => !chapterUrls.contains(row.url));
     deletes.addAll(deletedChapters.map((row) => row.id));
 
     // 获取待更新和插入的章节列表 TODO 完善章节数据
-    for (final sourceChapter in sourceChapters) {
+    for (final sourceChapter in chapters) {
       final databaseChapter = databaseChapters.firstWhereOrNull((row) => sourceChapter.url == row.url);
       if (databaseChapter == null) {
         inserts.add(sourceChapter.toInsertable(manga.id));
@@ -55,7 +58,7 @@ class ChapterSyncWithSource {
       insertCount: inserts.length,
       deleteCount: deletes.length,
       updateCount: updates.length,
-      sourceCount: sourceChapters.length,
+      sourceCount: chapters.length,
     );
   }
 }

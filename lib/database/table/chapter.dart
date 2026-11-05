@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:tsukuyomi/database/database.dart';
 
 /// 章节列表
@@ -5,6 +6,11 @@ import 'package:tsukuyomi/database/database.dart';
 class ChapterTable extends Table {
   @override
   String get tableName => 'chapter';
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {manga, url},
+  ];
 
   /// 自增主键
   IntColumn get id => integer().autoIncrement()();
