@@ -93,12 +93,12 @@ mixin AsyncNotifierMixin<T> on BuildlessAutoDisposeAsyncNotifier<T> {
         error = false;
         return;
       }
-      final oldValue = this.data;
+      final oldValue = data;
       if (oldValue == null) return;
       final newValue = update(oldValue, next);
       if (newValue == null) return;
       state = AsyncData(newValue);
-    }, fireImmediately: true, onError: (_, __) => error = exists);
+    }, fireImmediately: true, onError: (_, _) => error = exists);
     // 如果初始值加载失败则需要进行刷新
     assert(error != null);
     return error == true ? ref.refresh(provider) : ref.read(provider);

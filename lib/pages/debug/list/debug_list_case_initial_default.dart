@@ -14,7 +14,7 @@ class _DebugListCaseInitialDefaultState extends State<DebugListCaseInitialDefaul
   final itemKeys = List.generate(10, (index) => index);
   final controller = TsukuyomiListController();
 
-  Widget builder(index) {
+  Widget builder(int index) {
     return Directionality(
       key: ValueKey(index),
       textDirection: TextDirection.ltr,

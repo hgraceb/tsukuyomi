@@ -8,9 +8,8 @@ class AnimatedProgressCircleIcon extends ImplicitlyAnimatedWidget {
     super.key,
     super.curve,
     required this.progress,
-    Duration duration = const Duration(microseconds: 300),
-  })  : assert(progress >= 0.0 && progress <= 1.0),
-        super(duration: duration);
+    super.duration = const Duration(microseconds: 300),
+  }) : assert(progress >= 0.0 && progress <= 1.0);
 
   final double progress;
 

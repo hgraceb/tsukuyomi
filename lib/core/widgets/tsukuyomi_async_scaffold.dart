@@ -37,7 +37,7 @@ class TsukuyomiAsyncScaffold<T> extends ConsumerWidget {
 
   final ScrollPhysics? scrollPhysics;
 
-  SliverAppBarBuilder<T> _sliverAppBarBuilder<R>() {
+  SliverAppBarBuilder<T> _sliverAppBarBuilder() {
     return <R>({required select, required builder}) {
       return SelectAsyncWatch<T, R>(
         provider: provider,
@@ -47,7 +47,7 @@ class TsukuyomiAsyncScaffold<T> extends ConsumerWidget {
     };
   }
 
-  SliverDataBuilder<T> _sliverDataBuilder<R>() {
+  SliverDataBuilder<T> _sliverDataBuilder() {
     return <R>({required select, required data}) {
       return SelectAsyncWatch<T, R>(
         provider: provider,

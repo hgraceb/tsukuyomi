@@ -70,12 +70,12 @@ class _TestWidgetState extends State<_TestWidget> {
   @override
   void initState() {
     super.initState();
-    print('_TestWidgetState.initState: ${widget.index} ($hashCode)');
+    debugPrint('_TestWidgetState.initState: ${widget.index} ($hashCode)');
   }
 
   @override
   void dispose() {
-    print('_TestWidgetState.dispose: ${widget.index} ($hashCode)');
+    debugPrint('_TestWidgetState.dispose: ${widget.index} ($hashCode)');
     super.dispose();
   }
 

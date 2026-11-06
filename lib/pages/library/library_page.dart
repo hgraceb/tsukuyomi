@@ -134,7 +134,7 @@ class _LibraryMangaListState extends State<_LibraryMangaList> with AutomaticKeep
                     child: CachedNetworkImage(
                       fit: BoxFit.cover,
                       imageUrl: widget.mangas[index].cover,
-                      errorWidget: (_, __, ___) => const ErrorImageWidget(),
+                      errorWidget: (_, _, _) => const ErrorImageWidget(),
                     ),
                   ),
                 ),
