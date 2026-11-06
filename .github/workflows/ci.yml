@@ -40,7 +40,7 @@ jobs:
 
       - name: Run package tests
         run: |
-          for pkg in tsukuyomi_eval tsukuyomi_html tsukuyomi_list tsukuyomi_metadata tsukuyomi_pixel_snap; do
+          for pkg in tsukuyomi_eval tsukuyomi_html tsukuyomi_list tsukuyomi_metadata tsukuyomi_patch tsukuyomi_pixel_snap; do
             echo "::group::$pkg"
             cd "packages/$pkg"
             flutter pub get
