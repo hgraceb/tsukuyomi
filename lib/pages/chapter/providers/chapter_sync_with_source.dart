@@ -28,7 +28,7 @@ class ChapterSyncWithSource {
     final chapters = sourceChapters.where((chapter) => chapterUrls.add(chapter.url)).toList(growable: false);
     // 空返回可能是源失效，保留本地章节和关联数据
     if (chapters.isEmpty) {
-      return const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
+      return const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 0);
     }
     final databaseChapters = await chapterRepository.queryChaptersByMangaId(manga.id);
     final deletes = <int>[];
@@ -51,20 +51,18 @@ class ChapterSyncWithSource {
         final titleChanged = update.title.value != databaseChapter.title;
         final dateChanged = update.date.value != databaseChapter.date;
         final publicChanged = update.public.value != databaseChapter.public;
-        if (titleChanged || dateChanged || publicChanged) {
-          updates.add(update.copyWith(index: Value(index)));
-          updateCount++;
-        } else if (databaseChapter.index != index) {
-          updates.add(ChapterTableCompanion(id: Value(databaseChapter.id), index: Value(index)));
-        }
+        final indexChanged = databaseChapter.index != index;
+        final contentChanged = titleChanged || dateChanged || publicChanged;
+        if (contentChanged) updateCount++;
+        if (contentChanged || indexChanged) updates.add(update.copyWith(index: Value(index)));
       }
     }
 
     await chapterRepository.batch(deletes: deletes, inserts: inserts, updates: updates);
     return ChapterSyncResult(
+      updateCount: updateCount,
       insertCount: inserts.length,
       deleteCount: deletes.length,
-      updateCount: updateCount,
       sourceCount: chapters.length,
     );
   }
@@ -78,9 +76,9 @@ ChapterSyncWithSource chapterSyncWithSource(ChapterSyncWithSourceRef ref, Source
 @freezed
 class ChapterSyncResult with _$ChapterSyncResult {
   const factory ChapterSyncResult({
+    required int updateCount,
     required int insertCount,
     required int deleteCount,
-    required int updateCount,
     required int sourceCount,
   }) = _ChapterSyncResult;
 }

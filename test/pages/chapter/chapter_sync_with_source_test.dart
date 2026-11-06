@@ -32,7 +32,7 @@ void main() {
 
       final result = await sync.sync();
 
-      expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0));
+      expect(result, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 0));
       expect(repository.queries, 0);
       expect(repository.batches, 0);
     });
@@ -43,22 +43,23 @@ void main() {
 
     final result = await _sync(repository).apply([_sourceChapter]);
 
-    expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 1));
+    expect(result, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 1));
     expect(repository.inserts, isEmpty);
     expect(repository.updates, isEmpty);
     expect(repository.deletes, isEmpty);
   });
 
-  test('A source position change only writes the position and does not count as a content update', () async {
+  test('A source position change preserves reading fields and does not count as a content update', () async {
     final repository = _Chapters([_chapter.copyWith(index: 4)]);
 
     final result = await _sync(repository).apply([_sourceChapter]);
 
-    expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 1));
+    expect(result, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 1));
     final update = repository.updates.single;
     expect(update.id.value, _chapter.id);
     expect(update.index.value, 0);
-    expect(update.toColumns(true).keys, unorderedEquals(['id', 'index']));
+    expect(update.images.present, isFalse);
+    expect(update.progress.present, isFalse);
   });
 
   for (final (field, source, expected) in [
@@ -75,7 +76,7 @@ void main() {
 
       final result = await _sync(repository).apply([source]);
 
-      expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 1, sourceCount: 1));
+      expect(result, const ChapterSyncResult(updateCount: 1, insertCount: 0, deleteCount: 0, sourceCount: 1));
       final update = repository.updates.single;
       expect(update.title.value, expected.title);
       expect(update.date.value, expected.date);
@@ -92,7 +93,7 @@ void main() {
 
     final result = await _sync(repository).apply([_sourceChapter, added]);
 
-    expect(result, const ChapterSyncResult(insertCount: 1, deleteCount: 1, updateCount: 0, sourceCount: 2));
+    expect(result, const ChapterSyncResult(updateCount: 0, insertCount: 1, deleteCount: 1, sourceCount: 2));
     expect(repository.deletes, [2]);
     expect(repository.inserts.single.url.value, added.url);
     expect(repository.updates, isEmpty);
@@ -104,12 +105,12 @@ void main() {
     final sync = _sync(repository);
 
     final inserted = await sync.apply([source]);
-    expect(inserted, const ChapterSyncResult(insertCount: 1, deleteCount: 0, updateCount: 0, sourceCount: 1));
+    expect(inserted, const ChapterSyncResult(updateCount: 0, insertCount: 1, deleteCount: 0, sourceCount: 1));
     expect(repository.inserts.single.public.value, false);
 
     repository.rows.add(_chapter.copyWith(public: false));
     final unchanged = await sync.apply([source]);
-    expect(unchanged, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 1));
+    expect(unchanged, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 1));
   });
 }
 

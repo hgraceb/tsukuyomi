@@ -38,9 +38,9 @@ const _manga = DatabaseManga(
 
 const _chapter = HttpSourceChapter(url: 'chapter-url', name: 'chapter-title', date: 'chapter-date');
 
-const _unchanged = ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 1);
+const _unchanged = ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 1);
 
-const _changed = ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 1, sourceCount: 1);
+const _changed = ChapterSyncResult(updateCount: 1, insertCount: 0, deleteCount: 0, sourceCount: 1);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -591,7 +591,7 @@ void main() {
       (_manga.copyWith(favorite: false), _unchanged, UpdateOutcome.noUpdate),
       (
         _manga.copyWith(auto: false),
-        const ChapterSyncResult(insertCount: 1, deleteCount: 0, updateCount: 0, sourceCount: 1),
+        const ChapterSyncResult(updateCount: 0, insertCount: 1, deleteCount: 0, sourceCount: 1),
         UpdateOutcome.updated,
       ),
     ]) {
@@ -613,9 +613,9 @@ void main() {
   test('Only actual chapter changes count as updated when no downloads are arranged', () async {
     for (final (result, outcome) in [
       (_unchanged, UpdateOutcome.noUpdate),
-      (const ChapterSyncResult(insertCount: 1, deleteCount: 0, updateCount: 0, sourceCount: 1), UpdateOutcome.updated),
-      (const ChapterSyncResult(insertCount: 0, deleteCount: 2, updateCount: 0, sourceCount: 1), UpdateOutcome.updated),
-      (const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 1, sourceCount: 1), UpdateOutcome.updated),
+      (const ChapterSyncResult(updateCount: 0, insertCount: 1, deleteCount: 0, sourceCount: 1), UpdateOutcome.updated),
+      (const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 2, sourceCount: 1), UpdateOutcome.updated),
+      (const ChapterSyncResult(updateCount: 1, insertCount: 0, deleteCount: 0, sourceCount: 1), UpdateOutcome.updated),
     ]) {
       final source = UpdateSourceFixture();
       final sync = _Sync(result);
@@ -635,7 +635,7 @@ void main() {
 
   test('Enqueue failures retain successful downloads, sync counts and error details', () async {
     final source = UpdateSourceFixture();
-    final sync = _Sync(const ChapterSyncResult(insertCount: 0, deleteCount: 2, updateCount: 1, sourceCount: 1));
+    final sync = _Sync(const ChapterSyncResult(updateCount: 1, insertCount: 0, deleteCount: 2, sourceCount: 1));
     final downloads = _Downloads(const DownloadEnqueueResult(enqueuedCount: 1, failedChapters: {'chapter-url': 'insert-error'}));
     final container = await _createContainer(source, sync, downloads);
 

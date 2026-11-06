@@ -137,7 +137,7 @@ class UpdateSyncFixture implements ChapterSyncWithSource {
 
   final Future<void>? pending;
   final _requested = Completer<void>();
-  ChapterSyncResult result = const ChapterSyncResult(insertCount: 1, deleteCount: 0, updateCount: 0, sourceCount: 1);
+  ChapterSyncResult result = const ChapterSyncResult(updateCount: 0, insertCount: 1, deleteCount: 0, sourceCount: 1);
   Object? error;
   int calls = 0;
 

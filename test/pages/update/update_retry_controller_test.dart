@@ -167,7 +167,7 @@ void main() {
     await retry;
     expect(source.calls, 1);
     expect(container.read(updateReportStoreProvider)!.items, isEmpty);
-    sync.result = const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 1);
+    sync.result = const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 1);
     downloads.result = const DownloadEnqueueResult(skippedQueued: 1);
     preparation.complete();
     await scan;

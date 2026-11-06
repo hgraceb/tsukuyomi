@@ -18,7 +18,7 @@ class ChapterTable extends Table {
   /// 漫画 ID
   IntColumn get manga => integer().references(MangaTable, #id, onDelete: KeyAction.cascade)();
 
-  /// 章节在源列表中的位置，从 0 开始
+  /// 章节索引
   IntColumn get index => integer()();
 
   /// 章节标题

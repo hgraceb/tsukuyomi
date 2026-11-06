@@ -32,7 +32,7 @@ class UpdateService {
   /// 更新漫画章节并加入下载队列
   Future<UpdateReportItem> _updateManga(Source source, DatabaseManga manga) async {
     UpdateOutcome? failureOutcome;
-    var sync = const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
+    var sync = const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 0);
     var downloads = const DownloadEnqueueResult();
     try {
       final chapters = await source.getMangaChapters(manga.toHttpSourceManga());

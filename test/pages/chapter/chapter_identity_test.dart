@@ -44,7 +44,7 @@ void main() {
 
     final inserted = await sync.sync();
     final rows = await database.select(database.chapterTable).get();
-    expect(inserted, const ChapterSyncResult(insertCount: 2, deleteCount: 0, updateCount: 0, sourceCount: 2));
+    expect(inserted, const ChapterSyncResult(updateCount: 0, insertCount: 2, deleteCount: 0, sourceCount: 2));
     expect(rows.length, 2);
     final chapter = rows.singleWhere((row) => row.url == first.url);
     expect(chapter.title, first.name);
@@ -55,7 +55,7 @@ void main() {
     expect(rows.singleWhere((row) => row.url == sameTitle.url).index, 1);
 
     final unchanged = await sync.sync();
-    expect(unchanged, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 2));
+    expect(unchanged, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 2));
     expect(await database.select(database.chapterTable).get(), unorderedEquals(rows));
   });
 
@@ -113,7 +113,7 @@ void main() {
 
       final result = await sync.apply(updated);
 
-      expect(result, ChapterSyncResult(insertCount: inserts, deleteCount: deletes, updateCount: 0, sourceCount: urls.length));
+      expect(result, ChapterSyncResult(updateCount: 0, insertCount: inserts, deleteCount: deletes, sourceCount: urls.length));
       final rows = await repository.watchChapters(_manga.id).first;
       expect(rows.map((chapter) => chapter.url), urls);
       expect(rows.map((chapter) => chapter.index), List.generate(urls.length, (index) => index));
@@ -124,7 +124,7 @@ void main() {
       expect(await database.select(database.downloadTable).getSingle(), queued);
 
       final unchanged = await sync.apply(updated);
-      expect(unchanged, ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: urls.length));
+      expect(unchanged, ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: urls.length));
       await sync.apply([]);
       expect(await repository.watchChapters(_manga.id).first, rows);
     });
@@ -143,7 +143,7 @@ void main() {
 
     final result = await container.read(chapterSyncWithSourceProvider(source, _manga)).sync();
 
-    expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 2));
+    expect(result, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 2));
     expect(await repository.watchChapters(_manga.id).first, [second, first.copyWith(index: 1)]);
   });
 
@@ -158,7 +158,7 @@ void main() {
 
     final result = await container.read(chapterSyncWithSourceProvider(source, _manga)).sync();
 
-    expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 1, sourceCount: 1));
+    expect(result, const ChapterSyncResult(updateCount: 1, insertCount: 0, deleteCount: 0, sourceCount: 1));
     final expected = _chapter.copyWith(index: 0, title: renamed.name, date: renamed.date, public: true);
     expect(await database.select(database.chapterTable).getSingle(), expected);
     expect(await database.select(database.downloadTable).getSingle(), queued);
