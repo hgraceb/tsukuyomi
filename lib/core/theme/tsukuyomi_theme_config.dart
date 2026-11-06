@@ -53,9 +53,7 @@ class TsukuyomiThemeConfig {
     onSecondary: foreground,
     error: error,
     // 根据错误颜色计算要在错误颜色上显示的颜色
-    onError: Colors.white.withOpacity(min(error.computeLuminance() * 3, 1.0)),
-    background: background,
-    onBackground: border,
+    onError: Colors.white.withValues(alpha: min(error.computeLuminance() * 3, 1.0)),
     surface: background,
     onSurface: foreground,
   );

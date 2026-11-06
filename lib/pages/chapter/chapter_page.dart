@@ -53,7 +53,7 @@ class _ChapterPageState extends ConsumerState<ChapterPage> {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final provider = chapterControllerProvider(widget.chapterId);
     final notifier = ref.read(provider.notifier);
-    final backgroundColor = theme.colorScheme.surface.withOpacity(0.9);
+    final backgroundColor = theme.colorScheme.surface.withValues(alpha: 0.9);
     const elevation = 3.0;
 
     return ChapterScaffold(

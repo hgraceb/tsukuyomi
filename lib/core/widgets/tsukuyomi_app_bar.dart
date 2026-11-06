@@ -171,7 +171,7 @@ class _FadeSliverAppBarTitle extends StatelessWidget {
       return const SizedBox.shrink();
     } else {
       // 获取 SliverAppBar 为文本设置的透明度
-      final opacity = DefaultTextStyle.of(context).style.color?.opacity ?? 1.0;
+      final opacity = DefaultTextStyle.of(context).style.color?.a ?? 1.0;
       return Opacity(opacity: opacity, child: title);
     }
   }
@@ -282,11 +282,7 @@ class _SliverAppBarMaskDelegate extends SliverPersistentHeaderDelegate {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         // 遮罩渐变透明度列表，在 20 之后继续增加数组长度没有明显优化
-        colors: List.generate(20, (index) {
-          return Colors.black.withOpacity(
-            Curves.easeInQuint.transform(index / (20 - 1)),
-          );
-        }),
+        colors: List.generate(20, (index) => Colors.black.withValues(alpha: Curves.easeInQuint.transform(index / (20 - 1)))),
       ).createShader(rect),
       // TODO 动态获取背景颜色
       child: Container(

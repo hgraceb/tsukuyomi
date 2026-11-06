@@ -113,8 +113,8 @@ class _TsukuyomiInteractiveList extends State<TsukuyomiInteractiveList> with Sin
   /// 根据点击位置和缩放比例获取变换矩阵
   Matrix4 _getMatrix4(Offset offset, double scale) {
     return Matrix4.identity()
-      ..translate(-offset.dx * (scale - 1), -offset.dy * (scale - 1))
-      ..scale(scale);
+      ..translateByDouble(-offset.dx * (scale - 1), -offset.dy * (scale - 1), 0.0, 1.0)
+      ..scaleByDouble(scale, scale, scale, 1.0);
   }
 
   /// 是否需要忽略处理列表拖动事件
