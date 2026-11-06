@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$String => DartClass<String>(($) => '''
 abstract final class String implements Comparable<String>, Pattern {

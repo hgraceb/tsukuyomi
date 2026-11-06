@@ -165,7 +165,7 @@ class _GestureRegion extends StatelessWidget {
         // 组件不可见时忽略手势事件，避免拦截非单击事件
         ignoring: !visible,
         child: Container(
-          color: color.withOpacity(0.8),
+          color: color.withValues(alpha: 0.8),
           child: Center(
             child: Text(
               text,

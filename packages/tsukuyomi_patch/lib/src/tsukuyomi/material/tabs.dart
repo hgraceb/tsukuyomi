@@ -172,17 +172,17 @@ class _PatchedTabBarState extends _TabBarState {
     // the same share of the tab bar's overall width.
     final int tabCount = widget.tabs.length;
     for (int index = 0; index < tabCount; index += 1) {
-      final Set<MaterialState> selectedState = <MaterialState>{
-        if (index == _currentIndex) MaterialState.selected,
+      final Set<WidgetState> selectedState = <WidgetState>{
+        if (index == _currentIndex) WidgetState.selected,
       };
 
       final MouseCursor effectiveMouseCursor =
-          MaterialStateProperty.resolveAs<MouseCursor?>(widget.mouseCursor, selectedState) ??
+          WidgetStateProperty.resolveAs<MouseCursor?>(widget.mouseCursor, selectedState) ??
           tabBarTheme.mouseCursor?.resolve(selectedState) ??
-          MaterialStateMouseCursor.clickable.resolve(selectedState);
+          WidgetStateMouseCursor.clickable.resolve(selectedState);
 
-      final MaterialStateProperty<Color?> defaultOverlay = MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
-        final Set<MaterialState> effectiveStates = selectedState..addAll(states);
+      final WidgetStateProperty<Color?> defaultOverlay = WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+        final Set<WidgetState> effectiveStates = selectedState.toSet()..addAll(states);
         return _defaults.overlayColor?.resolve(effectiveStates);
       });
       wrappedTabs[index] = InkWell(
@@ -264,12 +264,12 @@ class _PatchedTabBarState extends _TabBarState {
           // ```
           // child: tabBar,
           // ```
-          // endregion Tsukuyomi
           child: Container(
             alignment: Alignment.center,
             constraints: BoxConstraints(minWidth: MediaQuery.sizeOf(context).width),
             child: tabBar,
           ),
+          // endregion Tsukuyomi
         ),
       );
       if (theme.useMaterial3) {

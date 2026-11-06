@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
@@ -167,7 +166,12 @@ Future<Set<String>> downloadedByManga(DownloadedByMangaRef ref, Source source, D
 }
 
 @riverpod
-Future<List<LocalSourceImage>> downloadedByChapter(AutoDisposeRef ref, Source source, DatabaseManga manga, DatabaseChapter chapter) async {
+Future<List<LocalSourceImage>> downloadedByChapter(
+  DownloadedByChapterRef ref,
+  Source source,
+  DatabaseManga manga,
+  DatabaseChapter chapter,
+) async {
   final link = ref.keepAlive();
   try {
     // 章节下载路径

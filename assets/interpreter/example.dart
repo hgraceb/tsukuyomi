@@ -1,3 +1,3 @@
 void main() {
-  print('Hello Tsukuyomi!');
+  print('Hello Tsukuyomi!'); // ignore: avoid_print
 }

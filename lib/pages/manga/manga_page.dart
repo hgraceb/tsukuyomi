@@ -124,7 +124,7 @@ class _MangaPageSliverAppBar extends StatelessWidget {
                   fit: BoxFit.cover,
                   imageUrl: state.manga.cover,
                   httpHeaders: state.source.headers,
-                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                  errorWidget: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
             ),
@@ -146,7 +146,7 @@ class _MangaPageSliverAppBar extends StatelessWidget {
                     child: CachedNetworkImage(
                       fit: BoxFit.cover,
                       imageUrl: state.manga.cover,
-                      errorWidget: (_, __, ___) => const ErrorImageWidget(),
+                      errorWidget: (_, _, _) => const ErrorImageWidget(),
                     ),
                   ),
                 ),

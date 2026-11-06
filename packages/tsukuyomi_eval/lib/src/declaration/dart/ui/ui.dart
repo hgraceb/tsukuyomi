@@ -1,5 +1,3 @@
-library declaration.dart.ui;
-
 import 'dart:ui';
 
 import 'package:tsukuyomi_eval/src/property.dart';

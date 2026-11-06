@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$Exception => DartClass<Exception>(($) => '''
 abstract interface class Exception {

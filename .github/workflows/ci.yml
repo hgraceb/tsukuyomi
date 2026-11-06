@@ -35,12 +35,12 @@ jobs:
         run: flutter pub get
         working-directory: packages/tsukuyomi_metadata/example
 
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Analyze all Dart files
+        run: flutter analyze --no-pub
 
       - name: Run package tests
         run: |
-          for pkg in tsukuyomi_eval tsukuyomi_html tsukuyomi_list tsukuyomi_metadata tsukuyomi_pixel_snap; do
+          for pkg in tsukuyomi_eval tsukuyomi_html tsukuyomi_list tsukuyomi_metadata tsukuyomi_patch tsukuyomi_pixel_snap; do
             echo "::group::$pkg"
             cd "packages/$pkg"
             flutter pub get

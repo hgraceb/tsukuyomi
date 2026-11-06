@@ -113,6 +113,8 @@ dev_dependencies:
 
   # 代码生成工具：dart run build_runner build --delete-conflicting-outputs
   build_runner: 2.4.13
+  # 生成代码合并配置
+  source_gen: 1.5.0
   # 代码检查工具：dart run custom_lint
   custom_lint: 0.5.11
   # Riverpod 代码生成

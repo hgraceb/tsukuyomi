@@ -1,5 +1,3 @@
-library declaration.dart.typed_data;
-
 import 'dart:typed_data';
 
 import 'package:tsukuyomi_eval/src/property.dart';

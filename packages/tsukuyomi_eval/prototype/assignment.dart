@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:tsukuyomi_eval/prototype/print_visitor.dart';
+
+import 'print_visitor.dart';
 
 class CompilerAstVisitor extends RecursiveAstVisitor<void> {
   @override

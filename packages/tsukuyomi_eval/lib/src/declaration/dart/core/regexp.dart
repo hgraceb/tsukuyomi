@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$RegExp => DartClass<RegExp>(($) => '''
 abstract interface class RegExp implements Pattern {

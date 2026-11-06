@@ -1,4 +1,4 @@
-part of declaration.dart.ui;
+part of 'ui.dart';
 
 DartClass get _$OffsetBase => DartClass<OffsetBase>(($) => '''
 abstract class OffsetBase {

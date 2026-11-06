@@ -1,4 +1,4 @@
-part of declaration.dart.ui;
+part of 'ui.dart';
 
 DartClass get _$Paint => DartClass<Paint>(($) => '''
 final class Paint {

@@ -1,5 +1,3 @@
-library declaration.dart.convert;
-
 import 'dart:convert';
 
 import 'package:tsukuyomi_eval/src/property.dart';

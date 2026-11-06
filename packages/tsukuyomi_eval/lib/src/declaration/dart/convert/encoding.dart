@@ -1,4 +1,4 @@
-part of declaration.dart.convert;
+part of 'convert.dart';
 
 DartClass get _$Encoding => DartClass<Encoding>(($) => '''
 abstract class Encoding extends Codec<String, List<int>> {

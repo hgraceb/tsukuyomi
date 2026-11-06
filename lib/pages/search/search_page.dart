@@ -143,7 +143,7 @@ class _SearchPageResult extends StatelessWidget {
                                 fit: BoxFit.cover,
                                 httpHeaders: state.headers,
                                 imageUrl: mangas.elementAt(index).cover,
-                                errorWidget: (_, __, ___) => const ErrorImageWidget(),
+                                errorWidget: (_, _, _) => const ErrorImageWidget(),
                               ),
                             ),
                           );

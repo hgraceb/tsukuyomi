@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$List => DartClass<List>(($) => '''
 abstract interface class List<E> implements EfficientLengthIterable<E> {

@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$Symbol => DartClass<Symbol>(($) => '''
 abstract class Symbol {

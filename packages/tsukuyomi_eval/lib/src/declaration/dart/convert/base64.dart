@@ -1,4 +1,4 @@
-part of declaration.dart.convert;
+part of 'convert.dart';
 
 DartVariable get _$base64 => DartVariable('base64', base64, '''
 const Base64Codec base64 = Base64Codec();

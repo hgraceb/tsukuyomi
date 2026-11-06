@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart' show RenderProxyBox, RenderProxySliver, SliverGeometry, SliverMultiBoxAdaptorParentData;
 import 'package:flutter/scheduler.dart';
-import 'package:meta/meta.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/rendering/viewport.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/widgets/scroll_activity.dart';
 import 'package:tsukuyomi_list/src/tsukuyomi/widgets/scroll_view.dart';
@@ -255,10 +254,10 @@ class _TsukuyomiListState extends State<TsukuyomiList> {
   }
 
   /// 粉色调试遮罩
-  Color? get _pinkDebugMask => widget.debugMask ? Colors.pink.withOpacity(0.33) : null;
+  Color? get _pinkDebugMask => widget.debugMask ? Colors.pink.withValues(alpha: 0.33) : null;
 
   /// 紫色调试遮罩
-  Color? get _purpleDebugMask => widget.debugMask ? Colors.purple.withOpacity(0.33) : null;
+  Color? get _purpleDebugMask => widget.debugMask ? Colors.purple.withValues(alpha: 0.33) : null;
 
   Widget _buildItem(BuildContext context, int index) {
     return _TsukuyomiListItem(

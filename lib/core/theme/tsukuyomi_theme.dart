@@ -6,7 +6,7 @@ class TsukuyomiTheme {
   TsukuyomiTheme(TsukuyomiThemeConfig themeConfig) {
     final colorScheme = themeConfig.colorScheme;
     const buttonStyle = ButtonStyle(
-      textStyle: MaterialStatePropertyAll(
+      textStyle: WidgetStatePropertyAll(
         TextStyle(
           overflow: TextOverflow.ellipsis,
         ),
@@ -36,7 +36,7 @@ class TsukuyomiTheme {
         surfaceTintColor: colorScheme.surfaceTint, // [_NavigationBarDefaultsM3.surfaceTintColor]
       ),
       sliderTheme: SliderThemeData(
-        inactiveTrackColor: colorScheme.primary.withOpacity(0.24), // [_SliderDefaultsM2.inactiveTrackColor]
+        inactiveTrackColor: colorScheme.primary.withValues(alpha: 0.24), // [_SliderDefaultsM2.inactiveTrackColor]
       ),
       listTileTheme: const ListTileThemeData(
         contentPadding: EdgeInsets.symmetric(horizontal: 16.0), // [_LisTileDefaultsM2.contentPadding]

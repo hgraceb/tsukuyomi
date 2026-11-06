@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$num => DartClass<num>(($) => '''
 sealed class num implements Comparable<num> {

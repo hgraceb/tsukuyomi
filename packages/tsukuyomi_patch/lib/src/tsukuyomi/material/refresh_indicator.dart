@@ -94,14 +94,20 @@ class PatchedRefreshIndicatorState extends RefreshIndicatorState {
     //   newValue = math.max(newValue, 1.0 / _kDragSizeFactorLimit);
     // }
     // _positionController.value = clampDouble(newValue, 0.0, 1.0); // This triggers various rebuilds.
+    // if (_status == RefreshIndicatorStatus.drag &&
+    //     _valueColor.value!.alpha == _effectiveValueColor.alpha) {
+    //   _status = RefreshIndicatorStatus.armed;
+    //   widget.onStatusChange?.call(_status);
+    // }
     // ```
     _positionController.value = clampDouble(newValue, 0.0, 1.0);
-    // endregion Tsukuyomi
-
-    if (_status == RefreshIndicatorStatus.drag && _valueColor.value!.alpha == _effectiveValueColor.alpha) {
+    final valueAlpha = (_valueColor.value!.a * 255.0).round().clamp(0, 255);
+    final effectiveAlpha = (_effectiveValueColor.a * 255.0).round().clamp(0, 255);
+    if (_status == RefreshIndicatorStatus.drag && valueAlpha == effectiveAlpha) {
       _status = RefreshIndicatorStatus.armed;
       widget.onStatusChange?.call(_status);
     }
+    // endregion Tsukuyomi
   }
 
   @override

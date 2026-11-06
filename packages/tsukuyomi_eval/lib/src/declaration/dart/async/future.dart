@@ -1,4 +1,4 @@
-part of declaration.dart.async;
+part of 'async.dart';
 
 DartClass get _$FutureOr => DartClass<FutureOr<Never>>(($) => '''
 abstract class FutureOr<T> {

@@ -1,4 +1,4 @@
-part of declaration.dart.convert;
+part of 'convert.dart';
 
 DartFunction get _$jsonEncode => DartFunction('jsonEncode', jsonEncode, '''
 external String jsonEncode(Object? object, {Object? toEncodable(Object? nonEncodable)?});

@@ -124,7 +124,7 @@ class DartClass<T> extends DartDeclaration {
   DartClass(String Function(DartClassRegister<T> $) declare) {
     assert(<dynamic>[] is! List<T>, T);
     source = declare(DartClassRegister<T>(this));
-    props['${'$T'.split('<').first}.with'] ??= DartProperty(getter: (Function<T>() $) => $<T>(), typeMatcher: (value) => value is T);
+    props['${'$T'.split('<').first}.with'] ??= DartProperty(getter: (Function<R>() $) => $<T>(), typeMatcher: (value) => value is T);
   }
 
   DartClass.operator(Iterable<dynamic> Function(DartOperatorRegister $) declare) : source = '' {
@@ -138,7 +138,7 @@ class DartClass<T> extends DartDeclaration {
       assert(entry.key.isNotEmpty && !entry.key.contains('.') && !this.props.containsKey('.${entry.key}'), entry.key);
       this.props['.${entry.key}'] = DartProperty(getter: entry.value.$1, setter: entry.value.$2);
     }
-    this.props['dynamic.with'] ??= DartProperty(getter: (Function<T>() $) => $<T>());
+    this.props['dynamic.with'] ??= DartProperty(getter: (Function<R>() $) => $<T>());
   }
 
   @override
@@ -178,7 +178,7 @@ class DartClassRegister<T> {
 
   String alias(String alias) {
     assert(alias.isNotEmpty && !alias.contains('.') && clazz.props['$alias.with']?.getter == null, alias);
-    clazz.props['$alias.with'] = DartProperty(getter: (Function<T>() $) => $<T>(), typeMatcher: (value) => value is T);
+    clazz.props['$alias.with'] = DartProperty(getter: (Function<R>() $) => $<T>(), typeMatcher: (value) => value is T);
     return '';
   }
 
