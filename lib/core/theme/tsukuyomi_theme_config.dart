@@ -56,5 +56,7 @@ class TsukuyomiThemeConfig {
     onError: Colors.white.withValues(alpha: min(error.computeLuminance() * 3, 1.0)),
     surface: background,
     onSurface: foreground,
+    outline: border,
+    outlineVariant: border,
   );
 }
