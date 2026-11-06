@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartVariable get _$override => DartVariable('override', override, '''
 class _Override {

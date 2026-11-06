@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$Set => DartClass<Set>(($) => '''
 abstract interface class Set<E> extends EfficientLengthIterable<E> {

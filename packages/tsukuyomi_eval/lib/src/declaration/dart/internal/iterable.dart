@@ -1,4 +1,4 @@
-part of declaration.dart.internal;
+part of 'internal.dart';
 
 DartClass get _$EfficientLengthIterable => DartClass<Never>(($) => '''
 abstract class EfficientLengthIterable<T> extends Iterable<T> {

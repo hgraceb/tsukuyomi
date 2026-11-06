@@ -1,5 +1,3 @@
-library declaration.dart.async;
-
 import 'dart:async';
 
 import 'package:tsukuyomi_eval/src/property.dart';

@@ -1,5 +1,3 @@
-library declaration.dart.core;
-
 import 'package:tsukuyomi_eval/src/declaration/dynamic.dart';
 import 'package:tsukuyomi_eval/src/declaration/operator.dart';
 import 'package:tsukuyomi_eval/src/error.dart';

@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$double => DartClass<double>(($) => '''
 abstract final class double extends num {

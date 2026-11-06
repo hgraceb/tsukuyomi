@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$DateTime => DartClass<DateTime>(($) => '''
 class DateTime implements Comparable<DateTime> {

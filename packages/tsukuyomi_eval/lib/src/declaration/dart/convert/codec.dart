@@ -1,4 +1,4 @@
-part of declaration.dart.convert;
+part of 'convert.dart';
 
 DartClass get _$Codec => DartClass<Codec>(($) => '''
 abstract mixin class Codec<S, T> {

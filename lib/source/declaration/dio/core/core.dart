@@ -1,5 +1,3 @@
-library declaration.dio.core;
-
 import 'package:dio/dio.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 

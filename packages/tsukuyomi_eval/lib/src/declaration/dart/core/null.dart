@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 // ignore: prefer_void_to_null
 DartClass get _$Null => DartClass<Null>(($) => '''

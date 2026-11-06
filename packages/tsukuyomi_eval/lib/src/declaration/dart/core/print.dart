@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartFunction get _$print => DartFunction('print', print, '''
 external void print(Object? object);

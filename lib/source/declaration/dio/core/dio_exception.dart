@@ -1,4 +1,4 @@
-part of declaration.dio.core;
+part of 'core.dart';
 
 DartClass get _$DioException => DartClass<DioException>(($) => '''
 class DioException implements Exception {

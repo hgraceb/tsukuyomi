@@ -1,5 +1,3 @@
-library declaration.dart.internal;
-
 import 'package:tsukuyomi_eval/src/property.dart';
 
 part 'iterable.dart';

@@ -1,4 +1,4 @@
-part of declaration.dart.core;
+part of 'core.dart';
 
 DartClass get _$Duration => DartClass<Duration>(($) => '''
 class Duration implements Comparable<Duration> {

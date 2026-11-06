@@ -1,4 +1,4 @@
-part of declaration.dart.convert;
+part of 'convert.dart';
 
 DartVariable get _$unicodeReplacementCharacterRune => DartVariable('unicodeReplacementCharacterRune', unicodeReplacementCharacterRune, '''
 const int unicodeReplacementCharacterRune = 0xFFFD;
