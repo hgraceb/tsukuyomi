@@ -1,6 +1,14 @@
 targets:
   $default:
     builders:
+      source_gen:combining_builder:
+        options:
+          # 生成代码暂时忽略弃用和冗余判空提示，升级 analyzer / Riverpod / Drift 后复查
+          ignore_for_file:
+            - dead_code
+            - deprecated_member_use
+            - unnecessary_null_comparison
+            - unnecessary_non_null_assertion
       json_serializable:
         options:
           # 显式 toJson 调用支持嵌套模型

@@ -27,7 +27,7 @@ double _pixelSnap(double value, [double? scale]) {
   final isFinite = value.isFinite;
   final isImpellerDisabled = !ui.ImageFilter.isShaderFilterSupported;
   if (isFinite && isImpellerDisabled) {
-    final devicePixelRatio = WidgetsBinding.instance.window.devicePixelRatio;
+    final devicePixelRatio = WidgetsBinding.instance.window.devicePixelRatio; // ignore: deprecated_member_use
     final ratio = devicePixelRatio * (scale ?? 1.0);
     // Ensure that 1.5 is rounded down. 1 logical pixel at 150% scale
     // should render at 1 physical pixel. At 175% it should render at
