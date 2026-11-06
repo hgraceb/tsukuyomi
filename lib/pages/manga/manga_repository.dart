@@ -51,7 +51,7 @@ class MangaRepository {
   Stream<List<DatabaseChapter>> watchChapters(int mangaId) {
     final query = database.select(database.chapterTable);
     query.where((tbl) => tbl.manga.equals(mangaId));
-    query.orderBy([(tbl) => OrderingTerm.asc(tbl.id)]);
+    query.orderBy([(tbl) => OrderingTerm.asc(tbl.index), (tbl) => OrderingTerm.asc(tbl.id)]);
     return query.watch();
   }
 }

@@ -53,11 +53,11 @@ extension SourceChapterExtension on SourceChapter {
     );
   }
 
-  ChapterTableCompanion toInsertable(int manga) {
+  ChapterTableCompanion toInsertable(int manga, {required int index}) {
     // TODO 完善章节数据
     return ChapterTableCompanion.insert(
       manga: manga,
-      index: 0,
+      index: index,
       title: name.toValidDirectoryName,
       url: url,
       date: date,

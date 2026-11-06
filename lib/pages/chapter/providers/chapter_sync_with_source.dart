@@ -28,36 +28,41 @@ class ChapterSyncWithSource {
     final chapters = sourceChapters.where((chapter) => chapterUrls.add(chapter.url)).toList(growable: false);
     // 空返回可能是源失效，保留本地章节和关联数据
     if (chapters.isEmpty) {
-      return const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 0);
+      return const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 0);
     }
     final databaseChapters = await chapterRepository.queryChaptersByMangaId(manga.id);
     final deletes = <int>[];
     final inserts = <ChapterTableCompanion>[];
     final updates = <ChapterTableCompanion>[];
+    // 仅统计内容变化，位置调整不计为章节更新
+    var updateCount = 0;
 
     // 获取待删除的章节列表
     final deletedChapters = databaseChapters.where((row) => !chapterUrls.contains(row.url));
     deletes.addAll(deletedChapters.map((row) => row.id));
 
     // 获取待更新和插入的章节列表 TODO 完善章节数据
-    for (final sourceChapter in chapters) {
+    for (final (index, sourceChapter) in chapters.indexed) {
       final databaseChapter = databaseChapters.firstWhereOrNull((row) => sourceChapter.url == row.url);
       if (databaseChapter == null) {
-        inserts.add(sourceChapter.toInsertable(manga.id));
+        inserts.add(sourceChapter.toInsertable(manga.id, index: index));
       } else {
         final update = sourceChapter.toUpdatable(databaseChapter.id);
         final titleChanged = update.title.value != databaseChapter.title;
         final dateChanged = update.date.value != databaseChapter.date;
         final publicChanged = update.public.value != databaseChapter.public;
-        if (titleChanged || dateChanged || publicChanged) updates.add(update);
+        final indexChanged = databaseChapter.index != index;
+        final contentChanged = titleChanged || dateChanged || publicChanged;
+        if (contentChanged) updateCount++;
+        if (contentChanged || indexChanged) updates.add(update.copyWith(index: Value(index)));
       }
     }
 
     await chapterRepository.batch(deletes: deletes, inserts: inserts, updates: updates);
     return ChapterSyncResult(
+      updateCount: updateCount,
       insertCount: inserts.length,
       deleteCount: deletes.length,
-      updateCount: updates.length,
       sourceCount: chapters.length,
     );
   }
@@ -71,9 +76,9 @@ ChapterSyncWithSource chapterSyncWithSource(ChapterSyncWithSourceRef ref, Source
 @freezed
 class ChapterSyncResult with _$ChapterSyncResult {
   const factory ChapterSyncResult({
+    required int updateCount,
     required int insertCount,
     required int deleteCount,
-    required int updateCount,
     required int sourceCount,
   }) = _ChapterSyncResult;
 }

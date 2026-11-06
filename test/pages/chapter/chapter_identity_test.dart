@@ -44,20 +44,22 @@ void main() {
 
     final inserted = await sync.sync();
     final rows = await database.select(database.chapterTable).get();
-    expect(inserted, const ChapterSyncResult(insertCount: 2, deleteCount: 0, updateCount: 0, sourceCount: 2));
+    expect(inserted, const ChapterSyncResult(updateCount: 0, insertCount: 2, deleteCount: 0, sourceCount: 2));
     expect(rows.length, 2);
     final chapter = rows.singleWhere((row) => row.url == first.url);
     expect(chapter.title, first.name);
     expect(chapter.date, first.date);
     expect(chapter.public, first.public);
+    expect(chapter.index, 0);
     expect(rows.singleWhere((row) => row.url == sameTitle.url).title, first.name);
+    expect(rows.singleWhere((row) => row.url == sameTitle.url).index, 1);
 
     final unchanged = await sync.sync();
-    expect(unchanged, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 0, sourceCount: 2));
+    expect(unchanged, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 2));
     expect(await database.select(database.chapterTable).get(), unorderedEquals(rows));
   });
 
-  test('Watched chapters retain insertion order after synchronization and later updates', () async {
+  test('Watched chapters follow source order after synchronization and later updates', () async {
     final container = await _container();
     final chapters = StreamIterator(container.read(mangaRepositoryProvider).watchChapters(_manga.id));
     addTearDown(chapters.cancel);
@@ -79,9 +81,70 @@ void main() {
     await sync.apply([added, first, renamed, tenth]);
 
     expect(await chapters.moveNext(), isTrue);
-    expect(chapters.current.map((chapter) => chapter.url), [first.url, second.url, tenth.url, added.url]);
-    expect(chapters.current[1].title, renamed.name);
-    expect(chapters.current[1].public, isFalse);
+    expect(chapters.current.map((chapter) => chapter.url), [added.url, first.url, second.url, tenth.url]);
+    expect(chapters.current.map((chapter) => chapter.index), [0, 1, 2, 3]);
+    expect(chapters.current[2].title, renamed.name);
+    expect(chapters.current[2].public, isFalse);
+  });
+
+  for (final (scenario, urls, inserts, deletes) in [
+    ('a chapter inserted in the middle', ['chapter/1', 'chapter/2', 'chapter/10'], 1, 0),
+    ('a source reorder', ['chapter/10', 'chapter/1'], 0, 0),
+    ('a removed chapter', ['chapter/10'], 0, 1),
+  ]) {
+    test('Source order preserves identity and user state after $scenario', () async {
+      final container = await _container();
+      final database = container.read(databaseProvider);
+      final repository = container.read(mangaRepositoryProvider);
+      final source = UpdateSourceFixture(
+        chapters: [
+          for (final url in ['chapter/1', 'chapter/10']) HttpSourceChapter(url: url, name: url),
+        ],
+      );
+      final sync = container.read(chapterSyncWithSourceProvider(source, _manga));
+      await sync.sync();
+      final original = await repository.watchChapters(_manga.id).first;
+      final tenth = original.last.copyWith(images: 12, progress: 7);
+      final progress = ChapterTableCompanion(id: Value(tenth.id), images: const Value(12), progress: const Value(7));
+      await container.read(chapterRepositoryProvider).updateChapter(progress);
+      await database.into(database.downloadTable).insert(tenth.toDownloadable(1));
+      final queued = await database.select(database.downloadTable).getSingle();
+      final updated = [for (final url in urls) HttpSourceChapter(url: url, name: url)];
+
+      final result = await sync.apply(updated);
+
+      expect(result, ChapterSyncResult(updateCount: 0, insertCount: inserts, deleteCount: deletes, sourceCount: urls.length));
+      final rows = await repository.watchChapters(_manga.id).first;
+      expect(rows.map((chapter) => chapter.url), urls);
+      expect(rows.map((chapter) => chapter.index), List.generate(urls.length, (index) => index));
+      for (final chapter in original.where((chapter) => urls.contains(chapter.url))) {
+        expect(rows.singleWhere((row) => row.url == chapter.url).id, chapter.id);
+      }
+      expect(rows.singleWhere((chapter) => chapter.url == tenth.url), tenth.copyWith(index: urls.indexOf(tenth.url)));
+      expect(await database.select(database.downloadTable).getSingle(), queued);
+
+      final unchanged = await sync.apply(updated);
+      expect(unchanged, ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: urls.length));
+      await sync.apply([]);
+      expect(await repository.watchChapters(_manga.id).first, rows);
+    });
+  }
+
+  test('Chapters with equal positions use ID order until source positions are synchronized', () async {
+    final container = await _container();
+    final database = container.read(databaseProvider);
+    final repository = container.read(mangaRepositoryProvider);
+    final first = _chapter.copyWith(index: 0, url: 'z');
+    final second = _chapter.copyWith(id: 2, index: 0, url: 'a');
+    await database.into(database.chapterTable).insert(first);
+    await database.into(database.chapterTable).insert(second);
+    expect(await repository.watchChapters(_manga.id).first, [first, second]);
+    final source = UpdateSourceFixture(chapters: [second.toHttpSourceChapter(), first.toHttpSourceChapter()]);
+
+    final result = await container.read(chapterSyncWithSourceProvider(source, _manga)).sync();
+
+    expect(result, const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 2));
+    expect(await repository.watchChapters(_manga.id).first, [second, first.copyWith(index: 1)]);
   });
 
   test('Metadata changes preserve the chapter identity, reading progress and queued download', () async {
@@ -95,8 +158,8 @@ void main() {
 
     final result = await container.read(chapterSyncWithSourceProvider(source, _manga)).sync();
 
-    expect(result, const ChapterSyncResult(insertCount: 0, deleteCount: 0, updateCount: 1, sourceCount: 1));
-    final expected = _chapter.copyWith(title: renamed.name, date: renamed.date, public: true);
+    expect(result, const ChapterSyncResult(updateCount: 1, insertCount: 0, deleteCount: 0, sourceCount: 1));
+    final expected = _chapter.copyWith(index: 0, title: renamed.name, date: renamed.date, public: true);
     expect(await database.select(database.chapterTable).getSingle(), expected);
     expect(await database.select(database.downloadTable).getSingle(), queued);
   });
@@ -112,7 +175,7 @@ void main() {
     const duplicate = HttpSourceChapter(url: 'chapter-url', name: 'different-title');
 
     await expectLater(
-      container.read(chapterRepositoryProvider).batch(inserts: [added.toInsertable(1), duplicate.toInsertable(1)]),
+      container.read(chapterRepositoryProvider).batch(inserts: [added.toInsertable(1, index: 1), duplicate.toInsertable(1, index: 2)]),
       throwsA(isA<SqliteException>()),
     );
 

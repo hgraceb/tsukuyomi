@@ -26,7 +26,7 @@ const _chapter = DatabaseChapter(
   progress: 7,
 );
 
-final _other = _chapter.copyWith(id: 2, url: 'other-url');
+final _other = _chapter.copyWith(id: 2, index: 1, url: 'other-url');
 final _manga = mangaFixture(1);
 final _source = UpdateSourceFixture(
   chapters: [
@@ -53,7 +53,10 @@ void main() {
     final result = await sync;
 
     expect(result.updateCount, 1);
-    expect(await _read(container), _chapter.copyWith(title: 'new-title', date: 'new-date', public: false, images: 20, progress: 9));
+    expect(
+      await _read(container),
+      _chapter.copyWith(index: 0, title: 'new-title', date: 'new-date', public: false, images: 20, progress: 9),
+    );
     expect(await _read(container, 2), _other);
   });
 
@@ -63,7 +66,10 @@ void main() {
 
     await container.read(chapterServiceProvider).updateChapterProgress(_chapter.id, images: 20, progress: 9);
 
-    expect(await _read(container), _chapter.copyWith(title: 'new-title', date: 'new-date', public: false, images: 20, progress: 9));
+    expect(
+      await _read(container),
+      _chapter.copyWith(index: 0, title: 'new-title', date: 'new-date', public: false, images: 20, progress: 9),
+    );
     expect(await _read(container, 2), _other);
   });
 
