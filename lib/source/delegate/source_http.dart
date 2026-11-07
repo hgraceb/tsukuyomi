@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_html/dom.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 extension on Iterable {
   /// 类型强转后使用 toList 避免 Iterable 的闭包可能捕获无法通过 Isolate 传递的数据

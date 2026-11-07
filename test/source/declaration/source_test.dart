@@ -5,12 +5,12 @@ import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi_eval/src/declaration/declaration.dart';
 import 'package:tsukuyomi_eval/src/resolver.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
   test('Source requests accept method and headers', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example extends HttpSource {
   final String name = 'Example';
@@ -39,7 +39,7 @@ main() => Example();
 
   test('Image byte overrides retain data and image metadata', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example extends HttpSource {
   final String name = 'Example';
@@ -76,7 +76,7 @@ main() => Example();
 
   test('Image metadata is available through SourceImage', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example {
   dynamic read(SourceImage image) => image.extra;
@@ -92,7 +92,7 @@ main() => Example();
 
   test('Image bytes construct and copy all declared response fields', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example {
   HttpSourceBytes create(dynamic headers) {
@@ -130,7 +130,7 @@ main() => Example();
 
   test('Image byte overrides survive compute initialization', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example extends HttpSource {
   final String name = 'Example';

@@ -1,4 +1,4 @@
-part 'package:tsukuyomi_sources/src/http/source_http_manga.dart';
+part 'package:tsukuyomi_source/src/http/source_http_manga.dart';
 
 /// 漫画源漫画数据
 sealed class SourceManga {

@@ -21,7 +21,7 @@ import 'package:tsukuyomi/providers/update/update_manager.dart';
 import 'package:tsukuyomi/providers/update/update_report_store.dart';
 import 'package:tsukuyomi/providers/update/update_service.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import '../../fixtures/update_fixtures.dart';
 

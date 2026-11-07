@@ -7,7 +7,7 @@ import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/download/download_repository.dart';
 import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
 import 'package:tsukuyomi/providers/providers.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'providers/downloaded_info_provider.dart';
 

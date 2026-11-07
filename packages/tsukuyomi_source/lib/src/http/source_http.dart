@@ -1,4 +1,4 @@
-part of 'package:tsukuyomi_sources/src/core/source.dart';
+part of 'package:tsukuyomi_source/src/core/source.dart';
 
 /// 网络漫画源
 abstract class HttpSource extends Source {

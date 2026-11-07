@@ -6,7 +6,7 @@ import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/extension/extension.dart';
 import 'package:tsukuyomi/l10n/l10n.dart';
 import 'package:tsukuyomi/widgets/widgets.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'search_controller.dart';
 

@@ -10,7 +10,7 @@ import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_service.dart';
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import '../../fixtures/update_fixtures.dart';
 

@@ -7,7 +7,7 @@ import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/forward/flutter_cache_manager/cache_store.dart';
 import 'package:tsukuyomi/forward/flutter_cache_manager/web_helper.dart';
 import 'package:tsukuyomi/forward/http/http.dart' as http;
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class TsukuyomiCacheManager extends CacheManager with ImageCacheManager {
   static const _cacheKey = App.cachedImagesPath;

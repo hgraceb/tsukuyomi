@@ -54,8 +54,8 @@ dependencies:
   tsukuyomi_pixel_snap:
     path: packages/tsukuyomi_pixel_snap
   # 漫画源
-  tsukuyomi_sources:
-    path: packages/tsukuyomi_sources
+  tsukuyomi_source:
+    path: packages/tsukuyomi_source
 
   # 路由导航
   go_router: 6.5.9

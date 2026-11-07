@@ -6,7 +6,7 @@ import 'package:tsukuyomi/extension/extension.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi_list/tsukuyomi_list.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'chapter_service.dart';
 import 'widgets/chapter_gesture_navigation.dart';

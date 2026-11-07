@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/database/database.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 part 'download_path_provider.g.dart';
 

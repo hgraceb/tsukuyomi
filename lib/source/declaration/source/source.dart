@@ -6,8 +6,8 @@ import 'http.dart';
 
 List<DartLibrary> get $sourceLibraries {
   return [
-    DartLibrary('tsukuyomi_sources', path: 'tsukuyomi_sources.dart', source: '''
-library tsukuyomi_sources;
+    DartLibrary('tsukuyomi_source', path: 'tsukuyomi_source.dart', source: '''
+library tsukuyomi_source;
 
 import 'package:html/dom.dart';
 import 'package:dio/dio.dart' show DioException;

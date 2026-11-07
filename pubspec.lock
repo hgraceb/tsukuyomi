@@ -1172,10 +1172,10 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
-  tsukuyomi_sources:
+  tsukuyomi_source:
     dependency: "direct main"
     description:
-      path: "packages/tsukuyomi_sources"
+      path: "packages/tsukuyomi_source"
       relative: true
     source: path
     version: "0.0.1"

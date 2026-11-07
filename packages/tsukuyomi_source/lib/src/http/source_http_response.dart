@@ -1,4 +1,4 @@
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 /// 网络漫画源请求的响应数据
 class HttpSourceResponse {

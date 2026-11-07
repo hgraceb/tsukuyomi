@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 part 'chapter_sync_with_source.freezed.dart';
 part 'chapter_sync_with_source.g.dart';

@@ -2,7 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/library/library_repository.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 part 'library_service.g.dart';
 

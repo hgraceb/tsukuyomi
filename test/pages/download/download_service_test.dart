@@ -9,7 +9,7 @@ import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
 import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
 import 'package:tsukuyomi/source/delegate/source_stub.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 final _source = NoInstalledSource(1);
 
