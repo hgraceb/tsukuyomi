@@ -146,7 +146,7 @@ flutter:
   # 资源文件
   assets:
     - assets/interpreter/
-    - assets/source/
+    - assets/sources/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
