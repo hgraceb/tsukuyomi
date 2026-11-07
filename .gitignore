@@ -53,5 +53,6 @@ lib/l10n/gen/
 # AI related
 .claude/
 
-# Private manga source assets
-assets/source/
+# Private manga sources
+assets/sources/
+packages/tsukuyomi_sources/
