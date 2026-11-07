@@ -4,7 +4,7 @@ import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/source/source_repository.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi/source/delegate/source_stub.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 DatabaseManga mangaFixture(int id, {int source = 1}) => DatabaseManga(
   id: id,

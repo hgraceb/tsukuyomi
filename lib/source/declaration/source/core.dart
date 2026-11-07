@@ -1,5 +1,5 @@
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 DartClass get _$Source => DartClass<Source>(($) => '''
 sealed class Source {

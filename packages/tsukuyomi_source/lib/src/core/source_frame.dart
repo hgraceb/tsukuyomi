@@ -1,4 +1,4 @@
-part 'package:tsukuyomi_sources/src/http/source_http_frame.dart';
+part 'package:tsukuyomi_source/src/http/source_http_frame.dart';
 
 /// 漫画源动图帧数据
 sealed class SourceFrame {

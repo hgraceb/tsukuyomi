@@ -4,7 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'chapter_repository.dart';
 import 'providers/chapter_sync_with_source.dart';

@@ -6,7 +6,7 @@ import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi_eval/src/declaration/declaration.dart';
 import 'package:tsukuyomi_eval/src/resolver.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
   test('JSON objects support the typed Map used by source metadata', () async {
@@ -44,7 +44,7 @@ dynamic main() {
     final items = message.get('items') as List;
     items.add(SourceProtoMessage({}));
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 import 'package:values/values.dart';
 dynamic main() {
   final original = message.get('items');
@@ -61,7 +61,7 @@ dynamic main() {
 
   test('source model collections share their type and identity through casts and catches', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 dynamic main() {
   dynamic value = <HttpSourceChapter>[HttpSourceChapter(url: '/chapter', name: 'chapter')];
   final chapters = value as List<HttpSourceChapter>;

@@ -1,5 +1,5 @@
 import 'package:tsukuyomi/core/core.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 extension SourceExtension on Source {
   /// 网络漫画请求头

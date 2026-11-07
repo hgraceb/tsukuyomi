@@ -1,4 +1,4 @@
-part 'package:tsukuyomi_sources/src/http/source_http_chapter.dart';
+part 'package:tsukuyomi_source/src/http/source_http_chapter.dart';
 
 /// 漫画源章节数据
 sealed class SourceChapter {

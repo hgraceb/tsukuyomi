@@ -1,4 +1,4 @@
-part of 'package:tsukuyomi_sources/src/core/source_chapter.dart';
+part of 'package:tsukuyomi_source/src/core/source_chapter.dart';
 
 /// 网络漫画源章节数据
 class HttpSourceChapter extends SourceChapter {

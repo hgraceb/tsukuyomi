@@ -18,7 +18,7 @@ import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/providers/update/update_service.dart';
 import 'package:tsukuyomi/providers/update/update_state.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'update_fixtures.dart';
 

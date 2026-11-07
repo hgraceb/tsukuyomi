@@ -1,10 +1,10 @@
 import 'dart:ui';
 
 import 'package:tsukuyomi_html/dom.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
-part 'package:tsukuyomi_sources/src/http/source_http.dart';
-part 'package:tsukuyomi_sources/src/stub/source_stub.dart';
+part 'package:tsukuyomi_source/src/http/source_http.dart';
+part 'package:tsukuyomi_source/src/stub/source_stub.dart';
 
 /// 漫画源
 sealed class Source {

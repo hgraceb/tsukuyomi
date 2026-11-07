@@ -4,7 +4,7 @@ import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart'
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'update_error.dart';
 import 'update_report_store.dart';

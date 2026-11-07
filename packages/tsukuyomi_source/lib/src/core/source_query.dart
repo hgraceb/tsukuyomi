@@ -1,4 +1,4 @@
-part 'package:tsukuyomi_sources/src/http/source_http_query.dart';
+part 'package:tsukuyomi_source/src/http/source_http_query.dart';
 
 /// 漫画源查询数据
 sealed class SourceQuery {

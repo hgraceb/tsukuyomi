@@ -11,7 +11,7 @@ import 'package:tsukuyomi/extension/extension.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_service.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 part 'download_manager_provider.g.dart';
 

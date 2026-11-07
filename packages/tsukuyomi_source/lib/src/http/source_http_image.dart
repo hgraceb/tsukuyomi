@@ -1,4 +1,4 @@
-part of 'package:tsukuyomi_sources/src/core/source_image.dart';
+part of 'package:tsukuyomi_source/src/core/source_image.dart';
 
 /// 网络漫画源图片数据
 class HttpSourceImage extends SourceImage {

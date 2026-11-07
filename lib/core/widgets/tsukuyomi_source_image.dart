@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
 import 'package:tsukuyomi/extension/extension.dart';
 import 'package:tsukuyomi/forward/octo_image/octo_image.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class TsukuyomiSourceImage extends StatelessWidget {
   const TsukuyomiSourceImage({

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 /// 最大请求重试次数限制
 const _kRetryCountRetries = 1;

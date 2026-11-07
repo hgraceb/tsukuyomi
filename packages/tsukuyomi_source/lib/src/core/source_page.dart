@@ -1,6 +1,6 @@
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
-part 'package:tsukuyomi_sources/src/http/source_http_page.dart';
+part 'package:tsukuyomi_source/src/http/source_http_page.dart';
 
 /// 漫画源页面数据
 sealed class SourcePage<T> {

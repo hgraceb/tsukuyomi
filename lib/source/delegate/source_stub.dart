@@ -1,5 +1,5 @@
 import 'package:tsukuyomi/core/core.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class NoInstalledSource extends StubSource {
   NoInstalledSource(this.id);

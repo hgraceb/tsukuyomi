@@ -16,7 +16,7 @@ import 'package:tsukuyomi/pages/source/source_service.dart';
 import 'package:tsukuyomi/pages/update/update_progress_provider.dart';
 import 'package:tsukuyomi/providers/preferences/preferences_provider.dart';
 import 'package:tsukuyomi/source/delegate/source_stub.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import '../../fixtures/update_fixtures.dart';
 

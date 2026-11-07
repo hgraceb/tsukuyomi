@@ -1,4 +1,4 @@
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class TsukuyomiSource extends HttpSource {
   @override

@@ -1,5 +1,5 @@
-name: tsukuyomi_sources
-description: Sources for Tsukuyomi.
+name: tsukuyomi_source
+description: Source APIs and utilities for Tsukuyomi.
 publish_to: 'none'
 version: 0.0.1
 

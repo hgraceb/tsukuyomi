@@ -7,7 +7,7 @@ import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +18,7 @@ void main() {
 
   test('Source getters work after initialization in compute', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 String get sourceName => 'Example';
 class Example extends HttpSource {
@@ -37,7 +37,7 @@ dynamic main() => Example();
 
   test('Host request headers use optional script parameter defaults', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example extends HttpSource {
   final String name = 'Example';
@@ -57,7 +57,7 @@ dynamic main() => Example();
 
   test('Sources from the same script class bind callbacks to their own host', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example extends HttpSource {
   String name = '';
@@ -114,7 +114,7 @@ dynamic main() {
 
   test('Host injection preserves methods declared by the script', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example extends HttpSource {
   final String name = 'Script implementation';
@@ -136,7 +136,7 @@ Example main() => Example();
 
   test('Script sources recognize bridged ancestors while casts preserve the delegate', () async {
     const source = '''
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example extends HttpSource {
   final String name = 'Example';

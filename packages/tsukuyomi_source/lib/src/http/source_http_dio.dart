@@ -11,7 +11,7 @@ import 'package:flutter_cache_manager/src/web/mime_converter.dart'; // ignore: i
 import 'package:image/image.dart' as img;
 import 'package:tsukuyomi_html/dom.dart';
 import 'package:tsukuyomi_html/parser.dart' show parse;
-import 'package:tsukuyomi_sources/tsukuyomi_sources.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 /// 使用 Dio 作为请求器的网络漫画源
 abstract class DioHttpSource extends HttpSource {
