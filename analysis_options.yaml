@@ -13,7 +13,6 @@ linter:
 analyzer:
   exclude:
     - build/**
-    - packages/tsukuyomi_sources/**
   plugins:
     # https://riverpod.dev/docs/introduction/getting_started#enabling-riverpod_lintcustom_lint
     - custom_lint
