@@ -1,3 +1,10 @@
+## 参考项目
+
+### 核心参考
+
+- 修改应用的核心逻辑和页面布局前，若存在 `packages/tsukuyomi_sources/AGENTS.md`，先读取其中的参考项目说明并按需请求
+- 修改 `packages/tsukuyomi_sources/` 前先完整读取并遵守其中的 `AGENTS.md`，通过 `assets/sources` 关联目录修改时同样适用
+
 ## 文档格式
 
 ### HTML 文档
