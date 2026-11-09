@@ -38,14 +38,15 @@ class TsukuyomiSource extends HttpSource {
     await Future.delayed(const Duration(seconds: 1));
     final date = DateTime.now().toString().split('.').first;
     const prefix = 'Example Chapter';
-    return List.generate(
-      100,
-      (index) => HttpSourceChapter(
-        url: '$index,${manga.url}',
-        name: '$prefix $index',
-        date: date,
-      ),
-    ).reversed;
+    return [
+      for (var index = 99; index >= 0; index--) ...[
+        HttpSourceChapter(
+          url: '$index,${manga.url}',
+          name: '$prefix $index',
+          date: date,
+        ),
+      ],
+    ];
   }
 
   @override
