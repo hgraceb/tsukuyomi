@@ -20,16 +20,22 @@ abstract class HttpSource extends Source {
   external SourceProtoMessage parseProto(List<int> buffer, SourceProtoFields fields);
 
   // ${$.debug('fetchJson', ($, $$) => $.fetchJson)}
-  external Future<dynamic> fetchJson(String url, {String? method, Map<String, String>? headers});
+  external Future<dynamic> fetchJson(String url, {String? method, Map<String, String>? headers, Object? data});
 
   // ${$.debug('fetchHtml', ($, $$) => $.fetchHtml)}
-  external Future<Document> fetchHtml(String url, {String? method});
+  external Future<Document> fetchHtml(String url, {String? method, Map<String, String>? headers, Object? data});
 
   // ${$.debug('fetchBytes', ($, $$) => $.fetchBytes)}
-  external Future<HttpSourceBytes> fetchBytes(String url, {String? method});
+  external Future<HttpSourceBytes> fetchBytes(String url, {String? method, Map<String, String>? headers, Object? data});
 
   // ${$.debug('fetchProto', ($, $$) => $.fetchProto)}
-  external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {String? method});
+  external Future<SourceProtoMessage> fetchProto(
+    String url,
+    SourceProtoFields fields, {
+    String? method,
+    Map<String, String>? headers,
+    Object? data,
+  });
 
   // ${$.debug('resolveImageBytes', ($, $$) => $.resolveImageBytes)}
   external Future<Image> resolveImageBytes(List<int> bytes);

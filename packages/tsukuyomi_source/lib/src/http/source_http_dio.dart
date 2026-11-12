@@ -56,25 +56,25 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
-  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers}) async {
+  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers, Object? data}) async {
     client ??= this.client;
-    final response = await client.request(url, options: buildOptions(method, headers));
+    final response = await client.request(url, data: data, options: buildOptions(method, headers));
     // Dio 默认的转换器根据响应头数据可能会自动转换一次 JSON 格式数据
     return response.data is String ? parseJson(response.data) : response.data;
   }
 
   @override
-  Future<Document> fetchHtml(String url, {Dio? client, String? method}) async {
+  Future<Document> fetchHtml(String url, {Dio? client, String? method, Map<String, String>? headers, Object? data}) async {
     client ??= this.client;
-    final response = await client.request(url, options: buildOptions(method));
+    final response = await client.request(url, data: data, options: buildOptions(method, headers));
     return parseHtml(response.data);
   }
 
   @override
-  Future<HttpSourceBytes> fetchBytes(String url, {Dio? client, String? method}) async {
+  Future<HttpSourceBytes> fetchBytes(String url, {Dio? client, String? method, Map<String, String>? headers, Object? data}) async {
     client ??= this.client;
-    final options = buildOptions(method).copyWith(responseType: ResponseType.bytes);
-    final response = await client.request<List<int>>(url, options: options);
+    final options = buildOptions(method, headers).copyWith(responseType: ResponseType.bytes);
+    final response = await client.request<List<int>>(url, data: data, options: options);
     final statusCode = response.statusCode ?? -1;
     final responseHeaders = response.headers;
     final contentTypeHeader = responseHeaders[Headers.contentTypeHeader]?.firstOrNull;
@@ -84,9 +84,16 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
-  Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {Dio? client, String? method}) async {
+  Future<SourceProtoMessage> fetchProto(
+    String url,
+    SourceProtoFields fields, {
+    Dio? client,
+    String? method,
+    Map<String, String>? headers,
+    Object? data,
+  }) async {
     client ??= this.client;
-    final bytes = await fetchBytes(url, client: client, method: method);
+    final bytes = await fetchBytes(url, client: client, method: method, headers: headers, data: data);
     return parseProto(bytes.data, fields);
   }
 
