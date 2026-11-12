@@ -88,24 +88,31 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers}) {
+  Future<dynamic> fetchJson(String url, {Dio? client, String? method, Map<String, String>? headers, Object? data}) {
     // 每次请求数据时都优先创建新的网络请求器，避免多次请求导致网络请求器内部包含无法通过 Isolate 传递的数据
-    return super.fetchJson(url, client: newClient(client), method: method, headers: headers);
+    return super.fetchJson(url, client: newClient(client), method: method, headers: headers, data: data);
   }
 
   @override
-  Future<Document> fetchHtml(String url, {Dio? client, String? method}) {
-    return super.fetchHtml(url, client: newClient(client), method: method);
+  Future<Document> fetchHtml(String url, {Dio? client, String? method, Map<String, String>? headers, Object? data}) {
+    return super.fetchHtml(url, client: newClient(client), method: method, headers: headers, data: data);
   }
 
   @override
-  Future<HttpSourceBytes> fetchBytes(String url, {Dio? client, String? method}) {
-    return super.fetchBytes(url, client: newClient(client), method: method);
+  Future<HttpSourceBytes> fetchBytes(String url, {Dio? client, String? method, Map<String, String>? headers, Object? data}) {
+    return super.fetchBytes(url, client: newClient(client), method: method, headers: headers, data: data);
   }
 
   @override
-  Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {Dio? client, String? method}) {
-    return super.fetchProto(url, fields, client: newClient(client), method: method);
+  Future<SourceProtoMessage> fetchProto(
+    String url,
+    SourceProtoFields fields, {
+    Dio? client,
+    String? method,
+    Map<String, String>? headers,
+    Object? data
+  }) {
+    return super.fetchProto(url, fields, client: newClient(client), method: method, headers: headers, data: data);
   }
 
   @override
