@@ -205,16 +205,20 @@ class _UpdateItem extends ConsumerWidget {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final progress = item.outcome.canReadProgress ? ref.watch(updateProgressProvider(progressCache, item.mangaId)) : const UpdateProgress();
-    final unknownError = progress.hasError && !progress.hasValue;
-    final completed = unknownError ? 0 : progress.completed;
-    final total = unknownError ? 0 : progress.total;
+    final completed = progress.completed ?? 0;
+    final total = progress.total ?? 0;
+    final count = l10n.updateProgress(
+      progress.completed?.toString() ?? '-',
+      progress.total?.toString() ?? '-',
+      progress.all?.toString() ?? '-',
+    );
     final complete = progress.hasValue && !progress.hasError && total > 0 && completed == total;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);
     final progressIcon = _buildProgress(completed, total, color);
 
     return TsukuyomiIconButtonListTile(
-      title: _buildTitle(l10n.updateProgress(completed, total)),
+      title: _buildTitle(count),
       subtitle: _buildSubTitle(l10n, color),
       trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),

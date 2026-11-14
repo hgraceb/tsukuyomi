@@ -62,13 +62,13 @@ void main() {
     expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'chapter-title-1'});
     await container.read(chaptersStreamByMangaProvider(_manga.id).future);
     await container.pump();
-    expect(row.read(), const UpdateProgress(completed: 1, total: 5, hasValue: true));
+    expect(row.read(), const UpdateProgress(completed: 1, total: 5, all: 7));
     Directory('${directory.path}/chapter-title-2').createSync();
     container.read(downloadedChaptersProvider(directory.path).notifier).update('chapter-title-2');
     await container.pump();
     expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'chapter-title-1', 'chapter-title-2'});
     await container.pump();
-    expect(row.read(), const UpdateProgress(completed: 2, total: 5, hasValue: true));
+    expect(row.read(), const UpdateProgress(completed: 2, total: 5, all: 7));
 
     final disposed = chapterDisposal.future;
     row.close();
@@ -82,11 +82,11 @@ void main() {
 
     Directory('${directory.path}/chapter-title-3').createSync();
     final returned = container.listen(updateProgressProvider(owner.read(), _manga.id), (_, _) {});
-    expect(returned.read(), const UpdateProgress(completed: 2, total: 5, hasValue: true));
+    expect(returned.read(), const UpdateProgress(completed: 2, total: 5, all: 7));
     await container.read(updateDownloadedChaptersProvider(_manga.id).future);
     await container.read(chaptersStreamByMangaProvider(_manga.id).future);
     await container.pump();
-    expect(returned.read(), const UpdateProgress(completed: 3, total: 5, hasValue: true));
+    expect(returned.read(), const UpdateProgress(completed: 3, total: 5, all: 7));
   });
 
   for (final stage in ['manga', 'source', 'path', 'path-error']) {
