@@ -51,7 +51,7 @@ extension on MethodDeclaration {
 }
 
 extension on ClassMemberElement {
-  ClassElement get classElement => enclosingElement as ClassElement;
+  InterfaceElement get interfaceElement => enclosingElement as InterfaceElement;
 }
 
 extension on PropertyAccessorElement {
@@ -73,9 +73,9 @@ extension on CompoundAssignmentExpression {
 }
 
 extension on SimpleIdentifier {
-  ClassElement? get classElement {
+  InterfaceElement? get interfaceElement {
     return switch (staticElement) {
-      ClassElement element => element,
+      InterfaceElement element => element,
       _ => null,
     };
   }
@@ -93,9 +93,10 @@ extension on SimpleIdentifier {
 }
 
 extension on Expression {
-  ClassElement? get classElement {
+  InterfaceElement? get interfaceElement {
     return switch (this) {
-      SimpleIdentifier identifier => identifier.classElement,
+      SimpleIdentifier identifier => identifier.interfaceElement,
+      PrefixedIdentifier identifier when identifier.staticElement is InterfaceElement => identifier.staticElement as InterfaceElement,
       _ => null,
     };
   }
@@ -330,7 +331,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   void emitGetClassMember(String name, ClassMemberElement member) {
     if (member.isStatic) {
-      assert(member.enclosingElement is ClassElement);
+      assert(member.enclosingElement is InterfaceElement);
       emitGetVariable('${member.enclosingElement.name!}.$name');
     } else {
       emitGetVariable('this');
@@ -867,7 +868,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
         final fieldElement = assignment.fieldElement;
         if (fieldElement != null && fieldElement.isStatic) {
           // 设置类的静态字段
-          variable('${fieldElement.classElement.name}.${simpleIdentifier.name}');
+          variable('${fieldElement.interfaceElement.name}.${simpleIdentifier.name}');
         } else if (fieldElement != null) {
           emitGetVariable('this');
           property(simpleIdentifier.name);
@@ -875,9 +876,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
           variable(simpleIdentifier.name);
         }
       case PrefixedIdentifier prefixedIdentifier:
-        if (prefixedIdentifier.prefix.classElement case ClassElement classElement) {
+        if (prefixedIdentifier.prefix.interfaceElement case InterfaceElement interfaceElement) {
           // 设置类的静态字段
-          variable('${classElement.name}.${prefixedIdentifier.identifier.name}');
+          variable('${interfaceElement.name}.${prefixedIdentifier.identifier.name}');
         } else {
           prefixedIdentifier.prefix.accept(this);
           property(prefixedIdentifier.identifier.name);
@@ -1138,9 +1139,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     beginShorting(node);
     final target = node.target;
     final methodName = node.methodName.name;
-    if (target?.classElement case ClassElement classElement) {
+    if (target?.interfaceElement case InterfaceElement interfaceElement) {
       // 获取类的静态成员
-      emitGetVariable('${classElement.name}.$methodName');
+      emitGetVariable('${interfaceElement.name}.$methodName');
     } else if (target != null || node.realTarget != null) {
       emitGetProperty(methodName, target: targetShorting(target, node.isNullAware));
     } else if (node.methodName.classMemberElement case ClassMemberElement member) {
@@ -1208,6 +1209,17 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     node.expression.accept(this);
     emitTypeCheck(node.type);
     emitCodes(OP_AS);
+  }
+
+  @override
+  void compileSwitchExpression(SwitchExpression node) {
+    // 默认遍历会依次执行所有分支，未实现模式匹配前明确报错
+    error('Unsupported switch expression.');
+  }
+
+  @override
+  void compileSwitchStatement(SwitchStatement node) {
+    error('Unsupported switch statement.');
   }
 
   @override
@@ -1396,9 +1408,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compilePrefixedIdentifier(PrefixedIdentifier node) {
-    if (node.prefix.classElement case ClassElement classElement) {
+    if (node.prefix.interfaceElement case InterfaceElement interfaceElement) {
       // 获取类的静态成员
-      emitGetVariable('${classElement.name}.${node.identifier.name}');
+      emitGetVariable('${interfaceElement.name}.${node.identifier.name}');
     } else {
       emitGetVariable(node.prefix.name);
       emitGetProperty(node.identifier.name);
@@ -1407,10 +1419,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compilePropertyAccess(PropertyAccess node) {
-    if (node.target?.classElement case ClassElement classElement) {
+    if (node.target?.interfaceElement case InterfaceElement interfaceElement) {
       assert(!node.isNullAware);
       // 获取类的静态成员
-      emitGetVariable('${classElement.name}.${node.propertyName.name}');
+      emitGetVariable('${interfaceElement.name}.${node.propertyName.name}');
     } else {
       beginShorting(node);
       emitGetProperty(node.propertyName.name, target: targetShorting(node.target, node.isNullAware));
@@ -1504,7 +1516,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     if (member == null) {
       emitSetVariable(identifier.name);
     } else if (member.isStatic) {
-      emitSetVariable('${member.classElement.name}.${identifier.name}');
+      emitSetVariable('${member.interfaceElement.name}.${identifier.name}');
     } else {
       emitSetProperty(identifier.name);
     }

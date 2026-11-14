@@ -56,6 +56,7 @@ Map<String, Property> resolveProperties(ResolvedUnitResult resolved, List<DartLi
     final types = <String, InterfaceElement>{
       for (final unit in library.units) ...{
         for (final type in unit.classes) type.name: type,
+        for (final type in unit.enums) type.name: type,
         for (final alias in unit.typeAliases) ...{
           if (alias.aliasedType case final InterfaceType type) alias.name: type.element,
         },
