@@ -201,10 +201,10 @@ class _UpdateItem extends ConsumerWidget {
   }
 
   /// 更新列表项的进度图标
-  Widget _buildProgress(int completed, int total, Color color) {
+  Widget _buildProgress(int completed, int public, Color color) {
     return IconTheme(
       data: IconThemeData(size: 24.0, color: color),
-      child: AnimatedProgressCircleIcon(progress: total > 0 ? (completed / total).clamp(0.0, 1.0) : 0.0),
+      child: AnimatedProgressCircleIcon(progress: public > 0 ? (completed / public).clamp(0.0, 1.0) : 0.0),
     );
   }
 
@@ -221,12 +221,12 @@ class _UpdateItem extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
     final progress = item.outcome.canReadProgress ? ref.watch(updateProgressProvider(progressCache, item.mangaId)) : const UpdateProgress();
     final completed = progress.downloaded ?? 0;
-    final total = progress.public ?? 0;
+    final public = progress.public ?? 0;
     final count = l10n.updateProgress('${progress.downloaded ?? '-'}', '${progress.public ?? '-'}', '${progress.total ?? '-'}');
-    final complete = progress.hasValue && !progress.hasError && total > 0 && completed == total;
+    final complete = progress.hasValue && !progress.hasError && public > 0 && completed == public;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);
-    final progressIcon = _buildProgress(completed, total, color);
+    final progressIcon = _buildProgress(completed, public, color);
 
     return TsukuyomiIconButtonListTile(
       title: _buildTitle(count),
