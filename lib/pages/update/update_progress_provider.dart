@@ -75,12 +75,7 @@ UpdateProgress updateProgress(UpdateProgressRef ref, UpdateProgressCache cache, 
   final publicChapters = chapterList?.where((chapter) => chapter.public);
   final completed = downloadedTitles == null ? null : publicChapters?.where((chapter) => downloadedTitles.contains(chapter.title)).length;
   final hasError = chapters.hasError || downloaded.hasError;
-  final progress = UpdateProgress(
-    completed: completed,
-    total: publicChapters?.length,
-    all: chapterList?.length,
-    hasError: hasError,
-  );
+  final progress = UpdateProgress(downloaded: completed, public: publicChapters?.length, total: chapterList?.length, hasError: hasError);
   return cache.update(mangaId, progress);
 }
 
@@ -102,16 +97,18 @@ class UpdateProgress with _$UpdateProgress {
   const UpdateProgress._();
 
   const factory UpdateProgress({
-    /// 当前公开章节中已下载的数量，null 表示尚未确认
-    int? completed,
+    /// 已下载章节数
+    @Default(null) int? downloaded,
 
-    /// 当前公开章节总数
-    int? total,
+    /// 公开章节总数
+    @Default(null) int? public,
 
-    /// 全部章节总数，包含非公开章节
-    int? all,
+    /// 全部章节总数
+    @Default(null) int? total,
+
+    /// 进度读取失败
     @Default(false) bool hasError,
   }) = _UpdateProgress;
 
-  bool get hasValue => completed != null && total != null && all != null;
+  bool get hasValue => downloaded != null && public != null && total != null;
 }
