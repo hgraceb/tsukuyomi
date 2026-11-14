@@ -77,6 +77,49 @@ class DownloadEnqueueResult with _$DownloadEnqueueResult {
 }
 ```
 
+### 桥接声明
+
+- `DartFunction` 等桥接声明优先沿用同目录的独立 getter 写法，使用 `_$函数名` 命名，声明列表只引用 getter，不在列表中内联构造声明对象
+- 函数签名使用三引号字符串单独成行，和 `DartClass` 等声明保持一致，如：
+
+```dart
+// Bad
+List<DartDeclaration> get $mangaDetails {
+  return [
+    DartFunction('normalizeMangaStatus', normalizeMangaStatus, 'external String normalizeMangaStatus(String value);'),
+  ];
+}
+
+// Good
+DartFunction get _$normalizeMangaStatus => DartFunction('normalizeMangaStatus', normalizeMangaStatus, '''
+external String normalizeMangaStatus(String value);
+''');
+
+List<DartDeclaration> get $mangaDetails {
+  return [
+    _$normalizeMangaStatus,
+  ];
+}
+```
+
+### 文档注释
+
+- 字段注释先用简短名词短语概括含义，如“内容语言”“标签列表”，补充说明与首段之间用空的 `///` 行分隔
+- 共同的取值或更新规则优先写在类注释中，各字段只补充自身语义；字面量使用反引号，引用代码标识符使用 `[标识符]`，如：
+
+```dart
+// Bad
+/// 当前源中该漫画已知的内容语言，null 表示未提供，空列表表示未知
+final List<String>? languages;
+
+// Good: 共同的 null 与空值规则已在类注释中说明
+/// 内容语言
+///
+/// 当前漫画在该源中已知的正文语言代码，例如 `ja`、`zh-Hans`
+/// 代码格式由 [normalizeMangaLanguages] 统一规范
+final List<String>? languages;
+```
+
 ### 数字格式
 
 - 类型为 `double` 且数值为整数时，优先使用 `.0` 表示浮点数，如：

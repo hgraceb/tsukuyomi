@@ -3,6 +3,9 @@ import 'source_manga_details.dart';
 part 'package:tsukuyomi_source/src/http/source_http_manga.dart';
 
 /// 漫画源漫画数据
+///
+/// 可选详情字段为 `null` 时表示源未提供，更新时保留已有值
+/// 空字符串、空列表和状态 `unknown` 都是明确提供的值，更新时替换已有值
 sealed class SourceManga {
   const SourceManga({
     required this.url,
@@ -24,18 +27,31 @@ sealed class SourceManga {
   /// 漫画封面
   final String cover;
 
-  /// 连载状态，null 表示源未提供，unknown 表示明确未知
+  /// 连载状态
+  ///
+  /// 使用统一状态编码，由 [normalizeMangaStatus] 校验
+  /// `unknown` 表示无法确定状态
   final String? status;
 
-  /// 保留段落换行的纯文本简介，空字符串表示清空
+  /// 漫画简介
+  ///
+  /// 使用纯文本，保留段落换行
   final String? description;
 
-  /// 创作者，null 表示源未提供，空列表表示清空
+  /// 创作者列表
+  ///
+  /// 只记录显示名称，不区分作者、画师等角色
   final List<SourceMangaCreator>? creators;
 
-  /// 标签，null 表示源未提供，空列表表示清空
+  /// 标签列表
+  ///
+  /// 名称保留源站原文，类型由源映射为统一分类
   final List<SourceMangaTag>? tags;
 
-  /// 当前源中该漫画已知的内容语言，null 表示未提供，空列表表示未知
+  /// 内容语言
+  ///
+  /// 当前漫画在该源中已知的正文语言代码，例如 `ja`、`zh-Hans`
+  /// 多语言版本分别列出，未确定语言时使用空列表
+  /// 站点原始标记由源映射，代码格式由 [normalizeMangaLanguages] 统一规范
   final List<String>? languages;
 }
