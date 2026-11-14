@@ -62,47 +62,30 @@ final languages = normalizeMangaLanguages([language]);
 
 ### 语言显示库调研（2026-11-14）
 
-建议后续采用 `common_locale_data`，当前 SDK 使用 `2.2.1`。它已有组合名称格式化接口，不需要自己实现 CLDR 规则或维护全部翻译。
+当前尚未选定或接入显示库。此前仅根据兼容性与格式化探针就将 `common_locale_data 2.2.1` 列为首选，依据不足，撤回该推荐；已验证的输出仅证明对应输入可以运行，不能替代维护情况与真实页面需求的评估。
 
-以下核对了发布包源码、版本约束和更新记录；前三个库在工程当前的 Dart 3.10 SDK 中建立独立临时项目验证，未改变应用依赖。
+先明确显示需求：漫画详情优先使用“中文”“简体中文”“繁体中文”“日语”等短名称。地区只在需要区分版本时展示，存储完整代码不要求页面展开全部子标记。
 
-| 候选 | 核对结果 | 结论 |
+Mihon 的处理已核对本地参考代码：
+
+- 漫画源列表取 `source.lang`，由 `LocaleHelper.getSourceDisplayName` 调用 Android/Java 的 `Locale.getDisplayName`，普通语言名称使用该语言自身的写法
+- `zh-CN`、`zh-TW` 在生成名称前分别转为 `zh-Hans`、`zh-Hant`，不保留其中的地区部分；并不会主动给所有语言补充地区
+- 参考源 Mikagogo 在 `build.gradle.kts` 中实际配置 `lang = "zh"`，不包含文字或地区子标记
+- 之前的“繁体中文（中国香港特别行政区）”来自向测试库传入 `zh-Hant-HK`，不是 Mihon 的界面实测，也不作为本应用的默认展示方案
+
+[名称处理源码](https://github.com/mihonapp/mihon/blob/master/app/src/main/java/eu/kanade/tachiyomi/util/system/LocaleHelper.kt) · [源列表显示源码](https://github.com/mihonapp/mihon/blob/master/app/src/main/java/eu/kanade/presentation/browse/components/BaseSourceItem.kt)
+
+候选的维护背景与限制：
+
+| 候选 | 核对结果 | 当前判断 |
 | --- | --- | --- |
-| [common_locale_data 2.2.1](https://pub.dev/packages/common_locale_data/versions/2.2.1) | 纯 Dart，使用 CLDR 46；支持语言、文字、地区和变体的组合名称，中文和英文显示已实测 | 当前首选 |
-| [flutter_localized_locales 2.0.5](https://pub.dev/packages/flutter_localized_locales/versions/2.0.5) | 最后发布于 2023-09-21；按完整代码查表，需将连字符改为下划线；实测 `es-419`、`fr-JP`、`de-1901` 均无结果 | 更适合固定语言选择列表 |
-| [locale_names 1.1.1](https://pub.dev/packages/locale_names/versions/1.1.1) | 最后发布于 2023-07-31；分别返回语言与文字、地区名称，需要自行组合；Flutter Locale 不承载变体 | 当前需求下需要额外维护展示规则 |
-| [intl4x 1.0.1](https://pub.dev/packages/intl4x/versions/1.0.1) | 发布于 2026-09-23；原生端使用 ICU4X，Web 使用浏览器 Intl；要求 Dart 3.12，DisplayNames 仍标记 experimental | 当前 SDK 不选，后续升级时可重新评估 |
+| [common_locale_data](https://github.com/xvrh/common_locale_data) | 个人仓库，4 stars；2.2.1 已在当前 SDK 运行，最新版 2.4.0 要求 Dart 3.12 | 保留技术验证结果，不再列为首选 |
+| [flutter_localized_locales](https://github.com/guidezpl/flutter-localized-locales) | 个人仓库，18 stars；最新发布仍为 2023 年的 2.0.5；完整代码查表，实测部分组合缺失 | 不优先引入 |
+| [locale_names](https://github.com/Firelands128/locale_names) | 个人仓库，7 stars；最新发布仍为 2023 年的 1.1.1；需要自行组合名称 | 不优先引入 |
+| [intl4x](https://github.com/dart-lang/i18n/tree/main/pkgs/intl4x) | Dart 官方组织仓库，发布者 labs.dart.dev；1.0.1 要求 Dart 3.12，DisplayNames 仍标记 experimental | 后续优先评估官方库与系统接口 |
 
-`common_locale_data` 最新版 `2.4.0` 发布于 2026-10-07，仍有更新；但 `2.3.0` 起要求 Dart 3.12。`2.2.1` 发布于 2025-01-25，最低要求 Dart 3.5，已在当前 SDK 验证。[版本与 SDK 要求](https://pub.dev/packages/common_locale_data/versions)
+stars 为 2026-11-14 查询值，只描述项目规模，不作为质量结论。`intl4x` 所在的 `dart-lang/i18n` 仓库有 85 stars，这是整个仓库的数量，不是单个包的数量。
 
-推荐调用方式：仅导入应用支持的 `zh`、`en` 显示数据，使用 `localeDisplayName.format(LanguageId.parse(code))`；无需导入所有正文语言对应的数据文件。普通语言显示不调用处理扩展字段的 `formatWithExtensions`。
+Dart 3.12 是相对当前工程的 SDK 兼容性要求，不是该库不可靠的证据。后续接入时一并评估 SDK 升级、DisplayNames 的实验状态、原生构建依赖和各目标平台；不能仅为避开升级就改选维护基础更弱的包。[版本要求](https://pub.dev/packages/intl4x/versions) · [DisplayNames 状态](https://pub.dev/packages/intl4x/changelog)
 
-```dart
-import 'package:common_locale_data/zh.dart';
-
-final names = CommonLocaleDataZh().localeDisplayName;
-final label = names.format(LanguageId.parse('sr-Latn-RS'));
-// 塞尔维亚语（拉丁文，塞尔维亚）
-```
-
-`2.2.1` 默认格式化的实际输出：
-
-| 代码 | 中文界面 | 英文界面 |
-| --- | --- | --- |
-| ja | 日语 | Japanese |
-| zh-Hant | 繁体中文 | Traditional Chinese |
-| zh-Hant-HK | 繁体中文（中国香港特别行政区） | Traditional Chinese (Hong Kong SAR China) |
-| pt-BR | 巴西葡萄牙语 | Brazilian Portuguese |
-| es-419 | 拉丁美洲西班牙语 | Latin American Spanish |
-| sr-Latn-RS | 塞尔维亚语（拉丁文，塞尔维亚） | Serbian (Latin, Serbia) |
-| de-1901 | 德语（传统德文拼字） | German (Traditional German orthography) |
-
-该库默认优先使用约定名称，例如“巴西葡萄牙语”；若希望统一显示“葡萄牙语（巴西）”，可以通过 `preferComposition: true` 配置，无需自己拼接名称。[格式化接口](https://pub.dev/documentation/common_locale_data/2.2.1/common_locale_data/LocaleDisplayName/format.html)
-
-需要在应用封装中明确的边界：
-
-- 源数据仍由源映射并经过现有规范化；库的解析器较宽松，不能替代源数据校验，也不将显示时的代码规范化结果写回数据库
-- 未收录代码默认带说明，例如 `qaa` 显示为“未知语言［qaa］”；应用若采用原代码回退，应在调用前检查名称数据是否存在
-- 按界面语言导入数据可以控制体积。Windows 独立 Dart AOT 探针中，中英文格式化程序相对基础 JSON 输出程序增加 1,864,192 字节（约 1.78 MiB）；这不是 Flutter 应用安装包增量
-- 作为对照，`flutter_localized_locales 2.0.5` 声明打包整个 data 目录，发布包中的 563 个 JSON 文件合计 15,866,180 字节（未压缩）；不能直接与 AOT 增量比较
-- 本次验证包含桌面运行、14 个语言代码的中英文输出、未知子标记和独立 AOT 编译；正式接入后仍需核对实际 Flutter 包体积与页面效果
+此前独立探针的事实仍保留：三个非官方库可在当前 SDK 运行；`common_locale_data 2.2.1` 支持组合名称，但中英文独立 AOT 探针相对基线增加约 1.78 MiB，未知代码还需处理回退。这些均不代表已测得 Flutter 应用体积或已通过页面验收。
