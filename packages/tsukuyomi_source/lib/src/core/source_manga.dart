@@ -5,7 +5,7 @@ part 'package:tsukuyomi_source/src/http/source_http_manga.dart';
 /// 漫画源漫画数据
 ///
 /// 可选详情字段为 `null` 时表示源未提供，更新时保留已有值
-/// 空字符串、空列表和状态 `unknown` 都是明确提供的值，更新时替换已有值
+/// 空字符串、空列表和 [SourceMangaStatus.unknown] 都是明确提供的值，更新时替换已有值
 sealed class SourceManga {
   const SourceManga({
     required this.url,
@@ -29,9 +29,8 @@ sealed class SourceManga {
 
   /// 连载状态
   ///
-  /// 使用统一状态编码，由 [normalizeMangaStatus] 校验
-  /// `unknown` 表示无法确定状态
-  final String? status;
+  /// 状态由源映射为 [SourceMangaStatus]，无法确定时使用 [SourceMangaStatus.unknown]
+  final SourceMangaStatus? status;
 
   /// 漫画简介
   ///

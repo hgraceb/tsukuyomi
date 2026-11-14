@@ -46,7 +46,7 @@ sealed class SourceManga {
   final String cover;
 
   // ${$.debug('status', ($, $$) => $.status)}
-  final String? status;
+  final SourceMangaStatus? status;
 
   // ${$.debug('description', ($, $$) => $.description)}
   final String? description;

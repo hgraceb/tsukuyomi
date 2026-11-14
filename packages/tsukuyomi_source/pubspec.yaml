@@ -17,6 +17,8 @@ dependencies:
 
   # 代码注解
   meta: 1.17.0
+  # JSON 代码生成注解
+  json_annotation: 4.9.0
   # 网络请求
   dio: 5.11.1
   # 图像处理
@@ -36,3 +38,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: 6.0.0
+
+  # JSON 代码生成
+  build_runner: 2.4.13
+  json_serializable: 6.8.0

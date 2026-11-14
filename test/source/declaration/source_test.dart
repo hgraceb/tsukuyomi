@@ -15,21 +15,21 @@ import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 main() {
   final SourceManga manga = HttpSourceManga(
     url: '/manga', name: 'Title', cover: '/cover',
-    status: normalizeMangaStatus('ONGOING'), description: 'First paragraph\\nSecond paragraph',
+    status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
     creators: normalizeMangaCreators(<SourceMangaCreator>[
       SourceMangaCreator(name: ' Author '),
       SourceMangaCreator.fromJson({'name': 'Author'}),
     ]),
     tags: normalizeMangaTags(<SourceMangaTag>[
-      SourceMangaTag(name: 'Adventure', type: 'Genre'),
+      SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.genre),
       SourceMangaTag.fromJson({'name': 'Space', 'type': 'theme'}),
     ]),
     languages: normalizeMangaLanguages(<String>['ZH_hans', 'ja']),
   );
   return <dynamic>[
-    manga.status, manga.description,
+    manga.status!.toJson(), manga.description,
     manga.creators!.first.name, manga.creators!.first.toJson(),
-    manga.tags!.first.name, manga.tags!.first.type, manga.tags!.last.toJson(),
+    manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.last.toJson(),
     manga.languages,
   ];
 }
@@ -43,6 +43,36 @@ main() {
       'genre',
       {'name': 'Space', 'type': 'theme'},
       ['ja', 'zh-Hans'],
+    ]);
+  });
+
+  test('Source enum values retain their host identity and JSON codes', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() {
+  final status = SourceMangaStatus.fromJson('hiatus');
+  final type = SourceMangaTagType.fromJson('genre');
+  return <dynamic>[
+    status, type,
+    status == SourceMangaStatus.hiatus,
+    status is SourceMangaStatus,
+    type == SourceMangaTagType.genre,
+    type is SourceMangaTagType,
+    SourceMangaStatus.values.map((value) => value.toJson()).toList(),
+    SourceMangaTagType.values.map((value) => value.toJson()).toList(),
+  ];
+}
+''';
+    expect(await evalValidSource(source), [
+      SourceMangaStatus.hiatus,
+      SourceMangaTagType.genre,
+      true,
+      true,
+      true,
+      true,
+      ['unknown', 'ongoing', 'completed', 'hiatus', 'cancelled'],
+      ['genre', 'theme', 'format', 'demographic', 'content', 'tag'],
     ]);
   });
 

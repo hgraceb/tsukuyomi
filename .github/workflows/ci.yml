@@ -28,7 +28,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run build_runner
+      - name: Install source dependencies
+        run: flutter pub get
+        working-directory: packages/tsukuyomi_source
+
+      - name: Generate source code
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: packages/tsukuyomi_source
+
+      - name: Generate app code
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Install plugin example dependencies
@@ -66,7 +74,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run build_runner
+      - name: Install source dependencies
+        run: flutter pub get
+        working-directory: packages/tsukuyomi_source
+
+      - name: Generate source code
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: packages/tsukuyomi_source
+
+      - name: Generate app code
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Windows

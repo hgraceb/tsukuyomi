@@ -112,18 +112,18 @@ class DownloadEnqueueResult with _$DownloadEnqueueResult {
 // Bad
 List<DartDeclaration> get $mangaDetails {
   return [
-    DartFunction('normalizeMangaStatus', normalizeMangaStatus, 'external String normalizeMangaStatus(String value);'),
+    DartFunction('normalizeMangaLanguages', normalizeMangaLanguages, 'external List<String> normalizeMangaLanguages(Iterable<String> values);'),
   ];
 }
 
 // Good
-DartFunction get _$normalizeMangaStatus => DartFunction('normalizeMangaStatus', normalizeMangaStatus, '''
-external String normalizeMangaStatus(String value);
+DartFunction get _$normalizeMangaLanguages => DartFunction('normalizeMangaLanguages', normalizeMangaLanguages, '''
+external List<String> normalizeMangaLanguages(Iterable<String> values);
 ''');
 
 List<DartDeclaration> get $mangaDetails {
   return [
-    _$normalizeMangaStatus,
+    _$normalizeMangaLanguages,
   ];
 }
 ```
