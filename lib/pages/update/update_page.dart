@@ -207,11 +207,7 @@ class _UpdateItem extends ConsumerWidget {
     final progress = item.outcome.canReadProgress ? ref.watch(updateProgressProvider(progressCache, item.mangaId)) : const UpdateProgress();
     final completed = progress.completed ?? 0;
     final total = progress.total ?? 0;
-    final count = l10n.updateProgress(
-      progress.completed?.toString() ?? '-',
-      progress.total?.toString() ?? '-',
-      progress.all?.toString() ?? '-',
-    );
+    final count = l10n.updateProgress('${progress.completed ?? '-'}', '${progress.total ?? '-'}', '${progress.all ?? '-'}');
     final complete = progress.hasValue && !progress.hasError && total > 0 && completed == total;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);

@@ -70,13 +70,13 @@ UpdateProgressCache updateProgressCache(UpdateProgressCacheRef ref, String? sess
 UpdateProgress updateProgress(UpdateProgressRef ref, UpdateProgressCache cache, int mangaId) {
   final chapters = ref.watch(chaptersStreamByMangaProvider(mangaId));
   final downloaded = ref.watch(updateDownloadedChaptersProvider(mangaId));
-  final chapterList = !chapters.isLoading && !chapters.hasError ? chapters.valueOrNull : null;
-  final downloadedChapters = !downloaded.isLoading && !downloaded.hasError ? downloaded.valueOrNull : null;
+  final chapterList = chapters.unwrapPrevious().valueOrNull;
+  final downloadedTitles = downloaded.unwrapPrevious().valueOrNull;
   final publicChapters = chapterList?.where((chapter) => chapter.public);
-  final completed = publicChapters?.where((chapter) => downloadedChapters?.contains(chapter.title) == true).length;
+  final completed = downloadedTitles == null ? null : publicChapters?.where((chapter) => downloadedTitles.contains(chapter.title)).length;
   final hasError = chapters.hasError || downloaded.hasError;
   final progress = UpdateProgress(
-    completed: downloadedChapters != null ? completed : null,
+    completed: completed,
     total: publicChapters?.length,
     all: chapterList?.length,
     hasError: hasError,
