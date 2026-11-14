@@ -1213,7 +1213,6 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileSwitchExpression(SwitchExpression node) {
-    // 默认遍历会依次执行所有分支，未实现模式匹配前明确报错
     error('Unsupported switch expression.');
   }
 
