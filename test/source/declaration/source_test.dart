@@ -8,6 +8,44 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
+  test('Manga details construct, normalize and read through the source bridge', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() {
+  final SourceManga manga = HttpSourceManga(
+    url: '/manga', name: 'Title', cover: '/cover',
+    status: normalizeMangaStatus('ONGOING'), description: 'First paragraph\\nSecond paragraph',
+    creators: normalizeMangaCreators(<SourceMangaCreator>[
+      SourceMangaCreator(name: ' Author '),
+      SourceMangaCreator.fromJson({'name': 'Author'}),
+    ]),
+    tags: normalizeMangaTags(<SourceMangaTag>[
+      SourceMangaTag(name: 'Adventure', type: 'Genre'),
+      SourceMangaTag.fromJson({'name': 'Space', 'type': 'theme'}),
+    ]),
+    languages: normalizeMangaLanguages(<String>['ZH_hans', 'ja']),
+  );
+  return <dynamic>[
+    manga.status, manga.description,
+    manga.creators!.first.name, manga.creators!.first.toJson(),
+    manga.tags!.first.name, manga.tags!.first.type, manga.tags!.last.toJson(),
+    manga.languages,
+  ];
+}
+''';
+    expect(await evalValidSource(source), [
+      'ongoing',
+      'First paragraph\nSecond paragraph',
+      'Author',
+      {'name': 'Author'},
+      'Adventure',
+      'genre',
+      {'name': 'Space', 'type': 'theme'},
+      ['ja', 'zh-Hans'],
+    ]);
+  });
+
   test('Source requests accept method and headers', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
