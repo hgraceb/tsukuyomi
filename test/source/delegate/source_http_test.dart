@@ -28,7 +28,7 @@ class Example extends HttpSource {
     return HttpSourcePage<HttpSourceManga>(next: false, data: <HttpSourceManga>[
       HttpSourceManga(
         url: '/manga', name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
-        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author(原作)', url: 'https://example.com/authors/1')],
+        creators: <SourceMangaCreator>[SourceMangaCreator(name: '作者（原作）', url: 'https://example.com/authors/1')],
         tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
         languages: <String>['ja', 'zh-Hans'],
       ),
@@ -49,12 +49,12 @@ main() => Example();
     final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
     final page = await host.getSourceMangas(HttpSourceQuery(keyword: 'Title'));
     final manga = page.data.single;
-    expect(manga.creators, [const SourceMangaCreator(name: 'Author(原作)', url: 'https://example.com/authors/1')]);
+    expect(manga.creators, [const SourceMangaCreator(name: '作者（原作）', url: 'https://example.com/authors/1')]);
     expect(manga.status, SourceMangaStatus.completed);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
     expect(manga.tags, [tag]);
     final chapters = await host.getMangaChapters(manga);
-    expect(chapters.single.name, 'Author(原作)');
+    expect(chapters.single.name, '作者（原作）');
     expect(chapters.single.url, 'https://example.com/categories/1');
     expect(chapters.single.date, 'completed/Synopsis/category/zh-Hans');
   });

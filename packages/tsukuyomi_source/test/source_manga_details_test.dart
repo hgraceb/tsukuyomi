@@ -65,15 +65,15 @@ void main() {
 
   test('Creators preserve display text, links and source order when deduplicating', () {
     final creators = normalizeMangaCreators([
-      const SourceMangaCreator(name: ' 甲(原作) ', url: 'https://example.com/authors/1'),
+      const SourceMangaCreator(name: ' 甲（原作） ', url: 'https://example.com/authors/1'),
       const SourceMangaCreator(name: '乙'),
-      SourceMangaCreator.fromJson({'name': '甲(原作)', 'url': 'https://example.com/authors/1'}),
-      const SourceMangaCreator(name: '甲(原作)', url: 'https://example.com/authors/2'),
+      SourceMangaCreator.fromJson({'name': '甲（原作）', 'url': 'https://example.com/authors/1'}),
+      const SourceMangaCreator(name: '甲（原作）', url: 'https://example.com/authors/2'),
     ]);
     expect(creators.map((value) => value.toJson()), [
-      {'name': '甲(原作)', 'url': 'https://example.com/authors/1'},
+      {'name': '甲（原作）', 'url': 'https://example.com/authors/1'},
       {'name': '乙'},
-      {'name': '甲(原作)', 'url': 'https://example.com/authors/2'},
+      {'name': '甲（原作）', 'url': 'https://example.com/authors/2'},
     ]);
     expect(creators.map((value) => SourceMangaCreator.fromJson(value.toJson())), creators);
     expect(() => normalizeMangaCreators([const SourceMangaCreator(name: ' ')]), throwsFormatException);

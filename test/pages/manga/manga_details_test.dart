@@ -27,7 +27,7 @@ void main() {
     expect(manga.status, SourceMangaStatus.ongoing);
     expect(manga.description, contains('\n\n'));
     expect(manga.creators, [
-      const SourceMangaCreator(name: '星野灯(原作)', url: 'https://example.com/authors/1'),
+      const SourceMangaCreator(name: '星野灯（原作）', url: 'https://example.com/authors/1'),
       const SourceMangaCreator(name: '月见凪'),
     ]);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: '奇幻', url: 'https://example.com/categories/1');
@@ -45,7 +45,7 @@ void main() {
     expect(row.data.containsKey('metadata'), isFalse);
     expect(row.read<String>('status'), 'ongoing');
     expect(jsonDecode(row.read<String>('creators')), [
-      {'name': '星野灯(原作)', 'url': 'https://example.com/authors/1'},
+      {'name': '星野灯（原作）', 'url': 'https://example.com/authors/1'},
       {'name': '月见凪'},
     ]);
     expect(jsonDecode(row.read<String>('tags')), [

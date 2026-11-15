@@ -65,7 +65,7 @@ class SourceMangaCreator with _$SourceMangaCreator {
   const factory SourceMangaCreator({
     /// 显示名称
     ///
-    /// 可以包含漫画源原有的角色说明，例如“某某(原作)”
+    /// 可以包含漫画源原有的角色说明，例如“某某（原作）”
     required String name,
 
     /// 公开链接
@@ -83,7 +83,10 @@ class SourceMangaCreator with _$SourceMangaCreator {
 @freezed
 class SourceMangaTag with _$SourceMangaTag {
   const factory SourceMangaTag({
+    /// 标签分类
     required SourceMangaTagType type,
+
+    /// 显示名称
     required String name,
 
     /// 公开链接

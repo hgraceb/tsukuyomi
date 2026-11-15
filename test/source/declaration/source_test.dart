@@ -53,8 +53,8 @@ main() {
     url: '/manga', name: 'Title', cover: '/cover',
     status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
     creators: normalizeMangaCreators(<SourceMangaCreator>[
-      SourceMangaCreator(name: ' Author(原作) ', url: 'https://example.com/authors/1'),
-      SourceMangaCreator.fromJson({'name': 'Author(原作)', 'url': 'https://example.com/authors/1'}),
+      SourceMangaCreator(name: ' 作者（原作） ', url: 'https://example.com/authors/1'),
+      SourceMangaCreator.fromJson({'name': '作者（原作）', 'url': 'https://example.com/authors/1'}),
     ]),
     tags: normalizeMangaTags(<SourceMangaTag>[
       SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
@@ -74,9 +74,9 @@ main() {
     expect(await evalValidSource(source), [
       'ongoing',
       'First paragraph\nSecond paragraph',
-      'Author(原作)',
+      '作者（原作）',
       'https://example.com/authors/1',
-      {'name': 'Author(原作)', 'url': 'https://example.com/authors/1'},
+      {'name': '作者（原作）', 'url': 'https://example.com/authors/1'},
       'Adventure',
       'category',
       'https://example.com/categories/1',
