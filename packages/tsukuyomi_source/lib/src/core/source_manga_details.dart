@@ -102,26 +102,19 @@ List<SourceMangaTag> normalizeMangaTags(Iterable<SourceMangaTag> values) {
   return List.unmodifiable(tags);
 }
 
-/// 规范内容语言代码
+/// 校验内容语言并去重排序
 ///
-/// 接受语言、可选文字、地区与变体，不处理站点别名、扩展或私用标记
-/// 校验代码结构，不判断语言是否存在；显示端可对未收录的代码直接回退
+/// 按项目约定使用语言与变体小写、文字首字母大写、地区字母大写，如 `zh-Hans`、`pt-BR`
+/// 不修正下划线、空白或大小写，格式不符时抛出 [FormatException]
+/// 接受语言、可选文字、地区与变体，不处理扩展或私用标记，也不验证语言注册表
 List<String> normalizeMangaLanguages(Iterable<String> values) {
-  final pattern = RegExp(r'^[a-z]{2,3}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$');
+  final pattern = RegExp(r'^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$');
   final languages = <String>{};
   for (final value in values) {
-    final code = value.trim().replaceAll('_', '-').toLowerCase();
-    final parts = code.split('-');
-    if (!pattern.hasMatch(code)) {
-      throw FormatException('Invalid manga content language', value);
+    if (pattern.stringMatch(value) != value) {
+      throw FormatException('Invalid manga content language format; expected zh-Hans or pt-BR', value);
     }
-    var index = 1;
-    if (index < parts.length && RegExp(r'^[a-z]{4}$').hasMatch(parts[index])) {
-      parts[index] = '${parts[index][0].toUpperCase()}${parts[index].substring(1)}';
-      index++;
-    }
-    if (index < parts.length && RegExp(r'^[a-z]{2}$').hasMatch(parts[index])) parts[index] = parts[index].toUpperCase();
-    languages.add(parts.join('-'));
+    languages.add(value);
   }
   return List.unmodifiable(languages.toList()..sort());
 }

@@ -23,7 +23,7 @@ main() {
   return <dynamic>[
     absent.status, absent.description, absent.creators, absent.tags, absent.languages,
     empty.status == parseStatus('unknown'), empty.description, empty.creators, empty.tags, empty.languages,
-    normalize(['all', 'UND_latn', 'und', 'mul', 'zxx']),
+    normalize(['all', 'und-Latn', 'und', 'mul', 'zxx']),
     source.SourceMangaStatus.values.first == empty.status,
   ];
 }
@@ -60,7 +60,7 @@ main() {
       SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category),
       SourceMangaTag.fromJson({'name': 'Space', 'type': 'tag'}),
     ]),
-    languages: normalizeMangaLanguages(<String>['ZH_hans', 'ja']),
+    languages: normalizeMangaLanguages(<String>['zh-Hans', 'ja']),
   );
   return <dynamic>[
     manga.status!.toJson(), manga.description,
@@ -83,6 +83,25 @@ main() {
       true,
       ['ja', 'zh-Hans'],
     ]);
+  });
+
+  test('Source language validation rejects noncanonical codes through the bridge', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() {
+  final rejected = <String>[];
+  for (final value in <String>['zh_Hans', 'zh-hans', 'ja ']) {
+    try {
+      normalizeMangaLanguages(<String>[value]);
+    } on FormatException {
+      rejected.add(value);
+    }
+  }
+  return rejected;
+}
+''';
+    expect(await evalValidSource(source), ['zh_Hans', 'zh-hans', 'ja ']);
   });
 
   test('Source enum values retain their host identity and JSON codes', () async {

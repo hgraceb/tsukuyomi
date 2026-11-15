@@ -152,7 +152,7 @@ final List<String>? languages;
 /// 内容语言
 ///
 /// 当前漫画在该源中已知的正文语言代码，例如 `ja`、`zh-Hans`
-/// 代码格式由 [normalizeMangaLanguages] 统一规范
+/// 代码格式由 [normalizeMangaLanguages] 校验
 final List<String>? languages;
 ```
 

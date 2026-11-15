@@ -4,24 +4,56 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
-  test('Content languages normalize casing, deduplicate and sort without guessing scripts', () {
-    expect(normalizeMangaLanguages([' zh ', 'ZH_hans', 'pt-br', 'zh-Hans', 'JA', 'es-419', 'zh-TW', 'de-1901']), [
+  test('Content languages retain their spelling, deduplicate and sort without guessing scripts', () {
+    final values = ['zh', 'zh-Hans', 'pt-BR', 'zh-Hans', 'ja', 'es-419', 'zh-TW', 'de-1901', 'zh-Hant-HK', 'sl-rozaj-biske'];
+    expect(normalizeMangaLanguages(values), [
       'de-1901',
       'es-419',
       'ja',
       'pt-BR',
+      'sl-rozaj-biske',
       'zh',
       'zh-Hans',
+      'zh-Hant-HK',
       'zh-TW',
     ]);
     expect(normalizeMangaLanguages([]), isEmpty);
-    for (final value in ['chinese', '4', '', 'zh--Hans', 'en-US-US']) {
-      expect(() => normalizeMangaLanguages([value]), throwsFormatException, reason: value);
+  });
+
+  test('Content languages reject malformed codes, underscores, whitespace and noncanonical casing', () {
+    for (final value in [
+      'chinese',
+      '4',
+      '',
+      'zh--Hans',
+      'en-US-US',
+      'zh_Hans',
+      'ZH_hans',
+      'pt_BR',
+      ' ja',
+      'ja ',
+      'ja\n',
+      'ja\r\n',
+      '\tja',
+      'zh- Hans',
+      'JA',
+      'zh-hans',
+      'zh-HANS',
+      'pt-br',
+      'pt-Br',
+      'zh-Hant-hk',
+      'sl-ROZAJ',
+    ]) {
+      expect(
+        () => normalizeMangaLanguages(['en', value]),
+        throwsA(isA<FormatException>().having((error) => error.source, 'source', value)),
+        reason: jsonEncode(value),
+      );
     }
   });
 
   test('Language normalization preserves standard special codes and unrecognized languages', () {
-    expect(normalizeMangaLanguages(['all', ' UND ', 'mul', 'zxx', 'UND_latn', 'qaa', 'und']), [
+    expect(normalizeMangaLanguages(['all', 'und', 'mul', 'zxx', 'und-Latn', 'qaa', 'und']), [
       'all',
       'mul',
       'qaa',
