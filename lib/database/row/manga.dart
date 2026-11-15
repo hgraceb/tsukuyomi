@@ -15,14 +15,14 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
     required String url,
     required String title,
     required String cover,
+    required bool favorite,
+    required bool auto,
+    required DateTime? lastCheckAt,
     @Default(SourceMangaStatus.unknown) SourceMangaStatus status,
     @Default('') String description,
     @Default([]) List<SourceMangaCreator> creators,
     @Default([]) List<SourceMangaTag> tags,
     @Default([]) List<String> languages,
-    required bool favorite,
-    required bool auto,
-    required DateTime? lastCheckAt,
   }) = _DatabaseManga;
 
   // TODO 判断是否可以做通用处理直接返回不同类型的 SourceManga
@@ -52,9 +52,9 @@ extension SourceMangaExtension on SourceManga {
       cover: Value(cover),
       status: Value.absentIfNull(status),
       description: Value.absentIfNull(description),
-      creators: creators == null ? const Value.absent() : Value(normalizeMangaCreators(creators!)),
-      tags: tags == null ? const Value.absent() : Value(normalizeMangaTags(tags!)),
-      languages: languages == null ? const Value.absent() : Value(normalizeMangaLanguages(languages!)),
+      creators: Value.absentIfNull(creators),
+      tags: Value.absentIfNull(tags),
+      languages: Value.absentIfNull(languages),
     );
   }
 

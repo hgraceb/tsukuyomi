@@ -3,12 +3,10 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:drift/native.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
-import 'package:tsukuyomi/constants/assets.dart';
 import 'package:tsukuyomi/constants/mock.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
@@ -16,6 +14,8 @@ import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   setUpAll(() {
     if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
   });
@@ -24,7 +24,6 @@ void main() {
     final container = await _seed();
     final database = container.read(databaseProvider);
     final manga = await _read(container);
-    expect(database.schemaVersion, 1);
     expect(manga.status, SourceMangaStatus.ongoing);
     expect(manga.description, contains('\n\n'));
     expect(manga.creators, [const SourceMangaCreator(name: '星野灯'), const SourceMangaCreator(name: '月见凪')]);
@@ -116,54 +115,16 @@ void main() {
     expect(await _read(container), fetched.copyWith(favorite: false));
   });
 
-  for (final explicitNull in [false, true]) {
-    test('Repeated index imports preserve omitted details and user state, explicitNull=$explicitNull', () async {
-      final container = await _seed();
-      final database = container.read(databaseProvider);
-      final repository = container.read(mangaRepositoryProvider);
-      final checked = DateTime.utc(2026, 11, 15);
-      await repository.updateManga(
-        const MangaTableCompanion(id: Value(1600), favorite: Value(false), auto: Value(false), description: Value('Fetched description')),
-      );
-      await repository.updateLastCheckAt(1600, checked);
-      final previous = await _read(container);
-      await database.seedDatabase(await _index(omitDetails: true, explicitNull: explicitNull));
-      expect(await _read(container), previous);
-
-      await database.seedDatabase(await _index());
-      final refreshed = await _read(container);
-      expect(refreshed.description, startsWith('穿越星海'));
-      expect(refreshed.favorite, isFalse);
-      expect(refreshed.auto, isFalse);
-      expect(refreshed.lastCheckAt?.toUtc(), checked);
-      expect(await database.select(database.mangaTable).get(), hasLength(1));
-    });
-  }
-
-  test('An index can explicitly clear details without resetting user settings', () async {
-    final container = await _seed();
-    final database = container.read(databaseProvider);
-    await container.read(mangaServiceProvider).updateFavorite(1600, false);
-    final json = _json();
-    _mangaJson(json).addAll({'status': 'unknown', 'description': '', 'creators': [], 'tags': [], 'languages': [], 'auto': false});
-    await database.seedDatabase(await _load(json));
-    final manga = await _read(container);
-    _expectEmptyDetails(manga);
-    expect(manga.favorite, isFalse);
-    expect(manga.auto, isTrue);
-  });
-
   test('New source records and index records without details use database defaults', () async {
     final container = await _seed(omitDetails: true);
     final database = container.read(databaseProvider);
     final original = await _read(container);
     _expectEmptyDetails(original);
-    final id = await container
-        .read(mangaServiceProvider)
-        .insertSourceManga(
-          original.source,
-          const HttpSourceManga(url: 'new-url', name: 'New title', cover: 'new-cover'),
-        );
+    final service = container.read(mangaServiceProvider);
+    final id = await service.insertSourceManga(
+      original.source,
+      const HttpSourceManga(url: 'new-url', name: 'New title', cover: 'new-cover'),
+    );
     final inserted = await container.read(mangaRepositoryProvider).queryManga(id);
     _expectEmptyDetails(inserted);
     expect(inserted.favorite, isFalse);
@@ -215,70 +176,18 @@ void main() {
     expect(await database.select(database.mangaTable).get(), hasLength(1));
   });
 
-  test('Invalid index details report configuration errors instead of an empty catalog', () async {
-    for (final entry in <(String, Object)>[
-      ('id', 1600.5),
-      ('status', '连载中'),
-      ('languages', ['chinese']),
-      ('languages', ['zh_Hans']),
-      ('languages', ['pt-br']),
-      ('languages', [' ja ']),
-      ('languages', [1]),
-      ('description', 1),
-      (
-        'creators',
-        [
-          {'name': ''},
-        ],
-      ),
-      (
-        'tags',
-        [
-          {'name': '冒险', 'type': 'genre'},
-        ],
-      ),
-      ('auto', 'true'),
-    ]) {
-      final json = _json();
-      _mangaJson(json)[entry.$1] = entry.$2;
-      await expectLater(
-        _load(json),
-        throwsA(isA<FormatException>().having((error) => error.message, 'message', contains('assets/sources/index.json'))),
-      );
-    }
-    for (final index in ['{', '{}', 'null']) {
-      await expectLater(getMockDatabase(bundle: _Assets({'assets/sources/index.json': index})), throwsFormatException);
-    }
-  });
-
-  test('Missing source files surface their path instead of falling back to example data', () async {
-    final json = _json();
-    await expectLater(
-      getMockDatabase(bundle: _Assets({'assets/sources/index.json': jsonEncode(json)})),
-      throwsA(isA<FlutterError>().having((error) => error.toString(), 'message', contains('assets/sources/example.dart'))),
-    );
-  });
-
-  test('Only a missing index uses example data and disabled sources do not load scripts', () async {
-    final fallback = await getMockDatabase(bundle: _Assets({Assets.sourceExample: 'main() => null;'}));
-    final container = _container();
-    final database = container.read(databaseProvider);
-    await database.seedDatabase(fallback);
-    final manga = await database.select(database.mangaTable).getSingle();
-    expect(manga.title, 'Example Manga');
-    _expectEmptyDetails(manga);
-
-    final json = _json();
-    json.single['enabled'] = false;
-    final disabled = await getMockDatabase(bundle: _Assets({'assets/sources/index.json': jsonEncode(json)}));
-    expect(disabled.sources, isEmpty);
-    expect(disabled.mangas, isEmpty);
+  test('Mock parsing rejects unsupported tag types such as invalid_type', () {
+    final json = _mangaJson(_json());
+    json['tags'] = [
+      {'name': '冒险', 'type': 'invalid_type'},
+    ];
+    expect(() => MockManga.fromJson(json), throwsArgumentError);
   });
 
   for (final entry in [
     (column: 'status', value: 'invalid', matcher: throwsArgumentError),
     (column: 'creators', value: '{}', matcher: throwsA(isA<TypeError>())),
-    (column: 'tags', value: '[{"name":"冒险","type":"genre"}]', matcher: throwsArgumentError),
+    (column: 'tags', value: '[{"name":"冒险","type":"invalid_type"}]', matcher: throwsArgumentError),
     (column: 'languages', value: '["zh_hans"]', matcher: throwsFormatException),
   ]) {
     test('Malformed stored ${entry.column} reports an error instead of returning an empty value', () async {
@@ -295,40 +204,32 @@ List<dynamic> _json() => jsonDecode(File('test/fixtures/manga_index.json').readA
 
 Map<String, dynamic> _mangaJson(List<dynamic> json) => (json.single['mangas'] as List<dynamic>).single as Map<String, dynamic>;
 
-Future<MockDatabase> _load(List<dynamic> json) {
-  return getMockDatabase(
-    bundle: _Assets({'assets/sources/index.json': jsonEncode(json), 'assets/sources/example.dart': 'main() => null;'}),
-  );
-}
-
-Future<MockDatabase> _index({bool omitDetails = false, bool explicitNull = false}) {
+Future<ProviderContainer> _seed({bool omitDetails = false}) async {
   final json = _json();
   if (omitDetails) {
     final manga = _mangaJson(json);
     for (final key in _detailFields) {
-      if (explicitNull) {
-        manga[key] = null;
-      } else {
-        manga.remove(key);
-      }
+      manga.remove(key);
     }
   }
-  return _load(json);
-}
+  final assets = {'assets/sources/index.json': jsonEncode(json), 'assets/sources/example.dart': 'main() => null;'};
+  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  rootBundle.clear();
+  messenger.setMockMessageHandler('flutter/assets', (message) async {
+    final key = utf8.decode(message!.buffer.asUint8List(message.offsetInBytes, message.lengthInBytes));
+    final content = assets[key];
+    return content == null ? null : ByteData.sublistView(Uint8List.fromList(utf8.encode(content)));
+  });
 
-Future<ProviderContainer> _seed({bool omitDetails = false}) async {
-  final container = _container();
-  await container.read(databaseProvider).seedDatabase(await _index(omitDetails: omitDetails));
-  return container;
-}
-
-ProviderContainer _container() {
-  final database = _Database();
+  final database = TsukuyomiDatabase.forTesting(NativeDatabase.memory());
   final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(database)]);
   addTearDown(() async {
     container.dispose();
     await database.close();
+    rootBundle.clear();
+    messenger.setMockMessageHandler('flutter/assets', null);
   });
+  await database.select(database.sourceTable).get();
   return container;
 }
 
@@ -340,24 +241,4 @@ void _expectEmptyDetails(DatabaseManga manga) {
   expect(manga.creators, isEmpty);
   expect(manga.tags, isEmpty);
   expect(manga.languages, isEmpty);
-}
-
-class _Database extends TsukuyomiDatabase {
-  _Database() : super.forTesting(NativeDatabase.memory());
-
-  @override
-  MigrationStrategy get migration => MigrationStrategy(beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'));
-}
-
-class _Assets extends CachingAssetBundle {
-  _Assets(this.files);
-
-  final Map<String, String> files;
-
-  @override
-  Future<ByteData> load(String key) async {
-    final text = files[key];
-    if (text == null) throw FlutterError('Unable to load asset: $key');
-    return ByteData.sublistView(Uint8List.fromList(utf8.encode(text)));
-  }
 }

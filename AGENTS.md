@@ -281,3 +281,22 @@ final unsupportedClasses = declarations
 final unsupportedDeclarations = declarations.where((e) => e.hasUnsupportedTypeRelations || hasUnsupportedSuperclassAlias(e));
 final unsupportedClasses = unsupportedDeclarations.map((e) => e.declaredElement).toSet();
 ```
+
+- 链式调用的末尾方法需要多行参数时，先提取接收对象或参数，避免链式调用和参数同时展开，如：
+
+```dart
+// Bad
+final id = await container
+    .read(mangaServiceProvider)
+    .insertSourceManga(
+      source,
+      const HttpSourceManga(url: 'url', name: 'title', cover: 'cover'),
+    );
+
+// Good
+final service = container.read(mangaServiceProvider);
+final id = await service.insertSourceManga(
+  source,
+  const HttpSourceManga(url: 'url', name: 'title', cover: 'cover'),
+);
+```

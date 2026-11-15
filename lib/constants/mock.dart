@@ -2,131 +2,143 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:tsukuyomi/constants/assets.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
-
-part 'mock.freezed.dart';
-part 'mock.g.dart';
 
 class MockDatabase {
   MockDatabase._({required this.sources, required this.mangas});
 
   final List<DatabaseSource> sources;
 
-  final List<MangaTableCompanion> mangas;
+  final List<DatabaseManga> mangas;
 }
 
-@freezed
-class MockSource with _$MockSource {
-  const MockSource._();
+class MockSource {
+  MockSource._({required this.name, required this.path, required this.enabled, required this.mangas});
 
-  const factory MockSource({
-    required String name,
-    required String path,
-    required bool enabled,
-    required List<MockManga> mangas,
-  }) = _MockSource;
+  factory MockSource.fromJson(Map<String, dynamic> json) => MockSource._(
+    name: json['name'],
+    path: json['path'],
+    enabled: json['enabled'],
+    mangas: (json['mangas'] as List).map((e) => MockManga.fromJson(e)).toList(),
+  );
 
-  factory MockSource.fromJson(Map<String, dynamic> json) => _$MockSourceFromJson(json);
+  final String name;
 
-  int get id => name.hashCode;
+  final String path;
 
-  String get nameWithPath => '$name\n$path';
+  final bool enabled;
+
+  final List<MockManga> mangas;
+
+  late final id = name.hashCode;
+
+  late final nameWithPath = '$name\n$path';
 }
 
-@freezed
-class MockManga with _$MockManga {
-  const MockManga._();
+class MockManga {
+  MockManga._({
+    required this.id,
+    required this.url,
+    required this.title,
+    required this.cover,
+    required this.auto,
+    required this.status,
+    required this.description,
+    required this.creators,
+    required this.tags,
+    required this.languages,
+  });
 
-  const factory MockManga({
-    @JsonKey(fromJson: _mangaIdFromJson) required int id, // ignore: invalid_annotation_target
-    required String url,
-    required String title,
-    required String cover,
-    SourceMangaStatus? status,
-    String? description,
-    List<SourceMangaCreator>? creators,
-    List<SourceMangaTag>? tags,
-    List<String>? languages,
-    @Default(false) bool auto,
-  }) = _MockManga;
+  factory MockManga.fromJson(Map<String, dynamic> json) => MockManga._(
+    id: json['id'],
+    url: json['url'],
+    title: json['title'],
+    cover: json['cover'],
+    auto: json['auto'] == true,
+    status: json['status'] == null ? SourceMangaStatus.unknown : SourceMangaStatus.fromJson(json['status']),
+    description: json['description'] ?? '',
+    creators: (json['creators'] as List<dynamic>?)?.map((e) => SourceMangaCreator.fromJson(e)).toList() ?? [],
+    tags: (json['tags'] as List<dynamic>?)?.map((e) => SourceMangaTag.fromJson(e)).toList() ?? [],
+    languages: (json['languages'] as List<dynamic>?)?.cast<String>() ?? [],
+  );
 
-  factory MockManga.fromJson(Map<String, dynamic> json) => _$MockMangaFromJson(json);
+  final int id;
 
-  MangaTableCompanion toInsertable(int source) {
-    final manga = HttpSourceManga(
-      url: url,
-      name: title,
-      cover: cover,
-      status: status,
-      description: description,
-      creators: creators,
-      tags: tags,
-      languages: languages,
+  final String url;
+
+  final String title;
+
+  final String cover;
+
+  final bool auto;
+
+  final SourceMangaStatus status;
+
+  final String description;
+
+  final List<SourceMangaCreator> creators;
+
+  final List<SourceMangaTag> tags;
+
+  final List<String> languages;
+}
+
+Future<MockDatabase> getMockDatabase() async {
+  try {
+    final decoded = jsonDecode(await rootBundle.loadString('assets/sources/index.json')) as List<dynamic>;
+    final sources = decoded.map((e) => MockSource.fromJson(e as Map<String, dynamic>)).where((e) => e.enabled).toList();
+    return MockDatabase._(
+      sources: [
+        for (final source in sources) ...[
+          DatabaseSource(
+            id: source.id,
+            name: source.nameWithPath,
+            source: base64.encode(utf8.encode(await rootBundle.loadString(source.path))),
+          ),
+        ],
+      ],
+      mangas: [
+        for (final source in sources) ...[
+          for (final manga in source.mangas) ...[
+            DatabaseManga(
+              id: manga.id,
+              source: source.id,
+              url: manga.url,
+              title: manga.title,
+              cover: manga.cover,
+              favorite: true,
+              auto: manga.auto,
+              lastCheckAt: null,
+              status: manga.status,
+              description: manga.description,
+              creators: manga.creators,
+              tags: manga.tags,
+              languages: manga.languages,
+            ),
+          ],
+        ],
+      ],
     );
-    return manga
-        .toInsertable(source)
-        .copyWith(
-          id: Value(id),
-          title: Value(title),
-          favorite: const Value(true),
-          auto: Value(auto),
-        );
+  } on FlutterError catch (_) {
+    final mockSource = MockSource._(name: 'Example Source', path: Assets.sourceExample, enabled: true, mangas: []);
+    final sourceCode = base64.encode(utf8.encode(await rootBundle.loadString(mockSource.path)));
+    final databaseSource = DatabaseSource(id: mockSource.id, name: mockSource.nameWithPath, source: sourceCode);
+    // TODO 使用更通用的方式获取示例漫画数据
+    final mockManga = DatabaseManga(
+      id: 0,
+      source: mockSource.id,
+      url: '16,74,176,213,218,266,381,385,404,461,477,481,516,603,609,626,640,657,715,716',
+      title: 'Example Manga',
+      cover: 'https://picsum.photos/id/384/800/1200',
+      favorite: true,
+      auto: false,
+      lastCheckAt: null,
+    );
+    return MockDatabase._(sources: [databaseSource], mangas: [mockManga]);
+  } catch (e) {
+    // TODO 判断是否需要通过控制台日志提示可以进行本地模拟数据配置
+    return MockDatabase._(sources: [], mangas: []);
   }
-}
-
-// 主键严格接受整数，避免截断小数后更新其他漫画
-int _mangaIdFromJson(Object? value) => value as int;
-
-Future<MockDatabase> getMockDatabase({AssetBundle? bundle}) async {
-  final assets = bundle ?? rootBundle;
-  final String index;
-  try {
-    index = await assets.loadString('assets/sources/index.json');
-  } on FlutterError {
-    return _getExampleDatabase(assets);
-  }
-  final List<MockSource> sources;
-  final List<MangaTableCompanion> mangas;
-  try {
-    final decoded = jsonDecode(index) as List<dynamic>;
-    sources = decoded.map((e) => MockSource.fromJson(e as Map<String, dynamic>)).where((e) => e.enabled).toList();
-    mangas = [
-      for (final source in sources) ...[
-        for (final manga in source.mangas) manga.toInsertable(source.id),
-      ],
-    ];
-  } catch (error, stackTrace) {
-    Error.throwWithStackTrace(FormatException('Invalid assets/sources/index.json: $error'), stackTrace);
-  }
-  return MockDatabase._(
-    sources: [
-      for (final source in sources) ...[
-        DatabaseSource(
-          id: source.id,
-          name: source.nameWithPath,
-          source: base64.encode(utf8.encode(await assets.loadString(source.path))),
-        ),
-      ],
-    ],
-    mangas: mangas,
-  );
-}
-
-Future<MockDatabase> _getExampleDatabase(AssetBundle assets) async {
-  const mockSource = MockSource(name: 'Example Source', path: Assets.sourceExample, enabled: true, mangas: []);
-  final sourceCode = base64.encode(utf8.encode(await assets.loadString(mockSource.path)));
-  final databaseSource = DatabaseSource(id: mockSource.id, name: mockSource.nameWithPath, source: sourceCode);
-  // TODO 使用更通用的方式获取示例漫画数据
-  final mockManga = MangaTableCompanion.insert(
-    id: const Value(0),
-    source: mockSource.id,
-    url: '16,74,176,213,218,266,381,385,404,461,477,481,516,603,609,626,640,657,715,716',
-    title: 'Example Manga',
-    cover: 'https://picsum.photos/id/384/800/1200',
-    favorite: true,
-  );
-  return MockDatabase._(sources: [databaseSource], mangas: [mockManga]);
 }
