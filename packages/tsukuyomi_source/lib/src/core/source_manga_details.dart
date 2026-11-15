@@ -112,7 +112,7 @@ List<String> normalizeMangaLanguages(Iterable<String> values) {
   for (final value in values) {
     final code = value.trim().replaceAll('_', '-').toLowerCase();
     final parts = code.split('-');
-    if (!pattern.hasMatch(code) || const {'all', 'und', 'mul', 'zxx'}.contains(parts.first)) {
+    if (!pattern.hasMatch(code)) {
       throw FormatException('Invalid manga content language', value);
     }
     var index = 1;

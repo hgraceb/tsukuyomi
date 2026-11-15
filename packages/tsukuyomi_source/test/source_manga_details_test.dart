@@ -15,9 +15,20 @@ void main() {
       'zh-TW',
     ]);
     expect(normalizeMangaLanguages([]), isEmpty);
-    for (final value in ['chinese', '4', '', 'all', 'und', 'mul', 'zxx', 'zh--Hans', 'en-US-US']) {
+    for (final value in ['chinese', '4', '', 'zh--Hans', 'en-US-US']) {
       expect(() => normalizeMangaLanguages([value]), throwsFormatException, reason: value);
     }
+  });
+
+  test('Language normalization preserves standard special codes and unrecognized languages', () {
+    expect(normalizeMangaLanguages(['all', ' UND ', 'mul', 'zxx', 'UND_latn', 'qaa', 'und']), [
+      'all',
+      'mul',
+      'qaa',
+      'und',
+      'und-Latn',
+      'zxx',
+    ]);
   });
 
   test('Creators preserve source order and only serialize names', () {

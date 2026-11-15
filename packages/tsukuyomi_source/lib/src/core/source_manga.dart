@@ -50,7 +50,8 @@ sealed class SourceManga {
   /// 内容语言
   ///
   /// 当前漫画在该源中已知的正文语言代码，例如 `ja`、`zh-Hans`
-  /// 多语言版本分别列出，未确定语言时使用空列表
+  /// 已知的多语言版本分别列出，未确定语言时可使用空列表
+  /// 保留标准特殊代码，例如 `zxx` 表示无语言内容
   /// 站点原始标记由源映射，代码格式由 [normalizeMangaLanguages] 统一规范
   final List<String>? languages;
 }
