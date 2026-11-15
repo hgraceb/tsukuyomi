@@ -29,7 +29,7 @@ class Example extends HttpSource {
       HttpSourceManga(
         url: '/manga', name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
         creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author')],
-        tags: <SourceMangaTag>[SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.genre)],
+        tags: <SourceMangaTag>[SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category)],
         languages: <String>['ja', 'zh-Hans'],
       ),
     ]);
@@ -51,10 +51,10 @@ main() => Example();
     final manga = page.data.single;
     expect(manga.creators, [const SourceMangaCreator(name: 'Author')]);
     expect(manga.status, SourceMangaStatus.completed);
-    expect(manga.tags, [const SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.genre)]);
+    expect(manga.tags, [const SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category)]);
     final chapters = await host.getMangaChapters(manga);
     expect(chapters.single.name, 'Author');
-    expect(chapters.single.date, 'completed/Synopsis/genre/zh-Hans');
+    expect(chapters.single.date, 'completed/Synopsis/category/zh-Hans');
   });
 
   test('Source getters work after initialization in compute', () async {

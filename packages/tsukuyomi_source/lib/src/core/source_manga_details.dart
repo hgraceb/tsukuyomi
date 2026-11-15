@@ -35,29 +35,21 @@ enum SourceMangaStatus {
 /// 标签分类
 @JsonEnum(alwaysCreate: true)
 enum SourceMangaTagType {
-  /// 题材
-  @JsonValue('genre')
-  genre,
-
-  /// 主题
-  @JsonValue('theme')
-  theme,
-
-  /// 形式
-  @JsonValue('format')
-  format,
-
-  /// 受众
-  @JsonValue('demographic')
-  demographic,
-
-  /// 内容提示
-  @JsonValue('content')
-  content,
-
-  /// 未分类标签
+  /// 标签
   @JsonValue('tag')
-  tag
+  tag,
+
+  /// 角色
+  @JsonValue('character')
+  character,
+
+  /// 分类
+  @JsonValue('category')
+  category,
+
+  /// 其他
+  @JsonValue('other')
+  other
   ;
 
   static SourceMangaTagType fromJson(String value) => $enumDecode(_$SourceMangaTagTypeEnumMap, value);
@@ -79,7 +71,7 @@ class SourceMangaCreator with _$SourceMangaCreator {
 
 /// 漫画标签
 ///
-/// 分类由漫画源映射，无法确定分类时使用 [SourceMangaTagType.tag]
+/// 分类由漫画源映射，无法确定分类时使用 [SourceMangaTagType.other]
 @freezed
 class SourceMangaTag with _$SourceMangaTag {
   const factory SourceMangaTag({

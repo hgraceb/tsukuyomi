@@ -21,8 +21,8 @@ main() {
       SourceMangaCreator.fromJson({'name': 'Author'}),
     ]),
     tags: normalizeMangaTags(<SourceMangaTag>[
-      SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.genre),
-      SourceMangaTag.fromJson({'name': 'Space', 'type': 'theme'}),
+      SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category),
+      SourceMangaTag.fromJson({'name': 'Space', 'type': 'tag'}),
     ]),
     languages: normalizeMangaLanguages(<String>['ZH_hans', 'ja']),
   );
@@ -41,8 +41,8 @@ main() {
       'Author',
       {'name': 'Author'},
       'Adventure',
-      'genre',
-      {'name': 'Space', 'type': 'theme'},
+      'category',
+      {'name': 'Space', 'type': 'tag'},
       true,
       true,
       ['ja', 'zh-Hans'],
@@ -55,12 +55,12 @@ import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 main() {
   final status = SourceMangaStatus.fromJson('hiatus');
-  final type = SourceMangaTagType.fromJson('genre');
+  final type = SourceMangaTagType.fromJson('character');
   return <dynamic>[
     status, type,
     status == SourceMangaStatus.hiatus,
     status is SourceMangaStatus,
-    type == SourceMangaTagType.genre,
+    type == SourceMangaTagType.character,
     type is SourceMangaTagType,
     SourceMangaStatus.values.map((value) => value.toJson()).toList(),
     SourceMangaTagType.values.map((value) => value.toJson()).toList(),
@@ -69,13 +69,13 @@ main() {
 ''';
     expect(await evalValidSource(source), [
       SourceMangaStatus.hiatus,
-      SourceMangaTagType.genre,
+      SourceMangaTagType.character,
       true,
       true,
       true,
       true,
       ['unknown', 'ongoing', 'completed', 'hiatus', 'cancelled'],
-      ['genre', 'theme', 'format', 'demographic', 'content', 'tag'],
+      ['tag', 'character', 'category', 'other'],
     ]);
   });
 

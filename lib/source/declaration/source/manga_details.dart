@@ -26,18 +26,14 @@ enum SourceMangaStatus {
 DartClass get _$SourceMangaTagType => DartClass<SourceMangaTagType>(($) => '''
 // ${$.empty('SourceMangaTagType.values', () => SourceMangaTagType.values)}
 enum SourceMangaTagType {
-  // ${$.empty('SourceMangaTagType.genre', () => SourceMangaTagType.genre)}
-  genre,
-  // ${$.empty('SourceMangaTagType.theme', () => SourceMangaTagType.theme)}
-  theme,
-  // ${$.empty('SourceMangaTagType.format', () => SourceMangaTagType.format)}
-  format,
-  // ${$.empty('SourceMangaTagType.demographic', () => SourceMangaTagType.demographic)}
-  demographic,
-  // ${$.empty('SourceMangaTagType.content', () => SourceMangaTagType.content)}
-  content,
   // ${$.empty('SourceMangaTagType.tag', () => SourceMangaTagType.tag)}
-  tag;
+  tag,
+  // ${$.empty('SourceMangaTagType.character', () => SourceMangaTagType.character)}
+  character,
+  // ${$.empty('SourceMangaTagType.category', () => SourceMangaTagType.category)}
+  category,
+  // ${$.empty('SourceMangaTagType.other', () => SourceMangaTagType.other)}
+  other;
 
   // ${$.empty('SourceMangaTagType.fromJson', () => SourceMangaTagType.fromJson)}
   external static SourceMangaTagType fromJson(String value);

@@ -35,15 +35,17 @@ void main() {
 
   test('Tag identity includes type and unknown classifications require explicit mapping', () {
     final tags = normalizeMangaTags([
-      const SourceMangaTag(name: ' 冒险 ', type: SourceMangaTagType.genre),
-      const SourceMangaTag(name: '冒险', type: SourceMangaTagType.genre),
-      SourceMangaTag.fromJson({'name': '冒险', 'type': 'theme'}),
+      const SourceMangaTag(name: ' 冒险 ', type: SourceMangaTagType.category),
+      const SourceMangaTag(name: '冒险', type: SourceMangaTagType.category),
+      SourceMangaTag.fromJson({'name': '冒险', 'type': 'tag'}),
     ]);
     expect(tags.map((value) => value.toJson()), [
-      {'name': '冒险', 'type': 'genre'},
-      {'name': '冒险', 'type': 'theme'},
+      {'name': '冒险', 'type': 'category'},
+      {'name': '冒险', 'type': 'tag'},
     ]);
-    expect(() => SourceMangaTag.fromJson({'name': '冒险', 'type': 'site-category'}), throwsArgumentError);
+    for (final type in ['genre', 'theme', 'format', 'demographic', 'content', 'site-category']) {
+      expect(() => SourceMangaTag.fromJson({'name': '冒险', 'type': type}), throwsArgumentError, reason: type);
+    }
     expect(() => normalizeMangaTags([const SourceMangaTag(name: '', type: SourceMangaTagType.tag)]), throwsFormatException);
   });
 
@@ -67,12 +69,10 @@ void main() {
 
   test('Generated field conversions round-trip every tag type without adding fields', () {
     const values = {
-      SourceMangaTagType.genre: 'genre',
-      SourceMangaTagType.theme: 'theme',
-      SourceMangaTagType.format: 'format',
-      SourceMangaTagType.demographic: 'demographic',
-      SourceMangaTagType.content: 'content',
       SourceMangaTagType.tag: 'tag',
+      SourceMangaTagType.character: 'character',
+      SourceMangaTagType.category: 'category',
+      SourceMangaTagType.other: 'other',
     };
     for (final entry in values.entries) {
       final tag = SourceMangaTag(name: '标签', type: entry.key);
