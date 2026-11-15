@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tsukuyomi/constants/assets.dart';
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class MockDatabase {
   MockDatabase._({required this.sources, required this.mangas});
@@ -37,14 +38,30 @@ class MockSource {
 }
 
 class MockManga {
-  MockManga._({required this.id, required this.url, required this.title, required this.cover, required this.auto});
+  MockManga._({
+    required this.id,
+    required this.url,
+    required this.title,
+    required this.cover,
+    required this.auto,
+    required this.status,
+    required this.description,
+    required this.creators,
+    required this.tags,
+    required this.languages,
+  });
 
   factory MockManga.fromJson(Map<String, dynamic> json) => MockManga._(
-    id: json['id'],
+    id: json['id'] as int,
     url: json['url'],
     title: json['title'],
     cover: json['cover'],
     auto: json['auto'] == true,
+    status: json['status'] == null ? SourceMangaStatus.unknown : SourceMangaStatus.fromJson(json['status']),
+    description: json['description'] ?? '',
+    creators: (json['creators'] as List<dynamic>?)?.map((e) => SourceMangaCreator.fromJson(e)).toList() ?? [],
+    tags: (json['tags'] as List<dynamic>?)?.map((e) => SourceMangaTag.fromJson(e)).toList() ?? [],
+    languages: (json['languages'] as List<dynamic>?)?.cast<String>() ?? [],
   );
 
   final int id;
@@ -56,6 +73,16 @@ class MockManga {
   final String cover;
 
   final bool auto;
+
+  final SourceMangaStatus status;
+
+  final String description;
+
+  final List<SourceMangaCreator> creators;
+
+  final List<SourceMangaTag> tags;
+
+  final List<String> languages;
 }
 
 Future<MockDatabase> getMockDatabase() async {
@@ -84,6 +111,11 @@ Future<MockDatabase> getMockDatabase() async {
               favorite: true,
               auto: manga.auto,
               lastCheckAt: null,
+              status: manga.status,
+              description: manga.description,
+              creators: manga.creators,
+              tags: manga.tags,
+              languages: manga.languages,
             ),
           ],
         ],

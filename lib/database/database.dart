@@ -2,8 +2,10 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/constants/constants.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'connection/connection.dart';
+import 'converter/manga.dart';
 import 'row/row.dart';
 import 'table/table.dart';
 

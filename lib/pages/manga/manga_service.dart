@@ -10,8 +10,8 @@ class MangaService {
 
   final MangaServiceRef ref;
 
-  Future<int> updateManga(DatabaseManga manga) {
-    return ref.read(mangaRepositoryProvider).updateManga(manga.toUpdatable());
+  Future<int> updateFavorite(int mangaId, bool favorite) {
+    return ref.read(mangaRepositoryProvider).updateManga(MangaTableCompanion(id: Value(mangaId), favorite: Value(favorite)));
   }
 
   Future<int> insertSourceManga(int source, SourceManga manga) async {
@@ -20,7 +20,7 @@ class MangaService {
     if (result == null) {
       return repository.insertManga(manga.toInsertable(source));
     } else {
-      return repository.updateManga(manga.toUpdatable(result));
+      return repository.updateManga(manga.toUpdatable(result.id));
     }
   }
 }

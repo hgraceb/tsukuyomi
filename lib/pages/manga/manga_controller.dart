@@ -132,7 +132,7 @@ class MangaController extends _$MangaController with AsyncNotifierMixin {
   /// 切换漫画收藏状态
   Future<void> toggleFavorite(DatabaseManga manga) async {
     try {
-      await ref.read(mangaServiceProvider).updateManga(manga.copyWith(favorite: !manga.favorite));
+      await ref.read(mangaServiceProvider).updateFavorite(manga.id, !manga.favorite);
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);
     }

@@ -13,7 +13,9 @@ class MangaRepository {
   }
 
   Future<int> updateManga(MangaTableCompanion manga) async {
-    await database.update(database.mangaTable).replace(manga);
+    final query = database.update(database.mangaTable);
+    query.whereSamePrimaryKey(manga);
+    await query.write(manga.copyWith(id: const Value.absent()));
     return manga.id.value;
   }
 
