@@ -3,5 +3,5 @@ targets:
     builders:
       json_serializable:
         options:
-          # 显式转换嵌套对象，toJson 直接返回可编码的字段值
+          # 显式转换嵌套对象
           explicit_to_json: true

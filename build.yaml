@@ -11,7 +11,7 @@ targets:
             - unnecessary_non_null_assertion
       json_serializable:
         options:
-          # 显式 toJson 调用支持嵌套模型
+          # 显式转换嵌套对象
           explicit_to_json: true
       # Drift 编译选项：https://drift.simonbinder.eu/docs/advanced-features/builder_options/
       drift_dev:
