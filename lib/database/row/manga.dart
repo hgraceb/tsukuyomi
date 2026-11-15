@@ -45,6 +45,10 @@ extension SourceMangaExtension on SourceManga {
     return _toContent().copyWith(id: Value(mangaId));
   }
 
+  MangaTableCompanion toInsertable(int source) {
+    return _toContent().copyWith(source: Value(source), favorite: const Value(false));
+  }
+
   MangaTableCompanion _toContent() {
     return MangaTableCompanion(
       url: Value(url),
@@ -55,13 +59,6 @@ extension SourceMangaExtension on SourceManga {
       creators: Value.absentIfNull(creators),
       tags: Value.absentIfNull(tags),
       languages: Value.absentIfNull(languages),
-    );
-  }
-
-  MangaTableCompanion toInsertable(int source) {
-    return _toContent().copyWith(
-      source: Value(source),
-      favorite: const Value(false),
     );
   }
 }

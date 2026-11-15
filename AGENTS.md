@@ -295,8 +295,5 @@ final id = await container
 
 // Good
 final service = container.read(mangaServiceProvider);
-final id = await service.insertSourceManga(
-  source,
-  const HttpSourceManga(url: 'url', name: 'title', cover: 'cover'),
-);
+final id = await service.insertSourceManga(source, const HttpSourceManga(url: 'url', name: 'title', cover: 'cover'));
 ```

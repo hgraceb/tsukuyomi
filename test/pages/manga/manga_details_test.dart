@@ -121,10 +121,8 @@ void main() {
     final original = await _read(container);
     _expectEmptyDetails(original);
     final service = container.read(mangaServiceProvider);
-    final id = await service.insertSourceManga(
-      original.source,
-      const HttpSourceManga(url: 'new-url', name: 'New title', cover: 'new-cover'),
-    );
+    const sourceManga = HttpSourceManga(url: 'new-url', name: 'New title', cover: 'new-cover');
+    final id = await service.insertSourceManga(original.source, sourceManga);
     final inserted = await container.read(mangaRepositoryProvider).queryManga(id);
     _expectEmptyDetails(inserted);
     expect(inserted.favorite, isFalse);
@@ -141,10 +139,8 @@ void main() {
     final service = container.read(mangaServiceProvider);
     final tags = [for (final type in SourceMangaTagType.values) SourceMangaTag(name: '同名标签', type: type)];
     for (final status in SourceMangaStatus.values) {
-      await service.insertSourceManga(
-        original.source,
-        HttpSourceManga(url: original.url, name: original.title, cover: original.cover, status: status, tags: tags),
-      );
+      final sourceManga = HttpSourceManga(url: original.url, name: original.title, cover: original.cover, status: status, tags: tags);
+      await service.insertSourceManga(original.source, sourceManga);
       final manga = await _read(container);
       expect(manga.status, status);
       expect(manga.tags, tags);
@@ -159,18 +155,17 @@ void main() {
     final original = await _read(container);
     final service = container.read(mangaServiceProvider);
     for (final url in [original.url, 'new-url']) {
-      await expectLater(
-        service.insertSourceManga(
-          original.source,
-          HttpSourceManga(url: url, name: 'Invalid update', cover: 'new-cover', description: 'New description', languages: ['zh_hans']),
-        ),
-        throwsFormatException,
+      final sourceManga = HttpSourceManga(
+        url: url,
+        name: 'Invalid update',
+        cover: 'new-cover',
+        description: 'New description',
+        languages: ['zh_hans'],
       );
+      await expectLater(service.insertSourceManga(original.source, sourceManga), throwsFormatException);
     }
-    await expectLater(
-      container.read(mangaRepositoryProvider).updateManga(const MangaTableCompanion(id: Value(1600), languages: Value(['pt-br']))),
-      throwsFormatException,
-    );
+    const update = MangaTableCompanion(id: Value(1600), languages: Value(['pt-br']));
+    await expectLater(container.read(mangaRepositoryProvider).updateManga(update), throwsFormatException);
     expect(await _read(container), original);
     final database = container.read(databaseProvider);
     expect(await database.select(database.mangaTable).get(), hasLength(1));
