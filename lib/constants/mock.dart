@@ -52,7 +52,7 @@ class MockManga {
   });
 
   factory MockManga.fromJson(Map<String, dynamic> json) => MockManga._(
-    id: json['id'],
+    id: json['id'] as int,
     url: json['url'],
     title: json['title'],
     cover: json['cover'],
