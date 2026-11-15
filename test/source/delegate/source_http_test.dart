@@ -16,6 +16,47 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  test('Manga details survive host isolate calls in both directions', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+class Example extends HttpSource {
+  final String name = 'Example';
+  final String baseUrl = 'https://example.com';
+
+  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) async {
+    return HttpSourcePage<HttpSourceManga>(next: false, data: <HttpSourceManga>[
+      HttpSourceManga(
+        url: '/manga', name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
+        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author')],
+        tags: <SourceMangaTag>[SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category)],
+        languages: <String>['ja', 'zh-Hans'],
+      ),
+    ]);
+  }
+
+  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) async {
+    return <HttpSourceChapter>[
+      HttpSourceChapter(url: manga.url, name: manga.creators!.first.name,
+        date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
+    ];
+  }
+}
+
+main() => Example();
+''';
+    final instance = await compute((source) => eval(source, libraries: evalLibraries), source) as ObjInstance;
+    final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
+    final page = await host.getSourceMangas(HttpSourceQuery(keyword: 'Title'));
+    final manga = page.data.single;
+    expect(manga.creators, [const SourceMangaCreator(name: 'Author')]);
+    expect(manga.status, SourceMangaStatus.completed);
+    expect(manga.tags, [const SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category)]);
+    final chapters = await host.getMangaChapters(manga);
+    expect(chapters.single.name, 'Author');
+    expect(chapters.single.date, 'completed/Synopsis/category/zh-Hans');
+  });
+
   test('Source getters work after initialization in compute', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';

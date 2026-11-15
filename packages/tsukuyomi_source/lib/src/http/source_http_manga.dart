@@ -6,5 +6,10 @@ class HttpSourceManga extends SourceManga {
     required super.url,
     required super.name,
     required super.cover,
+    super.status,
+    super.description,
+    super.creators,
+    super.tags,
+    super.languages,
   });
 }

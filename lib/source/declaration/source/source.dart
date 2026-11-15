@@ -3,6 +3,7 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 
 import 'core.dart';
 import 'http.dart';
+import 'manga_details.dart';
 
 List<DartLibrary> get $sourceLibraries {
   return [
@@ -14,6 +15,7 @@ import 'package:dio/dio.dart' show DioException;
     ''', declarations: [
       ...$core,
       ...$http,
+      ...$mangaDetails,
       ...$dynamic,
     ]),
   ];

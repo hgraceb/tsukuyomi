@@ -15,6 +15,44 @@
 - 如果涉及前端页面的改动或者影响可以显示页面预览图，不要求完全一比一还原，但是尽量和实际的布局还有颜色的处理差不多
 - 按照不同的重要程度安排整体段落，比较次要的内容可以放后面或者适当用小字或者次要颜色显示，特殊显示不同进度相关内容
 
+### AGENTS 文档
+
+- 行内代码一般只放英文标识符、路径或代码，中文说明使用普通文本或中文引号，如：
+
+```markdown
+// Bad
+`内容语言`使用`语言代码`
+
+// Good
+内容语言使用 `languageCode`
+```
+
+- 每一条规则都尽量配套单独的 Bad / Good 示例，不同的规则不要共用同一段示例，如：
+
+```markdown
+// Bad
+- 第一条示例规则
+- 第二条示例规则
+
+// Good
+- 第一条示例规则
+​```dart
+// Bad
+// 第一条示例规则的错误示例
+
+// Good
+// 第一条示例规则的正确示例
+​```
+- 第二条示例规则
+​```dart
+// Bad
+// 第二条示例规则的错误示例
+
+// Good
+// 第二条示例规则的正确示例
+​```
+```
+
 ## 代码风格
 
 ### 核心规则
@@ -75,6 +113,47 @@ class DownloadEnqueueResult with _$DownloadEnqueueResult {
     @Default(0) int count,
   }) = _DownloadEnqueueResult;
 }
+```
+
+### 桥接声明
+
+- 函数签名使用三引号字符串单独成行，与 `DartClass` 保持一致，如：
+
+```dart
+// Bad
+List<DartDeclaration> get $mangaDetails {
+  return [
+    DartFunction('normalizeMangaLanguages', normalizeMangaLanguages, 'external List<String> normalizeMangaLanguages(Iterable<String> values);'),
+  ];
+}
+
+// Good
+DartFunction get _$normalizeMangaLanguages => DartFunction('normalizeMangaLanguages', normalizeMangaLanguages, '''
+external List<String> normalizeMangaLanguages(Iterable<String> values);
+''');
+
+List<DartDeclaration> get $mangaDetails {
+  return [
+    _$normalizeMangaLanguages,
+  ];
+}
+```
+
+### 文档注释
+
+- 字段注释先概括含义，补充说明前留一个空的 `///` 行，字面量使用反引号，代码标识符使用 `[identifier]` 引用，如：
+
+```dart
+// Bad
+/// 当前源中该漫画已知的内容语言，null 表示未提供，空列表表示未知
+final List<String>? languages;
+
+// Good: 共同的 null 与空值规则已在类注释中说明
+/// 内容语言
+///
+/// 当前漫画在该源中已知的正文语言代码，例如 `ja`、`zh-Hans`
+/// 代码格式由 [normalizeMangaLanguages] 校验
+final List<String>? languages;
 ```
 
 ### 数字格式

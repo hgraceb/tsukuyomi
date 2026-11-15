@@ -8,6 +8,132 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
+  test('Prefixed source details preserve omitted values, explicit empty values and special language codes', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart' as source;
+
+main() {
+  final absent = source.HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover');
+  final empty = source.HttpSourceManga(
+    url: '/manga', name: 'Title', cover: '/cover',
+    status: source.SourceMangaStatus.unknown, description: '', creators: [], tags: [], languages: [],
+  );
+  final normalize = source.normalizeMangaLanguages;
+  final parseStatus = source.SourceMangaStatus.fromJson;
+  return <dynamic>[
+    absent.status, absent.description, absent.creators, absent.tags, absent.languages,
+    empty.status == parseStatus('unknown'), empty.description, empty.creators, empty.tags, empty.languages,
+    normalize(['all', 'und-Latn', 'und', 'mul', 'zxx']),
+    source.SourceMangaStatus.values.first == empty.status,
+  ];
+}
+''';
+    expect(await evalValidSource(source), [
+      null,
+      null,
+      null,
+      null,
+      null,
+      true,
+      '',
+      [],
+      [],
+      [],
+      ['all', 'mul', 'und', 'und-Latn', 'zxx'],
+      true,
+    ]);
+  });
+
+  test('Manga details construct, normalize and read through the source bridge', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() {
+  final SourceManga manga = HttpSourceManga(
+    url: '/manga', name: 'Title', cover: '/cover',
+    status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
+    creators: normalizeMangaCreators(<SourceMangaCreator>[
+      SourceMangaCreator(name: ' Author '),
+      SourceMangaCreator.fromJson({'name': 'Author'}),
+    ]),
+    tags: normalizeMangaTags(<SourceMangaTag>[
+      SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category),
+      SourceMangaTag.fromJson({'name': 'Space', 'type': 'tag'}),
+    ]),
+    languages: normalizeMangaLanguages(<String>['zh-Hans', 'ja']),
+  );
+  return <dynamic>[
+    manga.status!.toJson(), manga.description,
+    manga.creators!.first.name, manga.creators!.first.toJson(),
+    manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.last.toJson(),
+    manga.creators!.first is SourceMangaCreator, manga.tags!.first is SourceMangaTag,
+    manga.languages,
+  ];
+}
+''';
+    expect(await evalValidSource(source), [
+      'ongoing',
+      'First paragraph\nSecond paragraph',
+      'Author',
+      {'name': 'Author'},
+      'Adventure',
+      'category',
+      {'name': 'Space', 'type': 'tag'},
+      true,
+      true,
+      ['ja', 'zh-Hans'],
+    ]);
+  });
+
+  test('Source language validation rejects noncanonical codes through the bridge', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() {
+  final rejected = <String>[];
+  for (final value in <String>['zh_Hans', 'zh-hans', 'ja ']) {
+    try {
+      normalizeMangaLanguages(<String>[value]);
+    } on FormatException {
+      rejected.add(value);
+    }
+  }
+  return rejected;
+}
+''';
+    expect(await evalValidSource(source), ['zh_Hans', 'zh-hans', 'ja ']);
+  });
+
+  test('Source enum values retain their host identity and JSON codes', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() {
+  final status = SourceMangaStatus.fromJson('hiatus');
+  final type = SourceMangaTagType.fromJson('character');
+  return <dynamic>[
+    status, type,
+    status == SourceMangaStatus.hiatus,
+    status is SourceMangaStatus,
+    type == SourceMangaTagType.character,
+    type is SourceMangaTagType,
+    SourceMangaStatus.values.map((value) => value.toJson()).toList(),
+    SourceMangaTagType.values.map((value) => value.toJson()).toList(),
+  ];
+}
+''';
+    expect(await evalValidSource(source), [
+      SourceMangaStatus.hiatus,
+      SourceMangaTagType.character,
+      true,
+      true,
+      true,
+      true,
+      ['unknown', 'ongoing', 'completed', 'hiatus', 'cancelled'],
+      ['tag', 'character', 'category', 'other'],
+    ]);
+  });
+
   test('Source requests accept method and headers', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';

@@ -29,6 +29,11 @@ sealed class SourceManga {
     required this.url,
     required this.name,
     required this.cover,
+    this.status,
+    this.description,
+    this.creators,
+    this.tags,
+    this.languages,
   });
 
   // ${$.debug('url', ($, $$) => $.url)}
@@ -39,6 +44,21 @@ sealed class SourceManga {
 
   // ${$.debug('cover', ($, $$) => $.cover)}
   final String cover;
+
+  // ${$.debug('status', ($, $$) => $.status)}
+  final SourceMangaStatus? status;
+
+  // ${$.debug('description', ($, $$) => $.description)}
+  final String? description;
+
+  // ${$.debug('creators', ($, $$) => $.creators)}
+  final List<SourceMangaCreator>? creators;
+
+  // ${$.debug('tags', ($, $$) => $.tags)}
+  final List<SourceMangaTag>? tags;
+
+  // ${$.debug('languages', ($, $$) => $.languages)}
+  final List<String>? languages;
 }
 ''');
 
