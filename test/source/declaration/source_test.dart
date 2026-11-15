@@ -8,6 +8,42 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
+  test('Prefixed source details preserve omitted values, explicit empty values and special language codes', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart' as source;
+
+main() {
+  final absent = source.HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover');
+  final empty = source.HttpSourceManga(
+    url: '/manga', name: 'Title', cover: '/cover',
+    status: source.SourceMangaStatus.unknown, description: '', creators: [], tags: [], languages: [],
+  );
+  final normalize = source.normalizeMangaLanguages;
+  final parseStatus = source.SourceMangaStatus.fromJson;
+  return <dynamic>[
+    absent.status, absent.description, absent.creators, absent.tags, absent.languages,
+    empty.status == parseStatus('unknown'), empty.description, empty.creators, empty.tags, empty.languages,
+    normalize(['all', 'UND_latn', 'und', 'mul', 'zxx']),
+    source.SourceMangaStatus.values.first == empty.status,
+  ];
+}
+''';
+    expect(await evalValidSource(source), [
+      null,
+      null,
+      null,
+      null,
+      null,
+      true,
+      '',
+      [],
+      [],
+      [],
+      ['all', 'mul', 'und', 'und-Latn', 'zxx'],
+      true,
+    ]);
+  });
+
   test('Manga details construct, normalize and read through the source bridge', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';

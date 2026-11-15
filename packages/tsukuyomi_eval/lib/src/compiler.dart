@@ -1139,7 +1139,10 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     beginShorting(node);
     final target = node.target;
     final methodName = node.methodName.name;
-    if (target?.interfaceElement case InterfaceElement interfaceElement) {
+    if (target is SimpleIdentifier && target.staticElement is PrefixElement && node.methodName.staticElement is FunctionElement) {
+      // 导入前缀按声明所属库访问，避免同名函数或局部变量遮蔽
+      emitGetVariable('${node.methodName.staticElement!.library!.source.uri}::$methodName');
+    } else if (target?.interfaceElement case InterfaceElement interfaceElement) {
       // 获取类的静态成员
       emitGetVariable('${interfaceElement.name}.$methodName');
     } else if (target != null || node.realTarget != null) {
@@ -1407,7 +1410,9 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compilePrefixedIdentifier(PrefixedIdentifier node) {
-    if (node.prefix.interfaceElement case InterfaceElement interfaceElement) {
+    if (node.prefix.staticElement is PrefixElement && node.staticElement is FunctionElement) {
+      emitGetVariable('${node.staticElement!.library!.source.uri}::${node.identifier.name}');
+    } else if (node.prefix.interfaceElement case InterfaceElement interfaceElement) {
       // 获取类的静态成员
       emitGetVariable('${interfaceElement.name}.${node.identifier.name}');
     } else {
