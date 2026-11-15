@@ -3,7 +3,7 @@
   "searchHint": "搜索漫画...",
   "libraryTitle": "书架",
   "updateTitle": "更新",
-  "updateProgress": "{completed} / {publicTotal} · {total}",
+  "updateProgress": "{downloaded} / {public} · {total}",
   "updatePending": "等待检查",
   "updateChecking": "正在检查",
   "updateUnchecked": "未检查",
