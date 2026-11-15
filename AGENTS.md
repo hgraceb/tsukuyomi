@@ -282,7 +282,7 @@ final unsupportedDeclarations = declarations.where((e) => e.hasUnsupportedTypeRe
 final unsupportedClasses = unsupportedDeclarations.map((e) => e.declaredElement).toSet();
 ```
 
-- 链式调用的末尾方法需要多行参数时，先提取接收对象或参数，避免链式调用和参数同时展开，如：
+- 链式调用的末尾方法需要多行参数时，优先提取接收对象或参数，避免链式调用和参数同时展开，如：
 
 ```dart
 // Bad
