@@ -58,19 +58,13 @@ enum SourceMangaTagType {
 }
 
 /// 创作者
-///
-/// 保留漫画源的显示文字，不拆分角色或识别跨站身份
 @freezed
 class SourceMangaCreator with _$SourceMangaCreator {
   const factory SourceMangaCreator({
     /// 显示名称
-    ///
-    /// 可以包含漫画源原有的角色说明，例如 `Author (Writer)`
     required String name,
 
     /// 公开链接
-    ///
-    /// 由漫画源提供可直接打开的绝对地址，`null` 表示未提供
     String? url,
   }) = _SourceMangaCreator;
 
@@ -78,8 +72,6 @@ class SourceMangaCreator with _$SourceMangaCreator {
 }
 
 /// 漫画标签
-///
-/// 分类由漫画源映射，无法确定分类时使用 [SourceMangaTagType.other]
 @freezed
 class SourceMangaTag with _$SourceMangaTag {
   const factory SourceMangaTag({
@@ -90,8 +82,6 @@ class SourceMangaTag with _$SourceMangaTag {
     required String name,
 
     /// 公开链接
-    ///
-    /// 由漫画源提供可直接打开的绝对地址，`null` 表示未提供
     String? url,
   }) = _SourceMangaTag;
 
@@ -119,10 +109,6 @@ List<SourceMangaTag> normalizeMangaTags(Iterable<SourceMangaTag> values) {
 }
 
 /// 校验内容语言并去重排序
-///
-/// 按项目约定使用语言与变体小写、文字首字母大写、地区字母大写，如 `zh-Hans`、`pt-BR`
-/// 不修正下划线、空白或大小写，格式不符时抛出 [FormatException]
-/// 接受语言、可选文字、地区与变体，不处理扩展或私用标记，也不验证语言注册表
 List<String> normalizeMangaLanguages(Iterable<String> values) {
   final pattern = RegExp(r'^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$');
   final languages = <String>{};
