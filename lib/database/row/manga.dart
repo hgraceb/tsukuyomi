@@ -42,14 +42,14 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
 
 extension SourceMangaExtension on SourceManga {
   MangaTableCompanion toUpdatable(int mangaId) {
-    return _toContent().copyWith(id: Value(mangaId));
+    return _toCompanion().copyWith(id: Value(mangaId));
   }
 
   MangaTableCompanion toInsertable(int source) {
-    return _toContent().copyWith(source: Value(source));
+    return _toCompanion().copyWith(source: Value(source));
   }
 
-  MangaTableCompanion _toContent() {
+  MangaTableCompanion _toCompanion() {
     return MangaTableCompanion(
       url: Value(url),
       title: Value(name.toValidDirectoryName),
