@@ -53,19 +53,19 @@ main() {
     url: '/manga', name: 'Title', cover: '/cover',
     status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
     creators: normalizeMangaCreators(<SourceMangaCreator>[
-      SourceMangaCreator(name: ' Author '),
-      SourceMangaCreator.fromJson({'name': 'Author'}),
+      SourceMangaCreator(name: ' Author(原作) ', url: 'https://example.com/authors/1'),
+      SourceMangaCreator.fromJson({'name': 'Author(原作)', 'url': 'https://example.com/authors/1'}),
     ]),
     tags: normalizeMangaTags(<SourceMangaTag>[
-      SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category),
-      SourceMangaTag.fromJson({'name': 'Space', 'type': 'tag'}),
+      SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
+      SourceMangaTag.fromJson({'type': 'tag', 'name': 'Space'}),
     ]),
     languages: normalizeMangaLanguages(<String>['zh-Hans', 'ja']),
   );
   return <dynamic>[
     manga.status!.toJson(), manga.description,
-    manga.creators!.first.name, manga.creators!.first.toJson(),
-    manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.last.toJson(),
+    manga.creators!.first.name, manga.creators!.first.url, manga.creators!.first.toJson(),
+    manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.url, manga.tags!.last.toJson(), manga.tags!.last.url,
     manga.creators!.first is SourceMangaCreator, manga.tags!.first is SourceMangaTag,
     manga.languages,
   ];
@@ -74,11 +74,14 @@ main() {
     expect(await evalValidSource(source), [
       'ongoing',
       'First paragraph\nSecond paragraph',
-      'Author',
-      {'name': 'Author'},
+      'Author(原作)',
+      'https://example.com/authors/1',
+      {'name': 'Author(原作)', 'url': 'https://example.com/authors/1'},
       'Adventure',
       'category',
-      {'name': 'Space', 'type': 'tag'},
+      'https://example.com/categories/1',
+      {'type': 'tag', 'name': 'Space'},
+      null,
       true,
       true,
       ['ja', 'zh-Hans'],

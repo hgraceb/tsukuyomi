@@ -46,13 +46,16 @@ enum SourceMangaTagType {
 DartClass get _$SourceMangaCreator => DartClass<SourceMangaCreator>(($) => '''
 class SourceMangaCreator {
   // ${$.empty('SourceMangaCreator.new', () => SourceMangaCreator.new)}
-  const SourceMangaCreator({required this.name});
+  const SourceMangaCreator({required this.name, this.url});
 
   // ${$.empty('SourceMangaCreator.fromJson', () => SourceMangaCreator.fromJson)}
   external factory SourceMangaCreator.fromJson(Map<String, dynamic> json);
 
   // ${$.debug('name', ($, $$) => $.name)}
   final String name;
+
+  // ${$.debug('url', ($, $$) => $.url)}
+  final String? url;
 
   // ${$.debug('toJson', ($, $$) => $.toJson)}
   external Map<String, dynamic> toJson();
@@ -62,16 +65,19 @@ class SourceMangaCreator {
 DartClass get _$SourceMangaTag => DartClass<SourceMangaTag>(($) => '''
 class SourceMangaTag {
   // ${$.empty('SourceMangaTag.new', () => SourceMangaTag.new)}
-  const SourceMangaTag({required this.name, required this.type});
+  const SourceMangaTag({required this.type, required this.name, this.url});
 
   // ${$.empty('SourceMangaTag.fromJson', () => SourceMangaTag.fromJson)}
   external factory SourceMangaTag.fromJson(Map<String, dynamic> json);
 
+  // ${$.debug('type', ($, $$) => $.type)}
+  final SourceMangaTagType type;
+
   // ${$.debug('name', ($, $$) => $.name)}
   final String name;
 
-  // ${$.debug('type', ($, $$) => $.type)}
-  final SourceMangaTagType type;
+  // ${$.debug('url', ($, $$) => $.url)}
+  final String? url;
 
   // ${$.debug('toJson', ($, $$) => $.toJson)}
   external Map<String, dynamic> toJson();
