@@ -52,11 +52,9 @@ class UpdateRetryController extends _$UpdateRetryController {
       if (manga == null) return item.copyWith(outcome: UpdateOutcome.skipped, updatedAt: DateTime.now(), message: null);
       failureOutcome = null;
       final provider = sourceByIdProvider(manga.source);
-      final cached = ref.read(provider);
+      final cached = ref.read(provider).unwrapPrevious();
       // 重试失败或尚未安装的源时重新加载，保留正在加载的任务
-      if (!cached.isLoading && (cached.hasError || cached.valueOrNull is NoInstalledSource)) {
-        ref.invalidate(provider);
-      }
+      if (cached.hasError || cached.valueOrNull is NoInstalledSource) ref.invalidate(provider);
       final source = await ref.read(provider.future);
       final path = downloadMangaPathProvider(source, manga);
       final directory = ref.exists(path) ? ref.read(path).valueOrNull : null;

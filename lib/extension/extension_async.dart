@@ -13,10 +13,7 @@ extension AsyncValueExtension<T> on AsyncValue<T> {
     R Function(Object error, StackTrace stackTrace)? error,
   }) {
     assert(builder != null || loading != null && data != null && error != null);
-    return when(
-      skipLoadingOnReload: false,
-      skipLoadingOnRefresh: false,
-      skipError: false,
+    return unwrapPrevious().when(
       data: (v) => data?.call(v) ?? builder?.call(v) as R,
       error: (e, s) => error?.call(e, s) ?? builder?.call(null) as R,
       loading: () => loading?.call() ?? builder?.call(null) as R,
@@ -117,10 +114,7 @@ mixin AsyncNotifierMixin<T> on BuildlessAutoDisposeAsyncNotifier<T> {
         error = exists && next is AsyncError;
         return;
       }
-      next.whenOrNull(
-        skipError: false,
-        skipLoadingOnReload: false,
-        skipLoadingOnRefresh: false,
+      next.unwrapPrevious().whenOrNull(
         data: (data) {
           final oldValue = this.data;
           if (oldValue == null) return;
