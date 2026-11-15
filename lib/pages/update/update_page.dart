@@ -200,37 +200,39 @@ class _UpdateItem extends ConsumerWidget {
     return IconButton(onPressed: null, icon: statusIcon);
   }
 
+  /// 更新列表项的进度图标
+  Widget _buildProgress(int completed, int public, Color color) {
+    return IconTheme(
+      data: IconThemeData(size: 24.0, color: color),
+      child: AnimatedProgressCircleIcon(progress: public > 0 ? (completed / public).clamp(0.0, 1.0) : 0.0),
+    );
+  }
+
+  /// 更新列表项的状态颜色
+  Color _getStatusColor(ColorScheme colors, {required bool error, required bool warning}) {
+    if (error) return colors.error;
+    if (warning) return colors.tertiary;
+    return colors.onSurface;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = TsukuyomiLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final progress = item.outcome.canReadProgress ? ref.watch(updateProgressProvider(progressCache, item.mangaId)) : const UpdateProgress();
-    final unknownError = progress.hasError && !progress.hasValue;
-    final completed = unknownError ? 0 : progress.completed;
-    final total = unknownError ? 0 : progress.total;
-    final complete = progress.hasValue && !progress.hasError && total > 0 && completed == total;
+    final completed = progress.downloaded ?? 0;
+    final public = progress.public ?? 0;
+    final count = l10n.updateProgress('${progress.downloaded ?? '-'}', '${progress.public ?? '-'}', '${progress.total ?? '-'}');
+    final complete = progress.hasValue && !progress.hasError && public > 0 && completed == public;
     final color = _getStatusColor(colors, error: item.outcome.isFailure, warning: item.outcome.isWarning);
     final completeIcon = Icon(Icons.check_circle_outline, size: 24.0, color: colors.onSurface);
-    final progressIcon = _buildProgress(completed, total, color);
+    final progressIcon = _buildProgress(completed, public, color);
 
     return TsukuyomiIconButtonListTile(
-      title: _buildTitle(l10n.updateProgress(completed, total)),
+      title: _buildTitle(count),
       subtitle: _buildSubTitle(l10n, color),
       trailing: _buildTrailing(context, ref, complete ? completeIcon : progressIcon),
       onTap: () => context.pushNamed(TsukuyomiRouter.manga.name, params: {'mangaId': '${item.mangaId}'}),
     );
   }
-}
-
-Widget _buildProgress(int completed, int total, Color color) {
-  return IconTheme(
-    data: IconThemeData(size: 24.0, color: color),
-    child: AnimatedProgressCircleIcon(progress: total > 0 ? (completed / total).clamp(0.0, 1.0) : 0.0),
-  );
-}
-
-Color _getStatusColor(ColorScheme colors, {required bool error, required bool warning}) {
-  if (error) return colors.error;
-  if (warning) return colors.tertiary;
-  return colors.onSurface;
 }

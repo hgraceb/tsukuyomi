@@ -32,7 +32,7 @@ void main() {
     expect(display.read()!.items.where(UpdateFilter.warning.matches), hasLength(3));
 
     for (var id = 1; id <= 3; id++) {
-      harness.cache.update(id, const UpdateProgress(hasValue: true, completed: 1, total: 5));
+      harness.cache.update(id, const UpdateProgress(downloaded: 1, public: 5, total: 7));
     }
     await harness.container.pump();
     expect(display.read()!.warningCount, 0);
@@ -64,24 +64,34 @@ void main() {
     expect(report.warningCount, 0);
   });
 
-  test('First reads retain the default display and count only downloaded public chapters', () async {
-    final chapters = Completer<void>();
-    final downloads = Completer<void>();
-    final input = _Input(1, downloaded: {'chapter-title-1', 'chapter-title-5', 'chapter-title-6', 'removed-chapter'})
-      ..chaptersPending = chapters.future
-      ..downloadsPending = downloads.future;
-    final harness = await _Harness.create([input]);
-    final row = harness.watch(1);
-    expect(row.read(), const UpdateProgress());
+  for (final chaptersFirst in [true, false]) {
+    test('First reads expose only confirmed counts: chaptersFirst=$chaptersFirst', () async {
+      final chapters = Completer<void>();
+      final downloads = Completer<void>();
+      final input = _Input(1, downloaded: {'chapter-title-1', 'chapter-title-5', 'chapter-title-6', 'removed-chapter'})
+        ..chaptersPending = chapters.future
+        ..downloadsPending = downloads.future;
+      final harness = await _Harness.create([input]);
+      final row = harness.watch(1);
+      expect(row.read(), const UpdateProgress());
 
-    chapters.complete();
-    await harness.container.read(chaptersStreamByMangaProvider(1).future);
-    await harness.container.pump();
-    expect(row.read(), const UpdateProgress(total: 5));
-    downloads.complete();
-    await harness.settle(1);
-    expect(row.read(), const UpdateProgress(completed: 2, total: 5, hasValue: true));
-  });
+      if (chaptersFirst) {
+        chapters.complete();
+        await harness.container.read(chaptersStreamByMangaProvider(1).future);
+        await harness.container.pump();
+        expect(row.read(), const UpdateProgress(public: 5, total: 7));
+        downloads.complete();
+      } else {
+        downloads.complete();
+        await harness.container.read(updateDownloadedChaptersProvider(1).future);
+        await harness.container.pump();
+        expect(row.read(), const UpdateProgress());
+        chapters.complete();
+      }
+      await harness.settle(1);
+      expect(row.read(), const UpdateProgress(downloaded: 2, public: 5, total: 7));
+    });
+  }
 
   test('An unfinished first read is not retained when its row leaves and returns', () async {
     final firstDownloads = Completer<void>();
@@ -90,7 +100,7 @@ void main() {
     final first = harness.watch(1);
     await harness.container.read(chaptersStreamByMangaProvider(1).future);
     await harness.container.pump();
-    expect(first.read(), const UpdateProgress(total: 5));
+    expect(first.read(), const UpdateProgress(public: 5, total: 7));
     first.close();
     await harness.container.pump();
 
@@ -105,11 +115,11 @@ void main() {
     expect(returned.read(), const UpdateProgress());
     nextRead.complete();
     await harness.settle(1);
-    expect(returned.read(), const UpdateProgress(completed: 2, total: 5, hasValue: true));
+    expect(returned.read(), const UpdateProgress(downloaded: 2, public: 5, total: 7));
   });
 
   for (final chaptersFirst in [true, false]) {
-    test('Returning retains both counts until both reads finish: chaptersFirst=$chaptersFirst', () async {
+    test('Returning retains all three counts until both reads finish: chaptersFirst=$chaptersFirst', () async {
       final input = _Input(1);
       final harness = await _Harness.create([input]);
       final first = harness.watch(1);
@@ -150,7 +160,7 @@ void main() {
         chapters.complete();
       }
       await harness.settle(1);
-      expect(returned.read(), const UpdateProgress(completed: 3, total: 8, hasValue: true));
+      expect(returned.read(), const UpdateProgress(downloaded: 3, public: 8, total: 10));
     });
   }
 
@@ -160,7 +170,7 @@ void main() {
       final harness = await _Harness.create([input]);
       final row = harness.watch(1);
       await harness.settle(1);
-      const previous = UpdateProgress(completed: 5, total: 5, hasValue: true);
+      const previous = UpdateProgress(downloaded: 5, public: 5, total: 7);
       expect(row.read(), previous);
 
       final pending = Completer<void>();
@@ -224,12 +234,12 @@ void main() {
         chapters.complete();
         await harness.container.read(chaptersStreamByMangaProvider(1).future);
         await harness.container.pump();
-        expect(row.read(), const UpdateProgress(total: 5));
+        expect(row.read(), const UpdateProgress(public: 5, total: 7));
         downloads.complete();
         await expectLater(harness.container.read(updateDownloadedChaptersProvider(1).future), throwsA(same(error)));
       }
       await harness.container.pump();
-      expect(row.read(), const UpdateProgress(total: 5, hasError: true));
+      expect(row.read(), const UpdateProgress(public: 5, total: 7, hasError: true));
       row.close();
       await harness.container.pump();
       expect(harness.container.exists(updateProgressProvider(harness.cache, 1)), isFalse);
@@ -249,10 +259,10 @@ void main() {
       nextChapters.complete();
       await harness.container.read(chaptersStreamByMangaProvider(1).future);
       await harness.container.pump();
-      expect(returned.read(), const UpdateProgress(total: 8, hasError: true));
+      expect(returned.read(), const UpdateProgress(public: 8, total: 10, hasError: true));
       nextDownloads.complete();
       await harness.settle(1);
-      expect(returned.read(), const UpdateProgress(completed: 3, total: 8, hasValue: true));
+      expect(returned.read(), const UpdateProgress(downloaded: 3, public: 8, total: 10));
     });
   }
 
@@ -274,7 +284,7 @@ void main() {
     harness.container.invalidate(chaptersStreamByMangaProvider(1));
     harness.container.invalidate(updateDownloadedChaptersProvider(1));
     await harness.settle(1);
-    expect(row.read(), const UpdateProgress(hasValue: true));
+    expect(row.read(), const UpdateProgress(downloaded: 0, public: 0, total: 0));
   });
 
   test('Download changes update their manga without changing another row or the saved report', () async {
@@ -295,7 +305,7 @@ void main() {
     harness.container.invalidate(updateDownloadedChaptersProvider(1));
     await harness.settle(1);
 
-    expect(first.read(), const UpdateProgress(completed: 5, total: 5, hasValue: true));
+    expect(first.read(), const UpdateProgress(downloaded: 5, public: 5, total: 7));
     expect(second.read(), previousSecond);
     expect(secondNotifications, previousNotifications);
     expect(harness.container.read(updateReportStoreProvider), harness.report);
@@ -324,12 +334,12 @@ void main() {
     final harness = await _Harness.create([input]);
     final row = harness.watch(1);
     await harness.settle(1);
-    expect(row.read().completed, 2);
+    expect(row.read().downloaded, 2);
 
     input.chapters = [];
     harness.container.invalidate(chaptersStreamByMangaProvider(1));
     await harness.settle(1);
-    expect(row.read(), const UpdateProgress(hasValue: true));
+    expect(row.read(), const UpdateProgress(downloaded: 0, public: 0, total: 0));
   });
 
   test('Report metadata, appended items and filter changes preserve cached progress', () async {
@@ -417,7 +427,7 @@ void main() {
     expect(nextRow.read(), const UpdateProgress());
     nextPending.complete();
     await harness.settle(1);
-    expect(nextRow.read(), const UpdateProgress(completed: 2, total: 5, hasValue: true));
+    expect(nextRow.read(), const UpdateProgress(downloaded: 2, public: 5, total: 7));
   });
 
   test('Disposing the page owner releases its cached results', () async {
@@ -474,7 +484,7 @@ void main() {
     for (final input in inputs) {
       final row = harness.watch(input.id);
       await harness.settle(input.id);
-      expect(row.read(), UpdateProgress(completed: 1, total: input.id % 13 + 2, hasValue: true));
+      expect(row.read(), UpdateProgress(downloaded: 1, public: input.id % 13 + 2, total: 16));
       row.close();
       await harness.container.pump();
       expect(harness.container.exists(updateProgressProvider(harness.cache, input.id)), isFalse);
@@ -490,7 +500,7 @@ void main() {
         ..chaptersPending = pending.future
         ..downloadsPending = pending.future;
       final row = harness.watch(id);
-      expect(row.read(), UpdateProgress(completed: 1, total: id % 13 + 2, hasValue: true));
+      expect(row.read(), UpdateProgress(downloaded: 1, public: id % 13 + 2, total: 16));
       pending.complete();
       await harness.settle(id);
       row.close();

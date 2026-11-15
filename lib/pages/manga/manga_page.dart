@@ -75,7 +75,7 @@ class _MangaPageRefreshIndicatorState extends ConsumerState<_MangaPageRefreshInd
     // 如果章节数据列表为空则尝试自动刷新一次
     late final ProviderSubscription<AsyncValue<MangaState>> subscription;
     subscription = ref.listenManual(widget.provider, (previous, next) {
-      final chapters = next.valueOrNull?.chapters;
+      final chapters = next.unwrapPrevious().valueOrNull?.chapters;
       if (chapters == null) return;
       if (chapters.isEmpty) _refresh();
       subscription.close();

@@ -70,11 +70,12 @@ UpdateProgressCache updateProgressCache(UpdateProgressCacheRef ref, String? sess
 UpdateProgress updateProgress(UpdateProgressRef ref, UpdateProgressCache cache, int mangaId) {
   final chapters = ref.watch(chaptersStreamByMangaProvider(mangaId));
   final downloaded = ref.watch(updateDownloadedChaptersProvider(mangaId));
-  final publicChapters = (chapters.valueOrNull ?? []).where((chapter) => chapter.public);
-  final completed = publicChapters.where((chapter) => downloaded.valueOrNull?.contains(chapter.title) == true).length;
+  final chapterList = chapters.unwrapPrevious().valueOrNull;
+  final downloadedTitles = downloaded.unwrapPrevious().valueOrNull;
+  final publicChapters = chapterList?.where((chapter) => chapter.public);
+  final completed = downloadedTitles == null ? null : publicChapters?.where((chapter) => downloadedTitles.contains(chapter.title)).length;
   final hasError = chapters.hasError || downloaded.hasError;
-  final hasValue = !chapters.isLoading && !downloaded.isLoading && !hasError;
-  final progress = UpdateProgress(completed: completed, total: publicChapters.length, hasValue: hasValue, hasError: hasError);
+  final progress = UpdateProgress(downloaded: completed, public: publicChapters?.length, total: chapterList?.length, hasError: hasError);
   return cache.update(mangaId, progress);
 }
 
@@ -93,10 +94,21 @@ Future<Set<String>> updateDownloadedChapters(UpdateDownloadedChaptersRef ref, in
 
 @freezed
 class UpdateProgress with _$UpdateProgress {
+  const UpdateProgress._();
+
   const factory UpdateProgress({
-    @Default(0) int completed,
-    @Default(0) int total,
-    @Default(false) bool hasValue,
+    /// 已下载章节数
+    @Default(null) int? downloaded,
+
+    /// 公开章节总数
+    @Default(null) int? public,
+
+    /// 全部章节总数
+    @Default(null) int? total,
+
+    /// 进度读取失败
     @Default(false) bool hasError,
   }) = _UpdateProgress;
+
+  bool get hasValue => downloaded != null && public != null && total != null;
 }

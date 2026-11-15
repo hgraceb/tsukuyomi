@@ -58,7 +58,7 @@ void main() {
     await container.read(updateReportStoreProvider.notifier).save(report);
     await _pumpFrames(tester);
     expect(_summaryCounts(tester), [0, 0, 1, 2]);
-    expect(find.text('2 / 5'), findsOneWidget);
+    expect(find.text('2 / 5 · 7'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
 
     await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.stop_outlined));
@@ -100,8 +100,8 @@ void main() {
     expect(tester.widget<Text>(find.text('Download scheduling failed')).style?.color, colors.error);
     expect(tester.widget<Text>(find.text('Source returned no chapters')).style?.color, colors.error);
     expect(tester.widget<Text>(find.text('Skipped')).style?.color, colors.tertiary);
-    expect(find.text('2 / 5'), findsOneWidget);
-    expect(find.text('0 / 0'), findsNWidgets(2));
+    expect(find.text('2 / 5 · 7'), findsOneWidget);
+    expect(find.text('- / - · -'), findsNWidgets(2));
     expect(tester.widget<IconButton>(_retryButton('manga-title-2')).color, colors.error);
     expect(find.byIcon(Icons.info_outline), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
@@ -189,21 +189,26 @@ void main() {
       report: updateReportFixture(items: [updateReportItemFixture(1)]).copyWith(totalTargets: 1),
     );
     final report = container.read(updateReportStoreProvider);
-    expect(find.text('2 / 5'), findsOneWidget);
+    expect(find.text('2 / 5 · 7'), findsOneWidget);
+    expect(_progress(tester, 'manga-title-1'), 0.4);
+
+    chapters.add(chaptersFixture(1, total: 9, publicCount: 5));
+    await _pumpFrames(tester);
+    expect(find.text('2 / 5 · 9'), findsOneWidget);
     expect(_progress(tester, 'manga-title-1'), 0.4);
     container.read(_downloadedProvider.notifier).state = {for (var id = 1; id <= 7; id++) 'chapter-title-$id', 'removed-chapter'};
     await _pumpFrames(tester);
-    expect(find.text('5 / 5'), findsOneWidget);
+    expect(find.text('5 / 5 · 9'), findsOneWidget);
     expect(_completionIcon('manga-title-1'), findsOneWidget);
 
     chapters.add(chaptersFixture(1, publicCount: 6));
     await _pumpFrames(tester);
-    expect(find.text('6 / 6'), findsOneWidget);
+    expect(find.text('6 / 6 · 7'), findsOneWidget);
     expect(_completionIcon('manga-title-1'), findsOneWidget);
 
     chapters.add(chaptersFixture(1, total: 9, publicCount: 8));
     await _pumpFrames(tester);
-    expect(find.text('7 / 8'), findsOneWidget);
+    expect(find.text('7 / 8 · 9'), findsOneWidget);
     expect(_completionIcon('manga-title-1'), findsNothing);
     expect(_progress(tester, 'manga-title-1'), 7 / 8);
     expect(container.read(updateReportStoreProvider), report);
@@ -242,7 +247,8 @@ void main() {
     expect(_progress(tester, 'manga-title-4'), 0.8);
     expect(_completionIcon('manga-title-5'), findsNothing);
     expect(_progress(tester, 'manga-title-5'), 0.0);
-    expect(find.text('0 / 0'), findsNWidgets(2));
+    expect(find.text('- / - · -'), findsOneWidget);
+    expect(find.text('0 / 0 · 7'), findsOneWidget);
     expect(tester.widget<Text>(find.text('Request failed')).style?.color, colors.error);
     expect(_summaryCounts(tester), [1, 0, 4, 5]);
     expect(container.read(updateReportStoreProvider), report);
@@ -272,12 +278,12 @@ void main() {
       pending = Completer<void>();
       container.invalidate(provider);
       await _pumpFrames(tester);
-      expect(find.text('5 / 5'), findsOneWidget);
+      expect(find.text('5 / 5 · 7'), findsOneWidget);
       expect(_completionIcon('manga-title-1'), findsOneWidget);
 
       pending.completeError(StateError('fixture-$input-error'));
       await _pumpFrames(tester);
-      expect(find.text('5 / 5'), findsOneWidget);
+      expect(find.text('5 / 5 · 7'), findsOneWidget);
       expect(_completionIcon('manga-title-1'), findsNothing);
       final button = _retryButton('manga-title-1');
       expect(tester.widget<IconButton>(button).color, Theme.of(tester.element(button)).colorScheme.tertiary);
@@ -292,7 +298,7 @@ void main() {
     });
   }
 
-  testWidgets('Long names and chapter counts remain readable in both languages on narrow screens', (tester) async {
+  testWidgets('Chapter counts stay on one line with long names and large fonts in both languages', (tester) async {
     _narrowScreen(tester);
     final item = updateReportItemFixture(1).copyWith(
       mangaTitle: '这是一部名称很长的示例漫画 A manga with a very long title',
@@ -301,26 +307,31 @@ void main() {
       enqueuedCount: 1,
     );
     for (final locale in [const Locale('zh'), const Locale('en')]) {
-      await _pumpPage(
-        tester,
-        manager: _Manager(),
-        locale: locale,
-        textScale: 1.3,
-        chapterStream: (id) => Stream.value(chaptersFixture(id, total: 1002, publicCount: 1000)),
-        downloaded: {for (var id = 1; id <= 999; id++) 'chapter-title-$id', 'chapter-title-1002'},
-        report: updateReportFixture(items: [item]).copyWith(totalTargets: 1),
-      );
-      expect(find.text(item.mangaTitle), findsOneWidget);
-      expect(find.text('999 / 1000'), findsOneWidget);
-      expect(tester.renderObject<RenderParagraph>(find.text('999 / 1000')).didExceedMaxLines, isFalse);
-      expect(_summaryCounts(tester), [0, 0, 1, 1]);
-      for (final filter in UpdateFilter.values) {
-        expect(tester.renderObject<RenderParagraph>(_countText(filter)).didExceedMaxLines, isFalse);
+      for (final counts in [(completed: 24, public: 30, all: 42), (completed: 999, public: 1000, all: 1002)]) {
+        await _pumpPage(
+          tester,
+          manager: _Manager(),
+          locale: locale,
+          textScale: 1.3,
+          chapterStream: (id) => Stream.value(chaptersFixture(id, total: counts.all, publicCount: counts.public)),
+          downloaded: {for (var id = 1; id <= counts.completed; id++) 'chapter-title-$id', 'chapter-title-${counts.all}'},
+          report: updateReportFixture(items: [item]).copyWith(totalTargets: 1),
+        );
+        final countText = find.text('${counts.completed} / ${counts.public} · ${counts.all}');
+        expect(find.text(item.mangaTitle), findsOneWidget);
+        expect(countText, findsOneWidget);
+        expect(tester.widget<Text>(countText).maxLines, 1);
+        expect(tester.widget<Text>(countText).overflow, TextOverflow.ellipsis);
+        expect(tester.renderObject<RenderParagraph>(countText).didExceedMaxLines, counts.all > 1000);
+        expect(_summaryCounts(tester), [0, 0, 1, 1]);
+        for (final filter in UpdateFilter.values) {
+          expect(tester.renderObject<RenderParagraph>(_countText(filter)).didExceedMaxLines, isFalse);
+        }
+        expect(_progress(tester, item.mangaTitle), counts.completed / counts.public);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await _pumpFrames(tester);
       }
-      expect(_progress(tester, item.mangaTitle), 0.999);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await _pumpFrames(tester);
     }
   });
 
@@ -366,6 +377,7 @@ void main() {
     final firstIcon = _retryButton('manga-title-1');
     final colors = Theme.of(tester.element(firstIcon)).colorScheme;
     expect(container.read(updateDownloadedChaptersProvider(1)).error, same(error));
+    expect(find.text('- / 5 · 7'), findsOneWidget);
     expect(tester.widget<IconButton>(firstIcon).color, colors.tertiary);
     expect(_summaryCounts(tester), [0, 1, 1, 2]);
     expect(_progress(tester, 'manga-title-2'), 0.6);
@@ -406,7 +418,7 @@ void main() {
     expect(_progress(tester, 'manga-title-2'), 0.5);
     await tester.scrollUntilVisible(find.text('manga-title-40'), 500.0, scrollable: find.byType(Scrollable).first);
     await _pumpFrames(tester);
-    expect(find.text('20 / 40'), findsOneWidget);
+    expect(find.text('20 / 40 · 42'), findsOneWidget);
     expect(_progress(tester, 'manga-title-40'), 0.5);
     expect(container.read(updateReportStoreProvider), report);
     expect(tester.takeException(), isNull);
@@ -446,7 +458,7 @@ void main() {
           return value;
         },
       );
-      final initialCount = '$firstDownloaded / 5';
+      final initialCount = '$firstDownloaded / 5 · 7';
       void expectCached() {
         final row = find.widgetWithText(ListTile, 'manga-title-1');
         expect(find.descendant(of: row, matching: find.text(initialCount)), findsOneWidget);
@@ -490,7 +502,7 @@ void main() {
       }
       await _pumpFrames(tester);
       final returned = find.widgetWithText(ListTile, 'manga-title-1');
-      expect(find.descendant(of: returned, matching: find.text('3 / 8')), findsOneWidget);
+      expect(find.descendant(of: returned, matching: find.text('3 / 8 · 10')), findsOneWidget);
       expect(_completionIcon('manga-title-1'), findsNothing);
       expect(_paintedProgress(tester, 'manga-title-1'), 3 / 8);
       expect(container.read(updateReportStoreProvider), report);
@@ -567,14 +579,14 @@ void main() {
     downloaded = 2;
     await store.save(next.copyWith(items: report.items));
     await tester.pump();
-    expect(find.text('0 / 0'), findsOneWidget);
+    expect(find.text('- / - · -'), findsOneWidget);
     expect(_completionIcon('manga-title-1'), findsNothing);
     chaptersPending.complete();
     await _pumpFrames(tester);
-    expect(find.text('0 / 5'), findsOneWidget);
+    expect(find.text('- / 5 · 7'), findsOneWidget);
     downloadsPending.complete();
     await _pumpFrames(tester);
-    expect(find.text('2 / 5'), findsOneWidget);
+    expect(find.text('2 / 5 · 7'), findsOneWidget);
     expect(_paintedProgress(tester, 'manga-title-1'), 0.4);
     expect(tester.takeException(), isNull);
   });
@@ -595,8 +607,8 @@ void main() {
         .save(report.copyWith(items: report.items.map((item) => item.copyWith(sourceName: item.mangaId == 1 ? 'Z' : 'A')).toList()));
     await tester.pump();
 
-    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('4 / 5')), findsOneWidget);
-    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-2'), matching: find.text('1 / 5')), findsOneWidget);
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('4 / 5 · 7')), findsOneWidget);
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-2'), matching: find.text('1 / 5 · 7')), findsOneWidget);
     expect(_paintedProgress(tester, 'manga-title-1'), 0.8);
     expect(_paintedProgress(tester, 'manga-title-2'), 0.2);
     expect(tester.takeException(), isNull);
@@ -693,7 +705,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('manga-title-1'), -500.0, scrollable: find.byType(Scrollable).first);
     await _pumpFrames(tester);
     expect(_completionIcon('manga-title-1'), findsOneWidget);
-    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('1 / 1')), findsOneWidget);
+    expect(find.descendant(of: find.widgetWithText(ListTile, 'manga-title-1'), matching: find.text('1 / 1 · 3')), findsOneWidget);
     expect(container.read(updateReportStoreProvider), report);
     expect(tester.takeException(), isNull);
   });
@@ -801,7 +813,7 @@ void main() {
     expect(find.text('manga-title-1'), findsNothing);
     expect(find.text('manga-title-2'), findsOneWidget);
     expect(_summaryCounts(tester), [1, 0, 1, 10]);
-    expect(find.text('0 / 0'), findsOneWidget);
+    expect(find.text('- / - · -'), findsOneWidget);
     expect(_retryButton('manga-title-2'), findsOneWidget);
     await store.save(report.copyWith(items: [...report.items, matching, updateReportItemFixture(3)]));
     await _pumpFrames(tester);
