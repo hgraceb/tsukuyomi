@@ -1,0 +1,21 @@
+[
+  {
+    "enabled": true,
+    "name": "Example Source",
+    "path": "assets/sources/example.dart",
+    "mangas": [
+      {
+        "id": 1600,
+        "title": "星海邮便局",
+        "url": "https://example.com/series/000123",
+        "cover": "https://example.com/covers/000123.jpg",
+        "status": "ongoing",
+        "description": "穿越星海，为不同世界送达信件。\n\n一封没有地址的信，让两位邮递员踏上新的旅程。",
+        "creators": [{"name": " 星野灯 "}, {"name": "月见凪"}, {"name": "星野灯"}],
+        "tags": [{"name": "奇幻", "type": "category"}, {"name": "冒险", "type": "tag"}],
+        "languages": ["zh-Hans", "ja", "zh-Hans"],
+        "auto": true
+      }
+    ]
+  }
+]

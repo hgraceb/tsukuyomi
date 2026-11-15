@@ -15,22 +15,15 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
     required String url,
     required String title,
     required String cover,
+    @Default(SourceMangaStatus.unknown) SourceMangaStatus status,
+    @Default('') String description,
+    @Default([]) List<SourceMangaCreator> creators,
+    @Default([]) List<SourceMangaTag> tags,
+    @Default([]) List<String> languages,
     required bool favorite,
     required bool auto,
     required DateTime? lastCheckAt,
   }) = _DatabaseManga;
-
-  MangaTableCompanion toUpdatable() {
-    return MangaTableCompanion.insert(
-      id: Value(id),
-      source: source,
-      url: url,
-      title: title,
-      cover: cover,
-      favorite: favorite,
-      auto: Value(auto),
-    );
-  }
 
   // TODO 判断是否可以做通用处理直接返回不同类型的 SourceManga
   HttpSourceManga toHttpSourceManga() {
@@ -38,30 +31,37 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
       url: url,
       name: title,
       cover: cover,
+      status: status,
+      description: description,
+      creators: creators,
+      tags: tags,
+      languages: languages,
     );
   }
 }
 
 extension SourceMangaExtension on SourceManga {
-  MangaTableCompanion toUpdatable(DatabaseManga manga) {
-    return MangaTableCompanion.insert(
-      id: Value(manga.id),
-      source: manga.source,
-      url: url,
-      title: name.toValidDirectoryName,
-      cover: cover,
-      favorite: manga.favorite,
-      auto: Value(manga.auto),
+  MangaTableCompanion toUpdatable(int mangaId) {
+    return _toContent().copyWith(id: Value(mangaId));
+  }
+
+  MangaTableCompanion _toContent() {
+    return MangaTableCompanion(
+      url: Value(url),
+      title: Value(name.toValidDirectoryName),
+      cover: Value(cover),
+      status: Value.absentIfNull(status),
+      description: Value.absentIfNull(description),
+      creators: creators == null ? const Value.absent() : Value(normalizeMangaCreators(creators!)),
+      tags: tags == null ? const Value.absent() : Value(normalizeMangaTags(tags!)),
+      languages: languages == null ? const Value.absent() : Value(normalizeMangaLanguages(languages!)),
     );
   }
 
   MangaTableCompanion toInsertable(int source) {
-    return MangaTableCompanion.insert(
-      source: source,
-      url: url,
-      title: name.toValidDirectoryName,
-      cover: cover,
-      favorite: false,
+    return _toContent().copyWith(
+      source: Value(source),
+      favorite: const Value(false),
     );
   }
 }

@@ -2,8 +2,10 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/constants/constants.dart';
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import 'connection/connection.dart';
+import 'converter/manga.dart';
 import 'row/row.dart';
 import 'table/table.dart';
 
@@ -36,13 +38,32 @@ class TsukuyomiDatabase extends _$TsukuyomiDatabase {
         //   await migrator.deleteTable(table.actualTableName);
         //   await migrator.createTable(table);
         // }
-        await batch((batch) async {
-          final mockDatabase = await getMockDatabase();
-          batch.insertAllOnConflictUpdate(sourceTable, mockDatabase.sources);
-          batch.insertAllOnConflictUpdate(mangaTable, mockDatabase.mangas);
-        });
+        await seedDatabase(await getMockDatabase());
       },
     );
+  }
+
+  /// 导入索引数据
+  ///
+  /// 已有作品仅更新配置提供的内容字段，用户设置仅在首次插入时初始化
+  Future<void> seedDatabase(MockDatabase data) {
+    return batch((batch) {
+      batch.insertAllOnConflictUpdate(sourceTable, data.sources);
+      for (final manga in data.mangas) {
+        batch.insert(
+          mangaTable,
+          manga,
+          onConflict: DoUpdate(
+            (_) => manga.copyWith(
+              id: const Value.absent(),
+              favorite: const Value.absent(),
+              auto: const Value.absent(),
+              lastCheckAt: const Value.absent(),
+            ),
+          ),
+        );
+      }
+    });
   }
 }
 
