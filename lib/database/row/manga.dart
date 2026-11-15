@@ -46,7 +46,7 @@ extension SourceMangaExtension on SourceManga {
   }
 
   MangaTableCompanion toInsertable(int source) {
-    return _toContent().copyWith(source: Value(source), favorite: const Value(false));
+    return _toContent().copyWith(source: Value(source));
   }
 
   MangaTableCompanion _toContent() {
