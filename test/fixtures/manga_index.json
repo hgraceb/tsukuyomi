@@ -6,19 +6,19 @@
     "mangas": [
       {
         "id": 1600,
-        "title": "星海邮便局",
+        "title": "Space Post Office",
         "url": "https://example.com/series/000123",
         "cover": "https://example.com/covers/000123.jpg",
         "status": "ongoing",
-        "description": "穿越星海，为不同世界送达信件。\n\n一封没有地址的信，让两位邮递员踏上新的旅程。",
+        "description": "Two couriers deliver letters across distant worlds.\n\nAn unaddressed letter sends them on a new journey.",
         "creators": [
-          {"name": " 星野灯（原作） ", "url": "https://example.com/authors/1"},
-          {"name": "月见凪"},
-          {"name": "星野灯（原作）", "url": "https://example.com/authors/1"}
+          {"name": " Alice (Writer) ", "url": "https://example.com/authors/1"},
+          {"name": "Bob"},
+          {"name": "Alice (Writer)", "url": "https://example.com/authors/1"}
         ],
         "tags": [
-          {"type": "category", "name": "奇幻", "url": "https://example.com/categories/1"},
-          {"type": "tag", "name": "冒险"}
+          {"type": "category", "name": "Fantasy", "url": "https://example.com/categories/1"},
+          {"type": "tag", "name": "Adventure"}
         ],
         "languages": ["zh-Hans", "ja", "zh-Hans"],
         "auto": true

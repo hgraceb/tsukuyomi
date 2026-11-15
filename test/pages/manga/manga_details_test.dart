@@ -27,10 +27,10 @@ void main() {
     expect(manga.status, SourceMangaStatus.ongoing);
     expect(manga.description, contains('\n\n'));
     expect(manga.creators, [
-      const SourceMangaCreator(name: '星野灯（原作）', url: 'https://example.com/authors/1'),
-      const SourceMangaCreator(name: '月见凪'),
+      const SourceMangaCreator(name: 'Alice (Writer)', url: 'https://example.com/authors/1'),
+      const SourceMangaCreator(name: 'Bob'),
     ]);
-    const tag = SourceMangaTag(type: SourceMangaTagType.category, name: '奇幻', url: 'https://example.com/categories/1');
+    const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Fantasy', url: 'https://example.com/categories/1');
     expect(manga.tags.first, tag);
     expect(manga.languages, ['ja', 'zh-Hans']);
     expect(manga.favorite, isTrue);
@@ -45,12 +45,12 @@ void main() {
     expect(row.data.containsKey('metadata'), isFalse);
     expect(row.read<String>('status'), 'ongoing');
     expect(jsonDecode(row.read<String>('creators')), [
-      {'name': '星野灯（原作）', 'url': 'https://example.com/authors/1'},
-      {'name': '月见凪'},
+      {'name': 'Alice (Writer)', 'url': 'https://example.com/authors/1'},
+      {'name': 'Bob', 'url': null},
     ]);
     expect(jsonDecode(row.read<String>('tags')), [
-      {'type': 'category', 'name': '奇幻', 'url': 'https://example.com/categories/1'},
-      {'type': 'tag', 'name': '冒险'},
+      {'type': 'category', 'name': 'Fantasy', 'url': 'https://example.com/categories/1'},
+      {'type': 'tag', 'name': 'Adventure', 'url': null},
     ]);
     expect(jsonDecode(row.read<String>('languages')), ['ja', 'zh-Hans']);
   });
@@ -109,8 +109,8 @@ void main() {
         cover: 'new-cover',
         status: SourceMangaStatus.completed,
         description: 'New description',
-        creators: [const SourceMangaCreator(name: '新作者', url: 'https://example.com/authors/2')],
-        tags: [const SourceMangaTag(type: SourceMangaTagType.other, name: '新标签', url: 'https://example.com/tags/2')],
+        creators: [const SourceMangaCreator(name: 'New author', url: 'https://example.com/authors/2')],
+        tags: [const SourceMangaTag(type: SourceMangaTagType.other, name: 'New tag', url: 'https://example.com/tags/2')],
         languages: ['zxx'],
       ),
     );
@@ -143,7 +143,7 @@ void main() {
     final database = container.read(databaseProvider);
     final original = await _read(container);
     final service = container.read(mangaServiceProvider);
-    final tags = [for (final type in SourceMangaTagType.values) SourceMangaTag(type: type, name: '同名标签')];
+    final tags = [for (final type in SourceMangaTagType.values) SourceMangaTag(type: type, name: 'Shared tag')];
     for (final status in SourceMangaStatus.values) {
       final sourceManga = HttpSourceManga(url: original.url, name: original.title, cover: original.cover, status: status, tags: tags);
       await service.insertSourceManga(original.source, sourceManga);
@@ -180,7 +180,7 @@ void main() {
   test('Mock parsing rejects unsupported tag types such as invalid_type', () {
     final json = _mangaJson(_json());
     json['tags'] = [
-      {'type': 'invalid_type', 'name': '冒险'},
+      {'type': 'invalid_type', 'name': 'Adventure'},
     ];
     expect(() => MockManga.fromJson(json), throwsArgumentError);
   });
@@ -188,7 +188,7 @@ void main() {
   for (final entry in [
     (column: 'status', value: 'invalid', matcher: throwsArgumentError),
     (column: 'creators', value: '{}', matcher: throwsA(isA<TypeError>())),
-    (column: 'tags', value: '[{"type":"invalid_type","name":"冒险"}]', matcher: throwsArgumentError),
+    (column: 'tags', value: '[{"type":"invalid_type","name":"Adventure"}]', matcher: throwsArgumentError),
     (column: 'languages', value: '["zh_hans"]', matcher: throwsFormatException),
   ]) {
     test('Malformed stored ${entry.column} reports an error instead of returning an empty value', () async {

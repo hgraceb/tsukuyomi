@@ -65,13 +65,13 @@ class SourceMangaCreator with _$SourceMangaCreator {
   const factory SourceMangaCreator({
     /// 显示名称
     ///
-    /// 可以包含漫画源原有的角色说明，例如“某某（原作）”
+    /// 可以包含漫画源原有的角色说明，例如 `Author (Writer)`
     required String name,
 
     /// 公开链接
     ///
-    /// 由漫画源提供可直接打开的绝对地址，未提供时省略
-    @JsonKey(includeIfNull: false) String? url, // ignore: invalid_annotation_target
+    /// 由漫画源提供可直接打开的绝对地址，`null` 表示未提供
+    String? url,
   }) = _SourceMangaCreator;
 
   factory SourceMangaCreator.fromJson(Map<String, dynamic> json) => _$SourceMangaCreatorFromJson(json);
@@ -91,8 +91,8 @@ class SourceMangaTag with _$SourceMangaTag {
 
     /// 公开链接
     ///
-    /// 由漫画源提供可直接打开的绝对地址，未提供时省略
-    @JsonKey(includeIfNull: false) String? url, // ignore: invalid_annotation_target
+    /// 由漫画源提供可直接打开的绝对地址，`null` 表示未提供
+    String? url,
   }) = _SourceMangaTag;
 
   factory SourceMangaTag.fromJson(Map<String, dynamic> json) => _$SourceMangaTagFromJson(json);
