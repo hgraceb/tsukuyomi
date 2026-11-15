@@ -30,6 +30,7 @@ main() {
     manga.status!.toJson(), manga.description,
     manga.creators!.first.name, manga.creators!.first.toJson(),
     manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.last.toJson(),
+    manga.creators!.first is SourceMangaCreator, manga.tags!.first is SourceMangaTag,
     manga.languages,
   ];
 }
@@ -42,6 +43,8 @@ main() {
       'Adventure',
       'genre',
       {'name': 'Space', 'type': 'theme'},
+      true,
+      true,
       ['ja', 'zh-Hans'],
     ]);
   });

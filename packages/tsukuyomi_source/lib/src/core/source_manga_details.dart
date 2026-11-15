@@ -1,6 +1,6 @@
-import 'package:json_annotation/json_annotation.dart';
-import 'package:meta/meta.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
+part 'source_manga_details.freezed.dart';
 part 'source_manga_details.g.dart';
 
 /// 连载状态
@@ -68,45 +68,26 @@ enum SourceMangaTagType {
 /// 创作者
 ///
 /// 仅记录显示名称，不区分角色或跨站身份
-@immutable
-@JsonSerializable()
-class SourceMangaCreator {
-  const SourceMangaCreator({required this.name});
+@freezed
+class SourceMangaCreator with _$SourceMangaCreator {
+  const factory SourceMangaCreator({
+    required String name,
+  }) = _SourceMangaCreator;
 
   factory SourceMangaCreator.fromJson(Map<String, dynamic> json) => _$SourceMangaCreatorFromJson(json);
-
-  final String name;
-
-  Map<String, dynamic> toJson() => _$SourceMangaCreatorToJson(this);
-
-  @override
-  bool operator ==(Object other) => other is SourceMangaCreator && name == other.name;
-
-  @override
-  int get hashCode => name.hashCode;
 }
 
 /// 漫画标签
 ///
 /// 分类由漫画源映射，无法确定分类时使用 [SourceMangaTagType.tag]
-@immutable
-@JsonSerializable()
-class SourceMangaTag {
-  const SourceMangaTag({required this.name, required this.type});
+@freezed
+class SourceMangaTag with _$SourceMangaTag {
+  const factory SourceMangaTag({
+    required String name,
+    required SourceMangaTagType type,
+  }) = _SourceMangaTag;
 
   factory SourceMangaTag.fromJson(Map<String, dynamic> json) => _$SourceMangaTagFromJson(json);
-
-  final String name;
-
-  final SourceMangaTagType type;
-
-  Map<String, dynamic> toJson() => _$SourceMangaTagToJson(this);
-
-  @override
-  bool operator ==(Object other) => other is SourceMangaTag && name == other.name && type == other.type;
-
-  @override
-  int get hashCode => Object.hash(name, type);
 }
 
 List<SourceMangaCreator> normalizeMangaCreators(Iterable<SourceMangaCreator> values) {
