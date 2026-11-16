@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/core/exception/tsukuyomi_exception.dart';
-import 'package:tsukuyomi/database/database.dart' show DatabaseManga;
+import 'package:tsukuyomi/database/database.dart' show DatabaseManga, MangaTableCompanion;
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/library/library_repository.dart';
@@ -1011,6 +1011,22 @@ class _Mangas implements MangaRepository {
   final Object? error;
   final Object? queryError;
   final checkedAt = <int, DateTime>{};
+
+  @override
+  Future<int> updateManga(MangaTableCompanion update) async {
+    final manga = mangas[update.id.value]!;
+    mangas[manga.id] = manga.copyWith(
+      url: update.url.present ? update.url.value : manga.url,
+      title: update.title.present ? update.title.value : manga.title,
+      cover: update.cover.present ? update.cover.value : manga.cover,
+      status: update.status.present ? update.status.value : manga.status,
+      description: update.description.present ? update.description.value : manga.description,
+      creators: update.creators.present ? update.creators.value : manga.creators,
+      tags: update.tags.present ? update.tags.value : manga.tags,
+      languages: update.languages.present ? update.languages.value : manga.languages,
+    );
+    return manga.id;
+  }
 
   @override
   Future<DatabaseManga> queryManga(int mangaId) async {

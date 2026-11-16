@@ -10,10 +10,10 @@ sealed class Source {
   abstract final String name;
 
   // ${$.debug('getSourceMangas', ($, $$) => $.getSourceMangas)}
-  Future<Iterable<SourceManga>> getSourceMangas(covariant SourceQuery query);
+  Future<SourcePage<SourceManga>> getSourceMangas(covariant SourceQuery query);
 
-  // ${$.debug('getMangaChapters', ($, $$) => $.getMangaChapters)}
-  Future<Iterable<SourceChapter>> getMangaChapters(covariant SourceManga manga);
+  // ${$.debug('getMangaDetails', ($, $$) => $.getMangaDetails)}
+  Future<SourceManga> getMangaDetails(covariant SourceManga manga);
 
   // ${$.debug('getChapterImages', ($, $$) => $.getChapterImages)}
   Future<Iterable<SourceImage>> getChapterImages(covariant SourceChapter chapter);
@@ -34,6 +34,7 @@ sealed class SourceManga {
     this.creators,
     this.tags,
     this.languages,
+    this.chapters,
   });
 
   // ${$.debug('url', ($, $$) => $.url)}
@@ -59,6 +60,9 @@ sealed class SourceManga {
 
   // ${$.debug('languages', ($, $$) => $.languages)}
   final List<String>? languages;
+
+  // ${$.debug('chapters', ($, $$) => $.chapters)}
+  final List<SourceChapter>? chapters;
 }
 ''');
 

@@ -142,8 +142,8 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) {
-    return isolate(() async => (await delegate.invoke('getMangaChapters', [manga]) as Iterable).castList<HttpSourceChapter>());
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) {
+    return isolate(() async => await delegate.invoke('getMangaDetails', [manga]) as HttpSourceManga);
   }
 
   @override

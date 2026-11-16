@@ -3,13 +3,14 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
+import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 part 'chapter_sync_with_source.freezed.dart';
 part 'chapter_sync_with_source.g.dart';
 
 class ChapterSyncWithSource {
-  ChapterSyncWithSource._({required this.source, required this.manga, required this.chapterRepository});
+  ChapterSyncWithSource._({required this.source, required this.manga, required this.chapterRepository, required this.mangaRepository});
 
   final Source source;
 
@@ -17,8 +18,12 @@ class ChapterSyncWithSource {
 
   final ChapterRepository chapterRepository;
 
+  final MangaRepository mangaRepository;
+
   Future<ChapterSyncResult> sync() async {
-    final sourceChapters = await source.getMangaChapters(manga.toHttpSourceManga());
+    final details = await source.getMangaDetails(manga.toHttpSourceManga());
+    final sourceChapters = details.chapters ?? (throw const FormatException('Missing manga chapters'));
+    await mangaRepository.updateManga(details.toUpdatable(manga.id));
     return apply(sourceChapters);
   }
 
@@ -70,7 +75,12 @@ class ChapterSyncWithSource {
 
 @riverpod
 ChapterSyncWithSource chapterSyncWithSource(ChapterSyncWithSourceRef ref, Source source, DatabaseManga manga) {
-  return ChapterSyncWithSource._(source: source, manga: manga, chapterRepository: ref.watch(chapterRepositoryProvider));
+  return ChapterSyncWithSource._(
+    source: source,
+    manga: manga,
+    chapterRepository: ref.watch(chapterRepositoryProvider),
+    mangaRepository: ref.watch(mangaRepositoryProvider),
+  );
 }
 
 @freezed

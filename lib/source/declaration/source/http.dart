@@ -64,8 +64,8 @@ abstract class HttpSource extends Source {
   // ${$.debug('getSourceMangas', ($, $$) => $.getSourceMangas)}
   Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query);
 
-  // ${$.debug('getMangaChapters', ($, $$) => $.getMangaChapters)}
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga);
+  // ${$.debug('getMangaDetails', ($, $$) => $.getMangaDetails)}
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga);
 
   // ${$.debug('getChapterImages', ($, $$) => $.getChapterImages)}
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter);
@@ -90,6 +90,7 @@ class HttpSourceManga extends SourceManga {
     super.creators,
     super.tags,
     super.languages,
+    super.chapters,
   });
 }
 ''');

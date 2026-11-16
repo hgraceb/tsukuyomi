@@ -35,11 +35,15 @@ class Example extends HttpSource {
     ]);
   }
 
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) async {
-    return <HttpSourceChapter>[
-      HttpSourceChapter(url: manga.tags!.first.url!, name: manga.creators!.first.name,
-        date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
-    ];
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
+    return HttpSourceManga(
+      url: manga.url, name: manga.name, cover: manga.cover,
+      status: manga.status, description: manga.description, creators: manga.creators, tags: manga.tags, languages: manga.languages,
+      chapters: [
+        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.creators!.first.name,
+          date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
+      ],
+    );
   }
 }
 
@@ -53,7 +57,13 @@ main() => Example();
     expect(manga.status, SourceMangaStatus.completed);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
     expect(manga.tags, [tag]);
-    final chapters = await host.getMangaChapters(manga);
+    expect(manga.chapters, isNull);
+    final details = await host.getMangaDetails(manga);
+    expect(details.description, manga.description);
+    expect(details.creators, manga.creators);
+    expect(details.tags, manga.tags);
+    expect(details.languages, manga.languages);
+    final chapters = details.chapters!;
     expect(chapters.single.name, 'Author (Writer)');
     expect(chapters.single.url, 'https://example.com/categories/1');
     expect(chapters.single.date, 'completed/Synopsis/category/zh-Hans');
@@ -114,9 +124,9 @@ class Example extends HttpSource {
     return getStorage('value', null);
   }
 
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) async {
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
     await store(manga.name);
-    return <HttpSourceChapter>[];
+    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: []);
   }
 
   dynamic decode(String value) => parseJson(value);
@@ -146,8 +156,8 @@ dynamic main() {
     await expectLater(second.delegate.invoke('store', ['second']), completion('second'));
     expect(first.storage, {'value': 'first'});
     expect(second.storage, {'value': 'second'});
-    await first.getMangaChapters(const HttpSourceManga(url: 'first', name: 'first', cover: ''));
-    await second.getMangaChapters(const HttpSourceManga(url: 'second', name: 'second', cover: ''));
+    await first.getMangaDetails(const HttpSourceManga(url: 'first', name: 'first', cover: ''));
+    await second.getMangaDetails(const HttpSourceManga(url: 'second', name: 'second', cover: ''));
     expect(jsonDecode(preferences.getString(Keys.sourceStorage(first.id))!), {'value': 'first'});
     expect(jsonDecode(preferences.getString(Keys.sourceStorage(second.id))!), {'value': 'second'});
     expect(preferences.getString(releaseKey), '{"release":"keep"}');
