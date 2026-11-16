@@ -11,5 +11,6 @@ class HttpSourceManga extends SourceManga {
     super.creators,
     super.tags,
     super.languages,
+    super.chapters,
   });
 }

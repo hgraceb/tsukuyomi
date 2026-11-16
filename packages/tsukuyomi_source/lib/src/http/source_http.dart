@@ -59,13 +59,13 @@ abstract class HttpSource extends Source {
   /// 获取需要替换的请求头
   external Future<Map<String, String>> getReplaceHeaders(HttpSourceResponse response);
 
-  /// 获取网络漫画详情列表
+  /// 获取分页网络漫画数据
   @override
   Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query);
 
-  /// 获取网络漫画章节列表
+  /// 获取网络漫画章节详情
   @override
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga);
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga);
 
   /// 获取网络章节图片列表
   @override
