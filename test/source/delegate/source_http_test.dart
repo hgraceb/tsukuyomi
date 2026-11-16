@@ -28,8 +28,8 @@ class Example extends HttpSource {
     return HttpSourcePage<HttpSourceManga>(next: false, data: <HttpSourceManga>[
       HttpSourceManga(
         url: '/manga', name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
-        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author')],
-        tags: <SourceMangaTag>[SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category)],
+        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author (Writer)', url: 'https://example.com/authors/1')],
+        tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
         languages: <String>['ja', 'zh-Hans'],
       ),
     ]);
@@ -37,7 +37,7 @@ class Example extends HttpSource {
 
   Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) async {
     return <HttpSourceChapter>[
-      HttpSourceChapter(url: manga.url, name: manga.creators!.first.name,
+      HttpSourceChapter(url: manga.tags!.first.url!, name: manga.creators!.first.name,
         date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
     ];
   }
@@ -49,11 +49,13 @@ main() => Example();
     final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
     final page = await host.getSourceMangas(HttpSourceQuery(keyword: 'Title'));
     final manga = page.data.single;
-    expect(manga.creators, [const SourceMangaCreator(name: 'Author')]);
+    expect(manga.creators, [const SourceMangaCreator(name: 'Author (Writer)', url: 'https://example.com/authors/1')]);
     expect(manga.status, SourceMangaStatus.completed);
-    expect(manga.tags, [const SourceMangaTag(name: 'Adventure', type: SourceMangaTagType.category)]);
+    const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
+    expect(manga.tags, [tag]);
     final chapters = await host.getMangaChapters(manga);
-    expect(chapters.single.name, 'Author');
+    expect(chapters.single.name, 'Author (Writer)');
+    expect(chapters.single.url, 'https://example.com/categories/1');
     expect(chapters.single.date, 'completed/Synopsis/category/zh-Hans');
   });
 

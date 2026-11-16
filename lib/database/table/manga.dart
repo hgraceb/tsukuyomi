@@ -38,7 +38,7 @@ class MangaTable extends Table {
   TextColumn get languages => text().map(const MangaLanguagesConverter()).withDefault(const Constant('[]'))();
 
   /// 是否收藏
-  BoolColumn get favorite => boolean()();
+  BoolColumn get favorite => boolean().withDefault(const Constant(false))();
 
   /// 是否自动下载
   BoolColumn get auto => boolean().withDefault(const Constant(false))();

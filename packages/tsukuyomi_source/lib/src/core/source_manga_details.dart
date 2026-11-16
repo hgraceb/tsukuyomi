@@ -59,11 +59,19 @@ enum SourceMangaTagType {
 
 /// 创作者
 ///
-/// 仅记录显示名称，不区分角色或跨站身份
+/// 保留漫画源的显示文字，不拆分角色或识别跨站身份
 @freezed
 class SourceMangaCreator with _$SourceMangaCreator {
   const factory SourceMangaCreator({
+    /// 显示名称
+    ///
+    /// 可以包含漫画源原有的角色说明，例如 `Author (Writer)`
     required String name,
+
+    /// 公开链接
+    ///
+    /// 由漫画源提供可直接打开的绝对地址，`null` 表示未提供
+    String? url,
   }) = _SourceMangaCreator;
 
   factory SourceMangaCreator.fromJson(Map<String, dynamic> json) => _$SourceMangaCreatorFromJson(json);
@@ -75,8 +83,16 @@ class SourceMangaCreator with _$SourceMangaCreator {
 @freezed
 class SourceMangaTag with _$SourceMangaTag {
   const factory SourceMangaTag({
-    required String name,
+    /// 标签分类
     required SourceMangaTagType type,
+
+    /// 显示名称
+    required String name,
+
+    /// 公开链接
+    ///
+    /// 由漫画源提供可直接打开的绝对地址，`null` 表示未提供
+    String? url,
   }) = _SourceMangaTag;
 
   factory SourceMangaTag.fromJson(Map<String, dynamic> json) => _$SourceMangaTagFromJson(json);
@@ -87,7 +103,7 @@ List<SourceMangaCreator> normalizeMangaCreators(Iterable<SourceMangaCreator> val
   for (final value in values) {
     final name = value.name.trim();
     if (name.isEmpty) throw const FormatException('Empty manga creator name');
-    creators.add(SourceMangaCreator(name: name));
+    creators.add(value.copyWith(name: name));
   }
   return List.unmodifiable(creators);
 }
@@ -97,7 +113,7 @@ List<SourceMangaTag> normalizeMangaTags(Iterable<SourceMangaTag> values) {
   for (final value in values) {
     final name = value.name.trim();
     if (name.isEmpty) throw const FormatException('Empty manga tag name');
-    tags.add(SourceMangaTag(name: name, type: value.type));
+    tags.add(value.copyWith(name: name));
   }
   return List.unmodifiable(tags);
 }
