@@ -141,18 +141,18 @@ List<DartDeclaration> get $mangaDetails {
 
 ### 文档注释
 
-- 字段注释先概括含义，补充说明前留一个空的 `///` 行，字面量使用反引号，代码标识符使用 `[identifier]` 引用，如：
+- 文档注释只写一行简短说明，优先遵循代码即文档的风格，尽量不分段或者补充示例，也不把长说明压成一行，如：
 
 ```dart
 // Bad
-/// 当前源中该漫画已知的内容语言，null 表示未提供，空列表表示未知
-final List<String>? languages;
-
-// Good: 共同的 null 与空值规则已在类注释中说明
 /// 内容语言
 ///
 /// 当前漫画在该源中已知的正文语言代码，例如 `ja`、`zh-Hans`
 /// 代码格式由 [normalizeMangaLanguages] 校验
+final List<String>? languages;
+
+// Good
+/// 内容语言
 final List<String>? languages;
 ```
 
