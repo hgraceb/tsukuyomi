@@ -1,3 +1,4 @@
+import 'source_chapter.dart';
 import 'source_manga_details.dart';
 
 part 'package:tsukuyomi_source/src/http/source_http_manga.dart';
@@ -13,6 +14,7 @@ sealed class SourceManga {
     this.creators,
     this.tags,
     this.languages,
+    this.chapters,
   });
 
   /// 漫画地址
@@ -38,4 +40,7 @@ sealed class SourceManga {
 
   /// 内容语言
   final List<String>? languages;
+
+  /// 章节列表
+  final List<SourceChapter>? chapters;
 }

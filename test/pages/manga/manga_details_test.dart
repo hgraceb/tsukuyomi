@@ -9,9 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
 import 'package:tsukuyomi/constants/mock.dart';
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
 import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
+import 'package:tsukuyomi/providers/update/update_service.dart';
+import 'package:tsukuyomi/providers/update/update_state.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+import '../../fixtures/update_fixtures.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +24,78 @@ void main() {
   setUpAll(() {
     if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
   });
+
+  for (final automatic in [false, true]) {
+    for (final empty in [false, true]) {
+      test('Detail refresh saves metadata and preserves local state: automatic=$automatic, empty=$empty', () async {
+        final container = await _seed();
+        final database = container.read(databaseProvider);
+        final original = await _read(container);
+        await container.read(mangaServiceProvider).updateFavorite(original.id, false);
+        final local = chaptersFixture(original.id, total: 1).single.copyWith(images: 12, progress: 7);
+        await database.into(database.chapterTable).insert(local);
+        await database.into(database.downloadTable).insert(local.toDownloadable(1));
+        final chapter = HttpSourceChapter(url: local.url, name: 'Updated chapter', date: 'new-date', public: false);
+        final source = UpdateSourceFixture(
+          details: HttpSourceManga(
+            url: original.url,
+            name: 'Updated title',
+            cover: 'updated-cover',
+            status: SourceMangaStatus.completed,
+            description: 'Updated synopsis',
+            creators: [const SourceMangaCreator(name: 'Carol', url: 'https://example.com/authors/3')],
+            tags: [],
+            chapters: empty ? [] : [chapter],
+          ),
+        );
+
+        if (automatic) {
+          final item = await container.read(updateServiceProvider).updateManga(source, original);
+          expect(item.outcome, empty ? UpdateOutcome.chaptersEmpty : UpdateOutcome.updated);
+        } else {
+          final result = await container.read(chapterSyncWithSourceProvider(source, original)).sync();
+          expect(result.sourceCount, empty ? 0 : 1);
+        }
+
+        final updated = await _read(container);
+        expect(source.calls, 1);
+        expect(updated.title, 'Updated title');
+        expect(updated.cover, 'updated-cover');
+        expect(updated.status, SourceMangaStatus.completed);
+        expect(updated.description, 'Updated synopsis');
+        expect(updated.creators.single.name, 'Carol');
+        expect(updated.creators.single.url, 'https://example.com/authors/3');
+        expect(updated.tags, isEmpty);
+        expect(updated.languages, original.languages);
+        expect(updated.favorite, isFalse);
+        expect(updated.auto, original.auto);
+        final savedChapter = await database.select(database.chapterTable).getSingle();
+        expect(savedChapter.id, local.id);
+        expect(savedChapter.title, empty ? local.title : 'Updated chapter');
+        expect(savedChapter.images, 12);
+        expect(savedChapter.progress, 7);
+        expect(await database.select(database.downloadTable).get(), hasLength(1));
+      });
+    }
+
+    test('Missing chapters fail without saving a partial detail response: automatic=$automatic', () async {
+      final container = await _seed();
+      final original = await _read(container);
+      final source = UpdateSourceFixture(
+        details: HttpSourceManga(url: original.url, name: 'Incomplete', cover: 'cover', description: 'Incomplete details'),
+      );
+
+      if (automatic) {
+        final item = await container.read(updateServiceProvider).updateManga(source, original);
+        expect(item.outcome, UpdateOutcome.parseError);
+        expect(item.message, contains('Missing manga chapters'));
+      } else {
+        await expectLater(container.read(chapterSyncWithSourceProvider(source, original)).sync(), throwsFormatException);
+      }
+
+      expect(await _read(container), original);
+    });
+  }
 
   test('Index details persist as separate columns and survive source conversion', () async {
     final container = await _seed();

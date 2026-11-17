@@ -35,11 +35,13 @@ class UpdateService {
     var sync = const ChapterSyncResult(updateCount: 0, insertCount: 0, deleteCount: 0, sourceCount: 0);
     var downloads = const DownloadEnqueueResult();
     try {
-      final chapters = await source.getMangaChapters(manga.toHttpSourceManga());
-      if (chapters.isEmpty) return _result(source, manga, sync, downloads, UpdateOutcome.chaptersEmpty);
+      final details = await source.getMangaDetails(manga.toHttpSourceManga());
+      final chapters = details.chapters ?? (throw const FormatException('Missing manga chapters'));
       failureOutcome = UpdateOutcome.storageError;
-      sync = await ref.read(chapterSyncWithSourceProvider(source, manga)).apply(chapters);
       final repository = ref.read(mangaRepositoryProvider);
+      await repository.updateManga(details.toUpdatable(manga.id));
+      if (chapters.isEmpty) return _result(source, manga, sync, downloads, UpdateOutcome.chaptersEmpty);
+      sync = await ref.read(chapterSyncWithSourceProvider(source, manga)).apply(chapters);
       await repository.updateLastCheckAt(manga.id, DateTime.now());
       final latestManga = await repository.queryManga(manga.id);
       failureOutcome = UpdateOutcome.enqueueFailed;

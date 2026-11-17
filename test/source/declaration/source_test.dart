@@ -16,13 +16,13 @@ main() {
   final absent = source.HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover');
   final empty = source.HttpSourceManga(
     url: '/manga', name: 'Title', cover: '/cover',
-    status: source.SourceMangaStatus.unknown, description: '', creators: [], tags: [], languages: [],
+    status: source.SourceMangaStatus.unknown, description: '', creators: [], tags: [], languages: [], chapters: [],
   );
   final normalize = source.normalizeMangaLanguages;
   final parseStatus = source.SourceMangaStatus.fromJson;
   return <dynamic>[
-    absent.status, absent.description, absent.creators, absent.tags, absent.languages,
-    empty.status == parseStatus('unknown'), empty.description, empty.creators, empty.tags, empty.languages,
+    absent.status, absent.description, absent.creators, absent.tags, absent.languages, absent.chapters,
+    empty.status == parseStatus('unknown'), empty.description, empty.creators, empty.tags, empty.languages, empty.chapters,
     normalize(['all', 'und-Latn', 'und', 'mul', 'zxx']),
     source.SourceMangaStatus.values.first == empty.status,
   ];
@@ -34,8 +34,10 @@ main() {
       null,
       null,
       null,
+      null,
       true,
       '',
+      [],
       [],
       [],
       [],
@@ -150,7 +152,7 @@ class Example extends HttpSource {
   }
 
   Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) => throw 'unused';
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
 
@@ -180,7 +182,7 @@ class Example extends HttpSource {
   }
 
   Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) => throw 'unused';
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
 
@@ -270,7 +272,7 @@ class Example extends HttpSource {
   }
 
   Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
-  Future<Iterable<HttpSourceChapter>> getMangaChapters(HttpSourceManga manga) => throw 'unused';
+  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
 

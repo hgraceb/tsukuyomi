@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/chapter/providers/chapter_sync_with_source.dart';
+import 'package:tsukuyomi/pages/manga/manga_repository.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 import '../../fixtures/update_fixtures.dart';
@@ -115,9 +116,19 @@ void main() {
 }
 
 ChapterSyncWithSource _sync(_Chapters repository, [UpdateSourceFixture? source]) {
-  final container = ProviderContainer(overrides: [chapterRepositoryProvider.overrideWithValue(repository)]);
+  final container = ProviderContainer(
+    overrides: [chapterRepositoryProvider.overrideWithValue(repository), mangaRepositoryProvider.overrideWithValue(_Mangas())],
+  );
   addTearDown(container.dispose);
   return container.read(chapterSyncWithSourceProvider(source ?? UpdateSourceFixture(), mangaFixture(1)));
+}
+
+class _Mangas implements MangaRepository {
+  @override
+  Future<int> updateManga(MangaTableCompanion manga) async => manga.id.value;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Chapters implements ChapterRepository {
