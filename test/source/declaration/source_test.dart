@@ -55,8 +55,8 @@ main() {
     url: '/manga', name: 'Title', cover: '/cover',
     status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
     creators: normalizeMangaCreators(<SourceMangaCreator>[
-      SourceMangaCreator(name: ' Author (Writer) ', url: 'https://example.com/authors/1'),
-      SourceMangaCreator.fromJson({'name': 'Author (Writer)', 'url': 'https://example.com/authors/1'}),
+      SourceMangaCreator(name: ' Author ', role: 'Writer', url: 'https://example.com/authors/1'),
+      SourceMangaCreator.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
     ]),
     tags: normalizeMangaTags(<SourceMangaTag>[
       SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
@@ -64,9 +64,10 @@ main() {
     ]),
     languages: normalizeMangaLanguages(<String>['zh-Hans', 'ja']),
   );
+  final dynamic creator = manga.creators!.first;
   return <dynamic>[
     manga.status!.toJson(), manga.description,
-    manga.creators!.first.name, manga.creators!.first.url, manga.creators!.first.toJson(),
+    manga.creators!.first.name, manga.creators!.first.role, creator.role, manga.creators!.first.url, manga.creators!.first.toJson(),
     manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.url, manga.tags!.last.toJson(), manga.tags!.last.url,
     manga.creators!.first is SourceMangaCreator, manga.tags!.first is SourceMangaTag,
     manga.languages,
@@ -76,9 +77,11 @@ main() {
     expect(await evalValidSource(source), [
       'ongoing',
       'First paragraph\nSecond paragraph',
-      'Author (Writer)',
+      'Author',
+      'Writer',
+      'Writer',
       'https://example.com/authors/1',
-      {'name': 'Author (Writer)', 'url': 'https://example.com/authors/1'},
+      {'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
       'Adventure',
       'category',
       'https://example.com/categories/1',

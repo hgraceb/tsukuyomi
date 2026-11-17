@@ -32,7 +32,7 @@ sealed class SourceManga {
   /// 漫画简介
   final String? description;
 
-  /// 创作者列表
+  /// 作者列表
   final List<SourceMangaCreator>? creators;
 
   /// 标签列表

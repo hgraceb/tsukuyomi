@@ -126,6 +126,7 @@ List<DartClass> get $dynamic {
       'resolveStringBytes': (($) => $.resolveStringBytes, ($, $$) => $.resolveStringBytes = $$),
       'response': (($) => $.response, ($, $$) => $.response = $$),
       'responseHeaders': (($) => $.responseHeaders, ($, $$) => $.responseHeaders = $$),
+      'role': (($) => $.role, ($, $$) => $.role = $$),
       'setStorage': (($) => $.setStorage, ($, $$) => $.setStorage = $$),
       'size': (($) => $.size, ($, $$) => $.size = $$),
       'sourceSpan': (($) => $.sourceSpan, ($, $$) => $.sourceSpan = $$),

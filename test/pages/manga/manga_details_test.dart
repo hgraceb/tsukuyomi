@@ -43,7 +43,7 @@ void main() {
             cover: 'updated-cover',
             status: SourceMangaStatus.completed,
             description: 'Updated synopsis',
-            creators: [const SourceMangaCreator(name: 'Carol', url: 'https://example.com/authors/3')],
+            creators: [const SourceMangaCreator(name: 'Carol', role: 'Writer', url: 'https://example.com/authors/3')],
             tags: [],
             chapters: empty ? [] : [chapter],
           ),
@@ -64,6 +64,7 @@ void main() {
         expect(updated.status, SourceMangaStatus.completed);
         expect(updated.description, 'Updated synopsis');
         expect(updated.creators.single.name, 'Carol');
+        expect(updated.creators.single.role, 'Writer');
         expect(updated.creators.single.url, 'https://example.com/authors/3');
         expect(updated.tags, isEmpty);
         expect(updated.languages, original.languages);
@@ -104,7 +105,7 @@ void main() {
     expect(manga.status, SourceMangaStatus.ongoing);
     expect(manga.description, contains('\n\n'));
     expect(manga.creators, [
-      const SourceMangaCreator(name: 'Alice (Writer)', url: 'https://example.com/authors/1'),
+      const SourceMangaCreator(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/1'),
       const SourceMangaCreator(name: 'Bob'),
     ]);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Fantasy', url: 'https://example.com/categories/1');
@@ -122,8 +123,8 @@ void main() {
     expect(row.data.containsKey('metadata'), isFalse);
     expect(row.read<String>('status'), 'ongoing');
     expect(jsonDecode(row.read<String>('creators')), [
-      {'name': 'Alice (Writer)', 'url': 'https://example.com/authors/1'},
-      {'name': 'Bob', 'url': null},
+      {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
+      {'name': 'Bob', 'role': null, 'url': null},
     ]);
     expect(jsonDecode(row.read<String>('tags')), [
       {'type': 'category', 'name': 'Fantasy', 'url': 'https://example.com/categories/1'},

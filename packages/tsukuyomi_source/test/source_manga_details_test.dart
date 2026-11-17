@@ -63,17 +63,19 @@ void main() {
     ]);
   });
 
-  test('Creators preserve display text, links and source order when deduplicating', () {
+  test('Creators preserve names, distinct roles, links and source order when deduplicating', () {
     final creators = normalizeMangaCreators([
-      const SourceMangaCreator(name: ' Alice (Writer) ', url: 'https://example.com/authors/1'),
+      const SourceMangaCreator(name: ' Alice ', role: 'Writer', url: 'https://example.com/authors/1'),
       const SourceMangaCreator(name: 'Bob'),
-      SourceMangaCreator.fromJson({'name': 'Alice (Writer)', 'url': 'https://example.com/authors/1'}),
-      const SourceMangaCreator(name: 'Alice (Writer)', url: 'https://example.com/authors/2'),
+      SourceMangaCreator.fromJson({'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
+      const SourceMangaCreator(name: 'Alice', role: 'Artist', url: 'https://example.com/authors/1'),
+      const SourceMangaCreator(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/2'),
     ]);
     expect(creators.map((value) => value.toJson()), [
-      {'name': 'Alice (Writer)', 'url': 'https://example.com/authors/1'},
-      {'name': 'Bob', 'url': null},
-      {'name': 'Alice (Writer)', 'url': 'https://example.com/authors/2'},
+      {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
+      {'name': 'Bob', 'role': null, 'url': null},
+      {'name': 'Alice', 'role': 'Artist', 'url': 'https://example.com/authors/1'},
+      {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/2'},
     ]);
     expect(creators.map((value) => SourceMangaCreator.fromJson(value.toJson())), creators);
     expect(() => normalizeMangaCreators([const SourceMangaCreator(name: ' ')]), throwsFormatException);
@@ -117,7 +119,7 @@ void main() {
     }
   });
 
-  test('Generated field conversions round-trip every tag type and nullable links', () {
+  test('Generated field conversions round-trip every tag type, nullable roles and links', () {
     const values = {
       SourceMangaTagType.tag: 'tag',
       SourceMangaTagType.character: 'character',
@@ -135,16 +137,17 @@ void main() {
     }
     const creator = SourceMangaCreator(name: 'Alice');
     final json = jsonDecode(jsonEncode(creator)) as Map<String, dynamic>;
-    expect(json, {'name': 'Alice', 'url': null});
+    expect(json, {'name': 'Alice', 'role': null, 'url': null});
     expect(SourceMangaCreator.fromJson(json), creator);
     expect(SourceMangaCreator.fromJson({'name': 'Alice'}), creator);
-    expect(SourceMangaCreator.fromJson({'name': 'Alice', 'url': null}), creator);
+    expect(SourceMangaCreator.fromJson({'name': 'Alice', 'role': null, 'url': null}), creator);
     expect(SourceMangaTag.fromJson({'type': 'tag', 'name': 'Tag', 'url': null}).url, isNull);
   });
 
   test('Generated decoding rejects missing required fields and incorrectly typed values', () {
     expect(() => SourceMangaCreator.fromJson({}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaCreator.fromJson({'name': 1}), throwsA(isA<TypeError>()));
+    expect(() => SourceMangaCreator.fromJson({'name': 'Alice', 'role': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaCreator.fromJson({'name': 'Alice', 'url': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaTag.fromJson({'name': 'Adventure'}), throwsArgumentError);
     expect(() => SourceMangaTag.fromJson({'type': 0, 'name': 'Adventure'}), throwsArgumentError);

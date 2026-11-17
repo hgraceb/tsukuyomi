@@ -57,14 +57,17 @@ enum SourceMangaTagType {
   String toJson() => _$SourceMangaTagTypeEnumMap[this]!;
 }
 
-/// 创作者
+/// 漫画作者
 @freezed
 class SourceMangaCreator with _$SourceMangaCreator {
   const factory SourceMangaCreator({
-    /// 显示名称
+    /// 作者名称
     required String name,
 
-    /// 公开链接
+    /// 作者角色
+    String? role,
+
+    /// 作者链接
     String? url,
   }) = _SourceMangaCreator;
 
@@ -78,16 +81,17 @@ class SourceMangaTag with _$SourceMangaTag {
     /// 标签分类
     required SourceMangaTagType type,
 
-    /// 显示名称
+    /// 标签名称
     required String name,
 
-    /// 公开链接
+    /// 标签链接
     String? url,
   }) = _SourceMangaTag;
 
   factory SourceMangaTag.fromJson(Map<String, dynamic> json) => _$SourceMangaTagFromJson(json);
 }
 
+/// 校验漫画作者并去重
 List<SourceMangaCreator> normalizeMangaCreators(Iterable<SourceMangaCreator> values) {
   final creators = <SourceMangaCreator>{};
   for (final value in values) {
@@ -98,6 +102,7 @@ List<SourceMangaCreator> normalizeMangaCreators(Iterable<SourceMangaCreator> val
   return List.unmodifiable(creators);
 }
 
+/// 校验漫画标签并去重
 List<SourceMangaTag> normalizeMangaTags(Iterable<SourceMangaTag> values) {
   final tags = <SourceMangaTag>{};
   for (final value in values) {

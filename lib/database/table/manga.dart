@@ -28,7 +28,7 @@ class MangaTable extends Table {
   /// 漫画简介
   TextColumn get description => text().withDefault(const Constant(''))();
 
-  /// 创作者列表
+  /// 作者列表
   TextColumn get creators => text().map(const MangaCreatorsConverter()).withDefault(const Constant('[]'))();
 
   /// 标签列表
