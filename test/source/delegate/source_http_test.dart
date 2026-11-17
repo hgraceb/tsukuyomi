@@ -28,7 +28,7 @@ class Example extends HttpSource {
     return HttpSourcePage<HttpSourceManga>(next: false, data: <HttpSourceManga>[
       HttpSourceManga(
         url: '/manga', name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
-        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author (Writer)', url: 'https://example.com/authors/1')],
+        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')],
         tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
         languages: <String>['ja', 'zh-Hans'],
       ),
@@ -40,7 +40,7 @@ class Example extends HttpSource {
       url: manga.url, name: manga.name, cover: manga.cover,
       status: manga.status, description: manga.description, creators: manga.creators, tags: manga.tags, languages: manga.languages,
       chapters: [
-        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.creators!.first.name,
+        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.creators!.first.name + ' (' + manga.creators!.first.role! + ')',
           date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
       ],
     );
@@ -53,7 +53,7 @@ main() => Example();
     final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
     final page = await host.getSourceMangas(HttpSourceQuery(keyword: 'Title'));
     final manga = page.data.single;
-    expect(manga.creators, [const SourceMangaCreator(name: 'Author (Writer)', url: 'https://example.com/authors/1')]);
+    expect(manga.creators, [const SourceMangaCreator(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')]);
     expect(manga.status, SourceMangaStatus.completed);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
     expect(manga.tags, [tag]);

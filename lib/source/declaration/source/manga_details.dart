@@ -46,13 +46,16 @@ enum SourceMangaTagType {
 DartClass get _$SourceMangaCreator => DartClass<SourceMangaCreator>(($) => '''
 class SourceMangaCreator {
   // ${$.empty('SourceMangaCreator.new', () => SourceMangaCreator.new)}
-  const SourceMangaCreator({required this.name, this.url});
+  const SourceMangaCreator({required this.name, this.role, this.url});
 
   // ${$.empty('SourceMangaCreator.fromJson', () => SourceMangaCreator.fromJson)}
   external factory SourceMangaCreator.fromJson(Map<String, dynamic> json);
 
   // ${$.debug('name', ($, $$) => $.name)}
   final String name;
+
+  // ${$.debug('role', ($, $$) => $.role)}
+  final String? role;
 
   // ${$.debug('url', ($, $$) => $.url)}
   final String? url;
