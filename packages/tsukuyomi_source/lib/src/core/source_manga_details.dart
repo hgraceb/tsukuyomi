@@ -57,17 +57,17 @@ enum SourceMangaTagType {
   String toJson() => _$SourceMangaTagTypeEnumMap[this]!;
 }
 
-/// 作者
+/// 漫画作者
 @freezed
 class SourceMangaCreator with _$SourceMangaCreator {
   const factory SourceMangaCreator({
     /// 作者名称
     required String name,
 
-    /// 原始职责
+    /// 作者角色
     String? role,
 
-    /// 公开链接
+    /// 作者链接
     String? url,
   }) = _SourceMangaCreator;
 
@@ -81,10 +81,10 @@ class SourceMangaTag with _$SourceMangaTag {
     /// 标签分类
     required SourceMangaTagType type,
 
-    /// 显示名称
+    /// 标签名称
     required String name,
 
-    /// 公开链接
+    /// 标签链接
     String? url,
   }) = _SourceMangaTag;
 
