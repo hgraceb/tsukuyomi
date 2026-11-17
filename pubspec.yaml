@@ -113,10 +113,7 @@ melos:
         - dart run melos run generate:source
         - dart run melos run generate:app
     generate:source:
-      run: >-
-        cd packages/tsukuyomi_source &&
-        flutter pub get &&
-        dart run build_runner build --delete-conflicting-outputs
+      run: cd packages/tsukuyomi_source && flutter pub get && dart run build_runner build --delete-conflicting-outputs
     generate:app:
       run: dart run build_runner build --delete-conflicting-outputs
 

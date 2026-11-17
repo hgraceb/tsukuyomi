@@ -39,15 +39,12 @@
 flutter gen-l10n
 ```
 
-- 在根目录生成漫画源 API 和主工程代码
+- 生成本地基础代码
 
 ```sh
 # Dart SDK version: 3.10.0-290.4.beta (beta)
-flutter pub get
 dart run melos run generate
 ```
-
-仅生成漫画源 API 时，在根目录运行 `dart run melos run generate:source`，无需全局安装 Melos。
 
 ## 免责声明
 
