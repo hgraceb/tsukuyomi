@@ -43,7 +43,7 @@ flutter gen-l10n
 
 ```sh
 # Dart SDK version: 3.10.0-290.4.beta (beta)
-dart run build_runner build --delete-conflicting-outputs
+dart run melos run generate
 ```
 
 ## 免责声明

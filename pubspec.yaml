@@ -84,7 +84,9 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: 6.0.0
 
-  # 代码生成工具：dart run build_runner build --delete-conflicting-outputs
+  # 代码生成入口：dart run melos run generate
+  melos: 7.8.1
+  # 代码生成工具
   build_runner: 2.4.13
   # 生成代码合并配置
   source_gen: 1.5.0
@@ -102,6 +104,18 @@ dev_dependencies:
   drift_dev: 2.21.2
   # Drift 代码生成
   build_web_compilers: 4.4.1
+
+melos:
+  useRootAsPackage: true
+  scripts:
+    generate:
+      steps:
+        - dart run melos run generate:source
+        - dart run melos run generate:app
+    generate:source:
+      run: cd packages/tsukuyomi_source && flutter pub get && dart run build_runner build --delete-conflicting-outputs
+    generate:app:
+      run: dart run build_runner build --delete-conflicting-outputs
 
 flutter:
   # 启用本地化配置文件生成: flutter gen-l10n
