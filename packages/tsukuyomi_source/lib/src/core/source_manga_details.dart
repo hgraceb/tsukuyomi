@@ -91,7 +91,7 @@ class SourceMangaTag with _$SourceMangaTag {
   factory SourceMangaTag.fromJson(Map<String, dynamic> json) => _$SourceMangaTagFromJson(json);
 }
 
-/// 校验作者并去重
+/// 校验漫画作者并去重
 List<SourceMangaCreator> normalizeMangaCreators(Iterable<SourceMangaCreator> values) {
   final creators = <SourceMangaCreator>{};
   for (final value in values) {
