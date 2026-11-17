@@ -20,7 +20,7 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
     required DateTime? lastCheckAt,
     @Default(SourceMangaStatus.unknown) SourceMangaStatus status,
     @Default('') String description,
-    @Default([]) List<SourceMangaCreator> creators,
+    @Default([]) List<SourceMangaAuthor> authors,
     @Default([]) List<SourceMangaTag> tags,
     @Default([]) List<String> languages,
   }) = _DatabaseManga;
@@ -33,7 +33,7 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
       cover: cover,
       status: status,
       description: description,
-      creators: creators,
+      authors: authors,
       tags: tags,
       languages: languages,
     );
@@ -56,7 +56,7 @@ extension SourceMangaExtension on SourceManga {
       cover: Value(cover),
       status: Value.absentIfNull(status),
       description: Value.absentIfNull(description),
-      creators: Value.absentIfNull(creators),
+      authors: Value.absentIfNull(authors),
       tags: Value.absentIfNull(tags),
       languages: Value.absentIfNull(languages),
     );

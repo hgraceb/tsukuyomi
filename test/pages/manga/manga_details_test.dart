@@ -43,7 +43,7 @@ void main() {
             cover: 'updated-cover',
             status: SourceMangaStatus.completed,
             description: 'Updated synopsis',
-            creators: [const SourceMangaCreator(name: 'Carol', role: 'Writer', url: 'https://example.com/authors/3')],
+            authors: [const SourceMangaAuthor(name: 'Carol', role: 'Writer', url: 'https://example.com/authors/3')],
             tags: [],
             chapters: empty ? [] : [chapter],
           ),
@@ -63,9 +63,9 @@ void main() {
         expect(updated.cover, 'updated-cover');
         expect(updated.status, SourceMangaStatus.completed);
         expect(updated.description, 'Updated synopsis');
-        expect(updated.creators.single.name, 'Carol');
-        expect(updated.creators.single.role, 'Writer');
-        expect(updated.creators.single.url, 'https://example.com/authors/3');
+        expect(updated.authors.single.name, 'Carol');
+        expect(updated.authors.single.role, 'Writer');
+        expect(updated.authors.single.url, 'https://example.com/authors/3');
         expect(updated.tags, isEmpty);
         expect(updated.languages, original.languages);
         expect(updated.favorite, isFalse);
@@ -104,9 +104,9 @@ void main() {
     final manga = await _read(container);
     expect(manga.status, SourceMangaStatus.ongoing);
     expect(manga.description, contains('\n\n'));
-    expect(manga.creators, [
-      const SourceMangaCreator(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/1'),
-      const SourceMangaCreator(name: 'Bob'),
+    expect(manga.authors, [
+      const SourceMangaAuthor(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/1'),
+      const SourceMangaAuthor(name: 'Bob'),
     ]);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Fantasy', url: 'https://example.com/categories/1');
     expect(manga.tags.first, tag);
@@ -116,13 +116,13 @@ void main() {
     final source = manga.toHttpSourceManga();
     expect(source.status, manga.status);
     expect(source.description, manga.description);
-    expect(source.creators, manga.creators);
+    expect(source.authors, manga.authors);
     expect(source.tags, manga.tags);
     expect(source.languages, manga.languages);
     final row = await database.customSelect('SELECT * FROM manga').getSingle();
     expect(row.data.containsKey('metadata'), isFalse);
     expect(row.read<String>('status'), 'ongoing');
-    expect(jsonDecode(row.read<String>('creators')), [
+    expect(jsonDecode(row.read<String>('authors')), [
       {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
       {'name': 'Bob', 'role': null, 'url': null},
     ]);
@@ -146,7 +146,7 @@ void main() {
     final updated = await _read(container);
     expect(updated.title, 'New title');
     expect(updated.cover, 'new-cover');
-    expect(updated.creators, original.creators);
+    expect(updated.authors, original.authors);
     expect(updated.tags, original.tags);
     expect(updated.languages, original.languages);
     expect(updated.description, original.description);
@@ -163,7 +163,7 @@ void main() {
         cover: updated.cover,
         status: SourceMangaStatus.unknown,
         description: '',
-        creators: [],
+        authors: [],
         tags: [],
         languages: [],
       ),
@@ -187,13 +187,13 @@ void main() {
         cover: 'new-cover',
         status: SourceMangaStatus.completed,
         description: 'New description',
-        creators: [const SourceMangaCreator(name: 'New author', url: 'https://example.com/authors/2')],
+        authors: [const SourceMangaAuthor(name: 'New author', url: 'https://example.com/authors/2')],
         tags: [const SourceMangaTag(type: SourceMangaTagType.other, name: 'New tag', url: 'https://example.com/tags/2')],
         languages: ['zxx'],
       ),
     );
     final fetched = await _read(container);
-    expect(fetched.creators.single.url, 'https://example.com/authors/2');
+    expect(fetched.authors.single.url, 'https://example.com/authors/2');
     expect(fetched.tags.single.url, 'https://example.com/tags/2');
     await service.updateFavorite(original.id, !original.favorite);
     expect(await _read(container), fetched.copyWith(favorite: false));
@@ -265,7 +265,7 @@ void main() {
 
   for (final entry in [
     (column: 'status', value: 'invalid', matcher: throwsArgumentError),
-    (column: 'creators', value: '{}', matcher: throwsA(isA<TypeError>())),
+    (column: 'authors', value: '{}', matcher: throwsA(isA<TypeError>())),
     (column: 'tags', value: '[{"type":"invalid_type","name":"Adventure"}]', matcher: throwsArgumentError),
     (column: 'languages', value: '["zh_hans"]', matcher: throwsFormatException),
   ]) {
@@ -277,7 +277,7 @@ void main() {
   }
 }
 
-const _detailFields = ['status', 'description', 'creators', 'tags', 'languages'];
+const _detailFields = ['status', 'description', 'authors', 'tags', 'languages'];
 
 List<dynamic> _json() => jsonDecode(File('test/fixtures/manga_index.json').readAsStringSync()) as List<dynamic>;
 
@@ -317,7 +317,7 @@ Future<DatabaseManga> _read(ProviderContainer container) => container.read(manga
 void _expectEmptyDetails(DatabaseManga manga) {
   expect(manga.status, SourceMangaStatus.unknown);
   expect(manga.description, isEmpty);
-  expect(manga.creators, isEmpty);
+  expect(manga.authors, isEmpty);
   expect(manga.tags, isEmpty);
   expect(manga.languages, isEmpty);
 }

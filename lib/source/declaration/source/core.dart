@@ -31,7 +31,7 @@ sealed class SourceManga {
     required this.cover,
     this.status,
     this.description,
-    this.creators,
+    this.authors,
     this.tags,
     this.languages,
     this.chapters,
@@ -52,8 +52,8 @@ sealed class SourceManga {
   // ${$.debug('description', ($, $$) => $.description)}
   final String? description;
 
-  // ${$.debug('creators', ($, $$) => $.creators)}
-  final List<SourceMangaCreator>? creators;
+  // ${$.debug('authors', ($, $$) => $.authors)}
+  final List<SourceMangaAuthor>? authors;
 
   // ${$.debug('tags', ($, $$) => $.tags)}
   final List<SourceMangaTag>? tags;

@@ -11,7 +11,7 @@ sealed class SourceManga {
     required this.cover,
     this.status,
     this.description,
-    this.creators,
+    this.authors,
     this.tags,
     this.languages,
     this.chapters,
@@ -33,7 +33,7 @@ sealed class SourceManga {
   final String? description;
 
   /// 作者列表
-  final List<SourceMangaCreator>? creators;
+  final List<SourceMangaAuthor>? authors;
 
   /// 标签列表
   final List<SourceMangaTag>? tags;

@@ -63,22 +63,22 @@ void main() {
     ]);
   });
 
-  test('Creators preserve names, distinct roles, links and source order when deduplicating', () {
-    final creators = normalizeMangaCreators([
-      const SourceMangaCreator(name: ' Alice ', role: 'Writer', url: 'https://example.com/authors/1'),
-      const SourceMangaCreator(name: 'Bob'),
-      SourceMangaCreator.fromJson({'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
-      const SourceMangaCreator(name: 'Alice', role: 'Artist', url: 'https://example.com/authors/1'),
-      const SourceMangaCreator(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/2'),
+  test('Authors preserve names, distinct roles, links and source order when deduplicating', () {
+    final authors = normalizeMangaAuthors([
+      const SourceMangaAuthor(name: ' Alice ', role: 'Writer', url: 'https://example.com/authors/1'),
+      const SourceMangaAuthor(name: 'Bob'),
+      SourceMangaAuthor.fromJson({'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
+      const SourceMangaAuthor(name: 'Alice', role: 'Artist', url: 'https://example.com/authors/1'),
+      const SourceMangaAuthor(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/2'),
     ]);
-    expect(creators.map((value) => value.toJson()), [
+    expect(authors.map((value) => value.toJson()), [
       {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
       {'name': 'Bob', 'role': null, 'url': null},
       {'name': 'Alice', 'role': 'Artist', 'url': 'https://example.com/authors/1'},
       {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/2'},
     ]);
-    expect(creators.map((value) => SourceMangaCreator.fromJson(value.toJson())), creators);
-    expect(() => normalizeMangaCreators([const SourceMangaCreator(name: ' ')]), throwsFormatException);
+    expect(authors.map((value) => SourceMangaAuthor.fromJson(value.toJson())), authors);
+    expect(() => normalizeMangaAuthors([const SourceMangaAuthor(name: ' ')]), throwsFormatException);
   });
 
   test('Tags preserve distinct types and links when deduplicating', () {
@@ -135,20 +135,20 @@ void main() {
       expect(SourceMangaTagType.fromJson(entry.value), same(entry.key));
       expect(entry.key.toJson(), entry.value);
     }
-    const creator = SourceMangaCreator(name: 'Alice');
-    final json = jsonDecode(jsonEncode(creator)) as Map<String, dynamic>;
+    const author = SourceMangaAuthor(name: 'Alice');
+    final json = jsonDecode(jsonEncode(author)) as Map<String, dynamic>;
     expect(json, {'name': 'Alice', 'role': null, 'url': null});
-    expect(SourceMangaCreator.fromJson(json), creator);
-    expect(SourceMangaCreator.fromJson({'name': 'Alice'}), creator);
-    expect(SourceMangaCreator.fromJson({'name': 'Alice', 'role': null, 'url': null}), creator);
+    expect(SourceMangaAuthor.fromJson(json), author);
+    expect(SourceMangaAuthor.fromJson({'name': 'Alice'}), author);
+    expect(SourceMangaAuthor.fromJson({'name': 'Alice', 'role': null, 'url': null}), author);
     expect(SourceMangaTag.fromJson({'type': 'tag', 'name': 'Tag', 'url': null}).url, isNull);
   });
 
   test('Generated decoding rejects missing required fields and incorrectly typed values', () {
-    expect(() => SourceMangaCreator.fromJson({}), throwsA(isA<TypeError>()));
-    expect(() => SourceMangaCreator.fromJson({'name': 1}), throwsA(isA<TypeError>()));
-    expect(() => SourceMangaCreator.fromJson({'name': 'Alice', 'role': 1}), throwsA(isA<TypeError>()));
-    expect(() => SourceMangaCreator.fromJson({'name': 'Alice', 'url': 1}), throwsA(isA<TypeError>()));
+    expect(() => SourceMangaAuthor.fromJson({}), throwsA(isA<TypeError>()));
+    expect(() => SourceMangaAuthor.fromJson({'name': 1}), throwsA(isA<TypeError>()));
+    expect(() => SourceMangaAuthor.fromJson({'name': 'Alice', 'role': 1}), throwsA(isA<TypeError>()));
+    expect(() => SourceMangaAuthor.fromJson({'name': 'Alice', 'url': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaTag.fromJson({'name': 'Adventure'}), throwsArgumentError);
     expect(() => SourceMangaTag.fromJson({'type': 0, 'name': 'Adventure'}), throwsArgumentError);
     expect(() => SourceMangaTag.fromJson({'type': 'tag', 'name': 'Adventure', 'url': 1}), throwsA(isA<TypeError>()));

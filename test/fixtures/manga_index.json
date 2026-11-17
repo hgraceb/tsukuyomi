@@ -11,7 +11,7 @@
         "cover": "https://example.com/covers/000123.jpg",
         "status": "ongoing",
         "description": "Two couriers deliver letters across distant worlds.\n\nAn unaddressed letter sends them on a new journey.",
-        "creators": [
+        "authors": [
           {"name": " Alice ", "role": "Writer", "url": "https://example.com/authors/1"},
           {"name": "Bob"},
           {"name": "Alice", "role": "Writer", "url": "https://example.com/authors/1"}

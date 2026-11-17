@@ -87,7 +87,7 @@ class HttpSourceManga extends SourceManga {
     required super.cover,
     super.status,
     super.description,
-    super.creators,
+    super.authors,
     super.tags,
     super.languages,
     super.chapters,

@@ -43,13 +43,13 @@ enum SourceMangaTagType {
 }
 ''');
 
-DartClass get _$SourceMangaCreator => DartClass<SourceMangaCreator>(($) => '''
-class SourceMangaCreator {
-  // ${$.empty('SourceMangaCreator.new', () => SourceMangaCreator.new)}
-  const SourceMangaCreator({required this.name, this.role, this.url});
+DartClass get _$SourceMangaAuthor => DartClass<SourceMangaAuthor>(($) => '''
+class SourceMangaAuthor {
+  // ${$.empty('SourceMangaAuthor.new', () => SourceMangaAuthor.new)}
+  const SourceMangaAuthor({required this.name, this.role, this.url});
 
-  // ${$.empty('SourceMangaCreator.fromJson', () => SourceMangaCreator.fromJson)}
-  external factory SourceMangaCreator.fromJson(Map<String, dynamic> json);
+  // ${$.empty('SourceMangaAuthor.fromJson', () => SourceMangaAuthor.fromJson)}
+  external factory SourceMangaAuthor.fromJson(Map<String, dynamic> json);
 
   // ${$.debug('name', ($, $$) => $.name)}
   final String name;
@@ -87,8 +87,8 @@ class SourceMangaTag {
 }
 ''');
 
-DartFunction get _$normalizeMangaCreators => DartFunction('normalizeMangaCreators', normalizeMangaCreators, '''
-external List<SourceMangaCreator> normalizeMangaCreators(Iterable<SourceMangaCreator> values);
+DartFunction get _$normalizeMangaAuthors => DartFunction('normalizeMangaAuthors', normalizeMangaAuthors, '''
+external List<SourceMangaAuthor> normalizeMangaAuthors(Iterable<SourceMangaAuthor> values);
 ''');
 
 DartFunction get _$normalizeMangaTags => DartFunction('normalizeMangaTags', normalizeMangaTags, '''
@@ -103,9 +103,9 @@ List<DartDeclaration> get $mangaDetails {
   return [
     _$SourceMangaStatus,
     _$SourceMangaTagType,
-    _$SourceMangaCreator,
+    _$SourceMangaAuthor,
     _$SourceMangaTag,
-    _$normalizeMangaCreators,
+    _$normalizeMangaAuthors,
     _$normalizeMangaTags,
     _$normalizeMangaLanguages,
   ];

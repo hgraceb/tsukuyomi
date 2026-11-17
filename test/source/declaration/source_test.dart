@@ -16,13 +16,13 @@ main() {
   final absent = source.HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover');
   final empty = source.HttpSourceManga(
     url: '/manga', name: 'Title', cover: '/cover',
-    status: source.SourceMangaStatus.unknown, description: '', creators: [], tags: [], languages: [], chapters: [],
+    status: source.SourceMangaStatus.unknown, description: '', authors: [], tags: [], languages: [], chapters: [],
   );
   final normalize = source.normalizeMangaLanguages;
   final parseStatus = source.SourceMangaStatus.fromJson;
   return <dynamic>[
-    absent.status, absent.description, absent.creators, absent.tags, absent.languages, absent.chapters,
-    empty.status == parseStatus('unknown'), empty.description, empty.creators, empty.tags, empty.languages, empty.chapters,
+    absent.status, absent.description, absent.authors, absent.tags, absent.languages, absent.chapters,
+    empty.status == parseStatus('unknown'), empty.description, empty.authors, empty.tags, empty.languages, empty.chapters,
     normalize(['all', 'und-Latn', 'und', 'mul', 'zxx']),
     source.SourceMangaStatus.values.first == empty.status,
   ];
@@ -54,9 +54,9 @@ main() {
   final SourceManga manga = HttpSourceManga(
     url: '/manga', name: 'Title', cover: '/cover',
     status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
-    creators: normalizeMangaCreators(<SourceMangaCreator>[
-      SourceMangaCreator(name: ' Author ', role: 'Writer', url: 'https://example.com/authors/1'),
-      SourceMangaCreator.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
+    authors: normalizeMangaAuthors(<SourceMangaAuthor>[
+      SourceMangaAuthor(name: ' Author ', role: 'Writer', url: 'https://example.com/authors/1'),
+      SourceMangaAuthor.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
     ]),
     tags: normalizeMangaTags(<SourceMangaTag>[
       SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
@@ -64,12 +64,12 @@ main() {
     ]),
     languages: normalizeMangaLanguages(<String>['zh-Hans', 'ja']),
   );
-  final dynamic creator = manga.creators!.first;
+  final dynamic author = manga.authors!.first;
   return <dynamic>[
     manga.status!.toJson(), manga.description,
-    manga.creators!.first.name, manga.creators!.first.role, creator.role, manga.creators!.first.url, manga.creators!.first.toJson(),
+    manga.authors!.first.name, manga.authors!.first.role, author.role, manga.authors!.first.url, manga.authors!.first.toJson(),
     manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.url, manga.tags!.last.toJson(), manga.tags!.last.url,
-    manga.creators!.first is SourceMangaCreator, manga.tags!.first is SourceMangaTag,
+    manga.authors!.first is SourceMangaAuthor, manga.tags!.first is SourceMangaTag,
     manga.languages,
   ];
 }

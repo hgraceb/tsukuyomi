@@ -28,7 +28,7 @@ class Example extends HttpSource {
     return HttpSourcePage<HttpSourceManga>(next: false, data: <HttpSourceManga>[
       HttpSourceManga(
         url: '/manga', name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
-        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')],
+        authors: <SourceMangaAuthor>[SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')],
         tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
         languages: <String>['ja', 'zh-Hans'],
       ),
@@ -38,9 +38,9 @@ class Example extends HttpSource {
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
     return HttpSourceManga(
       url: manga.url, name: manga.name, cover: manga.cover,
-      status: manga.status, description: manga.description, creators: manga.creators, tags: manga.tags, languages: manga.languages,
+      status: manga.status, description: manga.description, authors: manga.authors, tags: manga.tags, languages: manga.languages,
       chapters: [
-        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.creators!.first.name + ' (' + manga.creators!.first.role! + ')',
+        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.authors!.first.name + ' (' + manga.authors!.first.role! + ')',
           date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
       ],
     );
@@ -53,14 +53,14 @@ main() => Example();
     final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
     final page = await host.getSourceMangas(HttpSourceQuery(keyword: 'Title'));
     final manga = page.data.single;
-    expect(manga.creators, [const SourceMangaCreator(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')]);
+    expect(manga.authors, [const SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')]);
     expect(manga.status, SourceMangaStatus.completed);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
     expect(manga.tags, [tag]);
     expect(manga.chapters, isNull);
     final details = await host.getMangaDetails(manga);
     expect(details.description, manga.description);
-    expect(details.creators, manga.creators);
+    expect(details.authors, manga.authors);
     expect(details.tags, manga.tags);
     expect(details.languages, manga.languages);
     final chapters = details.chapters!;
