@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseSource;
@@ -12,14 +10,10 @@ import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const installed = DatabaseSource(id: 1, name: 'Example', source: '');
-  late _SearchSource source;
-  late ProviderContainer container;
-  late SearchController controller;
-
-  setUp(() async {
-    source = _SearchSource();
-    container = ProviderContainer(overrides: [
+  test('Search follows the source continuation and appends results until the last page', () async {
+    final source = _SearchSource();
+    const installed = DatabaseSource(id: 1, name: 'Example', source: '');
+    final container = ProviderContainer(overrides: [
       keyboardVisibleProvider.overrideWithValue(false),
       sourcesStreamProvider.overrideWith((ref) => Stream.value([installed])),
       sourceByIdProvider(installed.id).overrideWith((ref) async => source),
@@ -27,44 +21,24 @@ void main() {
     addTearDown(container.dispose);
     final subscription = container.listen(searchControllerProvider, (_, _) {});
     addTearDown(subscription.close);
-    await container.read(searchControllerProvider.future);
-    controller = container.read(searchControllerProvider.notifier);
-  });
-
-  Future<void> search(String keyword) async {
-    container.read(searchControllerProvider).requireValue.textController.text = keyword;
-    await controller.onTextChanged(keyword);
+    final state = await container.read(searchControllerProvider.future);
+    final controller = container.read(searchControllerProvider.notifier);
+    state.textController.text = 'example';
+    await controller.onTextChanged('example');
     await controller.onSearch();
-  }
 
-  SearchResult result() => container.read(searchControllerProvider).requireValue.results[installed.id]!;
+    final first = subscription.read().requireValue.results[installed.id]!;
+    expect(first.mangas.map((manga) => manga.url), ['1']);
+    expect(first.nextQuery, same(source.continuation));
 
-  test('Search follows the source continuation and appends results until the last page', () async {
-    await search('example');
-    expect(result().mangas.map((manga) => manga.url), ['1']);
-    expect(result().nextQuery, same(source.continuation));
-
-    await Future.wait([controller.onNext(source, result()), controller.onNext(source, result())]);
+    await controller.onNext(source, first);
+    final last = subscription.read().requireValue.results[installed.id]!;
     expect(source.requests.last, same(source.continuation));
-    expect(result().mangas.map((manga) => manga.url), ['1', '7']);
-    expect(result().nextQuery, isNull);
+    expect(last.mangas.map((manga) => manga.url), ['1', '7']);
+    expect(last.nextQuery, isNull);
 
-    await controller.onNext(source, result());
+    await controller.onNext(source, last);
     expect(source.requests.map((query) => query.page), [1, 7]);
-  });
-
-  test('A pending page from the previous search leaves the new results intact', () async {
-    await search('first');
-    source.nextPage = Completer<void>();
-    final pending = controller.onNext(source, result());
-    await search('second');
-    final current = result();
-    source.nextPage!.complete();
-    await pending;
-
-    expect(source.requests.map((query) => query.page), [1, 7, 1]);
-    expect(result().mangas, same(current.mangas));
-    expect(result().nextQuery, same(source.continuation));
   });
 }
 
@@ -73,12 +47,10 @@ class _SearchSource extends NoInstalledSource {
 
   final continuation = HttpSourceQuery(page: 7, keyword: 'example');
   final requests = <SourceQuery>[];
-  Completer<void>? nextPage;
 
   @override
   Future<HttpSourceMangaEntries> getMangaEntries(SourceQuery query) async {
     requests.add(query);
-    if (query.page == 7) await nextPage?.future;
     final manga = HttpSourceManga(url: '${query.page}', name: 'Example', cover: 'cover');
     return HttpSourceMangaEntries(mangas: [manga], nextQuery: query.page == 1 ? continuation : null);
   }

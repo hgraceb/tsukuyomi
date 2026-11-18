@@ -18,3 +18,15 @@ extension SourceExtension on Source {
     };
   }
 }
+
+extension SourceMangaEntriesExtension on SourceMangaEntries {
+  /// 前插页面数据
+  SourceMangaEntries prepend(SourceMangaEntries page) {
+    return switch ((page, this)) {
+      (HttpSourceMangaEntries previous, HttpSourceMangaEntries current) => HttpSourceMangaEntries(
+        mangas: previous.mangas.followedBy(current.mangas),
+        nextQuery: current.nextQuery,
+      ),
+    };
+  }
+}
