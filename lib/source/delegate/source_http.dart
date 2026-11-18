@@ -18,15 +18,6 @@ extension on Iterable {
   }
 }
 
-extension on HttpSourcePage {
-  HttpSourcePage<HttpSourceManga> castMangaPage() {
-    return HttpSourcePage(
-      next: next,
-      data: data.cast<HttpSourceManga>(),
-    );
-  }
-}
-
 // 使用弱引用持有漫画源对应的网络请求器，避免多次请求导致网络请求器内部包含无法通过 Isolate 传递的数据
 final _clients = Expando<Dio>();
 
@@ -136,9 +127,8 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) {
-    // TODO 解释器优化类型自动转换后删除多余的 as 和 cast 语句
-    return isolate(() async => (await delegate.invoke('getSourceMangas', [query]) as HttpSourcePage).castMangaPage());
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) {
+    return isolate(() async => await delegate.invoke('getMangaEntries', [query]) as HttpSourceMangaEntries);
   }
 
   @override

@@ -9,8 +9,8 @@ sealed class Source {
   // ${$.debug('name', ($, $$) => $.name)}
   abstract final String name;
 
-  // ${$.debug('getSourceMangas', ($, $$) => $.getSourceMangas)}
-  Future<SourcePage<SourceManga>> getSourceMangas(covariant SourceQuery query);
+  // ${$.debug('getMangaEntries', ($, $$) => $.getMangaEntries)}
+  Future<SourceMangaEntries> getMangaEntries(covariant SourceQuery query);
 
   // ${$.debug('getMangaDetails', ($, $$) => $.getMangaDetails)}
   Future<SourceManga> getMangaDetails(covariant SourceManga manga);
@@ -31,7 +31,7 @@ sealed class SourceManga {
     required this.cover,
     this.status,
     this.description,
-    this.creators,
+    this.authors,
     this.tags,
     this.languages,
     this.chapters,
@@ -52,8 +52,8 @@ sealed class SourceManga {
   // ${$.debug('description', ($, $$) => $.description)}
   final String? description;
 
-  // ${$.debug('creators', ($, $$) => $.creators)}
-  final List<SourceMangaCreator>? creators;
+  // ${$.debug('authors', ($, $$) => $.authors)}
+  final List<SourceMangaAuthor>? authors;
 
   // ${$.debug('tags', ($, $$) => $.tags)}
   final List<SourceMangaTag>? tags;
@@ -146,21 +146,13 @@ sealed class SourceImage {
 }
 ''');
 
-DartClass get _$SourcePage => DartClass<SourcePage>(($) => '''
-sealed class SourcePage<T> {
-  SourcePage({
-    this.next = false,
-    required Iterable<T> data,
-  }) : data = data.toList(growable: false);
+DartClass get _$SourceMangaEntries => DartClass<SourceMangaEntries>(($) => '''
+sealed class SourceMangaEntries {
+  // ${$.debug('mangas', ($, $$) => $.mangas)}
+  List<SourceManga> get mangas;
 
-  // ${$.debug('next', ($, $$) => $.next)}
-  final bool next;
-
-  // ${$.debug('data', ($, $$) => $.data)}
-  final List<T> data;
-
-  // ${$.debug('query', ($, $$) => $.query)}
-  late final SourceQuery query;
+  // ${$.debug('nextQuery', ($, $$) => $.nextQuery)}
+  SourceQuery? get nextQuery;
 }
 ''');
 
@@ -329,7 +321,7 @@ List<DartDeclaration> get $core {
     _$SourceChapter,
     _$SourceFrame,
     _$SourceImage,
-    _$SourcePage,
+    _$SourceMangaEntries,
     _$SourceProtoFields,
     _$SourceProtoField,
     _$SourceProtoMessage,

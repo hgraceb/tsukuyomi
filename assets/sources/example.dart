@@ -8,12 +8,12 @@ class TsukuyomiSource extends HttpSource {
   final String baseUrl = 'https://example.com';
 
   @override
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) async {
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) async {
     await Future.delayed(const Duration(seconds: 1));
     const prefix = 'Example Manga';
-    return HttpSourcePage(
-      next: query.page < 3,
-      data: const [
+    return HttpSourceMangaEntries(
+      nextQuery: query.page < 3 ? query.nextPage : null,
+      mangas: const [
         HttpSourceManga(
           name: '$prefix Sea',
           url: '16,74,176,213,218,266,381,385,404,461,477,481,516,603,609,626,640,657,715,716',

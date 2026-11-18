@@ -61,8 +61,8 @@ abstract class HttpSource extends Source {
   // ${$.debug('getReplaceHeaders', ($, $$) => $.getReplaceHeaders)}
   external Future<Map<String, String>> getReplaceHeaders(HttpSourceResponse response);
 
-  // ${$.debug('getSourceMangas', ($, $$) => $.getSourceMangas)}
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query);
+  // ${$.debug('getMangaEntries', ($, $$) => $.getMangaEntries)}
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query);
 
   // ${$.debug('getMangaDetails', ($, $$) => $.getMangaDetails)}
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga);
@@ -87,7 +87,7 @@ class HttpSourceManga extends SourceManga {
     required super.cover,
     super.status,
     super.description,
-    super.creators,
+    super.authors,
     super.tags,
     super.languages,
     super.chapters,
@@ -149,13 +149,19 @@ class HttpSourceImage extends SourceImage {
 }
 ''');
 
-DartClass get _$HttpSourcePage => DartClass<HttpSourcePage>(($) => '''
-class HttpSourcePage<T> extends SourcePage<T> {
-  // ${$.empty('HttpSourcePage.new', () => HttpSourcePage.new)}
-  HttpSourcePage({
-    super.next,
-    required super.data,
+DartClass get _$HttpSourceMangaEntries => DartClass<HttpSourceMangaEntries>(($) => '''
+class HttpSourceMangaEntries extends SourceMangaEntries {
+  // ${$.empty('HttpSourceMangaEntries.new', () => HttpSourceMangaEntries.new)}
+  HttpSourceMangaEntries({
+    required this.mangas,
+    this.nextQuery,
   });
+
+  // ${$.debug('mangas', ($, $$) => $.mangas)}
+  final List<HttpSourceManga> mangas;
+
+  // ${$.debug('nextQuery', ($, $$) => $.nextQuery)}
+  final HttpSourceQuery? nextQuery;
 }
 ''');
 
@@ -166,6 +172,9 @@ class HttpSourceQuery extends SourceQuery {
     super.page,
     required super.keyword,
   });
+
+  // ${$.debug('nextPage', ($, $$) => $.nextPage)}
+  external HttpSourceQuery get nextPage;
 }
 ''');
 
@@ -182,7 +191,7 @@ List<DartDeclaration> get $http {
     _$HttpSourceChapter,
     _$HttpSourceFrame,
     _$HttpSourceImage,
-    _$HttpSourcePage,
+    _$HttpSourceMangaEntries,
     _$HttpSourceQuery,
     _$HttpSourceException,
   ];

@@ -186,7 +186,7 @@ $replacement
 $request
   }
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
 

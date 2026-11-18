@@ -59,8 +59,8 @@ enum SourceMangaTagType {
 
 /// 漫画作者
 @freezed
-class SourceMangaCreator with _$SourceMangaCreator {
-  const factory SourceMangaCreator({
+class SourceMangaAuthor with _$SourceMangaAuthor {
+  const factory SourceMangaAuthor({
     /// 作者名称
     required String name,
 
@@ -69,9 +69,9 @@ class SourceMangaCreator with _$SourceMangaCreator {
 
     /// 作者链接
     String? url,
-  }) = _SourceMangaCreator;
+  }) = _SourceMangaAuthor;
 
-  factory SourceMangaCreator.fromJson(Map<String, dynamic> json) => _$SourceMangaCreatorFromJson(json);
+  factory SourceMangaAuthor.fromJson(Map<String, dynamic> json) => _$SourceMangaAuthorFromJson(json);
 }
 
 /// 漫画标签
@@ -92,14 +92,14 @@ class SourceMangaTag with _$SourceMangaTag {
 }
 
 /// 校验漫画作者并去重
-List<SourceMangaCreator> normalizeMangaCreators(Iterable<SourceMangaCreator> values) {
-  final creators = <SourceMangaCreator>{};
+List<SourceMangaAuthor> normalizeMangaAuthors(Iterable<SourceMangaAuthor> values) {
+  final authors = <SourceMangaAuthor>{};
   for (final value in values) {
     final name = value.name.trim();
-    if (name.isEmpty) throw const FormatException('Empty manga creator name');
-    creators.add(value.copyWith(name: name));
+    if (name.isEmpty) throw const FormatException('Empty manga author name');
+    authors.add(value.copyWith(name: name));
   }
-  return List.unmodifiable(creators);
+  return List.unmodifiable(authors);
 }
 
 /// 校验漫画标签并去重

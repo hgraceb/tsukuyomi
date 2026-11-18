@@ -96,7 +96,7 @@ class UpdateMangasFixture implements MangaRepository {
       cover: update.cover.present ? update.cover.value : manga.cover,
       status: update.status.present ? update.status.value : manga.status,
       description: update.description.present ? update.description.value : manga.description,
-      creators: update.creators.present ? update.creators.value : manga.creators,
+      authors: update.authors.present ? update.authors.value : manga.authors,
       tags: update.tags.present ? update.tags.value : manga.tags,
       languages: update.languages.present ? update.languages.value : manga.languages,
     );

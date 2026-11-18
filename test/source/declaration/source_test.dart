@@ -8,6 +8,28 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
+  test('Manga entries expose typed mangas and continuation through HTTP and core declarations', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+Future<SourceMangaEntries> readEntries(Source source, SourceQuery query) => source.getMangaEntries(query);
+Future<HttpSourceMangaEntries> readHttpEntries(HttpSource source, HttpSourceQuery query) => source.getMangaEntries(query);
+
+main() {
+  final query = HttpSourceQuery(keyword: 'more', page: 3);
+  final entries = HttpSourceMangaEntries(
+    mangas: [HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover')],
+    nextQuery: query.nextPage,
+  );
+  final HttpSourceManga manga = entries.mangas.single;
+  final HttpSourceQuery? next = entries.nextQuery;
+  final SourceMangaEntries core = entries;
+  return [manga.url, query.page, next!.page, core.mangas.single.name, core.nextQuery!.keyword];
+}
+''';
+    expect(await evalValidSource(source), ['/manga', 3, 4, 'Title', 'more']);
+  });
+
   test('Prefixed source details preserve omitted values, explicit empty values and special language codes', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart' as source;
@@ -16,13 +38,13 @@ main() {
   final absent = source.HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover');
   final empty = source.HttpSourceManga(
     url: '/manga', name: 'Title', cover: '/cover',
-    status: source.SourceMangaStatus.unknown, description: '', creators: [], tags: [], languages: [], chapters: [],
+    status: source.SourceMangaStatus.unknown, description: '', authors: [], tags: [], languages: [], chapters: [],
   );
   final normalize = source.normalizeMangaLanguages;
   final parseStatus = source.SourceMangaStatus.fromJson;
   return <dynamic>[
-    absent.status, absent.description, absent.creators, absent.tags, absent.languages, absent.chapters,
-    empty.status == parseStatus('unknown'), empty.description, empty.creators, empty.tags, empty.languages, empty.chapters,
+    absent.status, absent.description, absent.authors, absent.tags, absent.languages, absent.chapters,
+    empty.status == parseStatus('unknown'), empty.description, empty.authors, empty.tags, empty.languages, empty.chapters,
     normalize(['all', 'und-Latn', 'und', 'mul', 'zxx']),
     source.SourceMangaStatus.values.first == empty.status,
   ];
@@ -54,9 +76,9 @@ main() {
   final SourceManga manga = HttpSourceManga(
     url: '/manga', name: 'Title', cover: '/cover',
     status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
-    creators: normalizeMangaCreators(<SourceMangaCreator>[
-      SourceMangaCreator(name: ' Author ', role: 'Writer', url: 'https://example.com/authors/1'),
-      SourceMangaCreator.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
+    authors: normalizeMangaAuthors(<SourceMangaAuthor>[
+      SourceMangaAuthor(name: ' Author ', role: 'Writer', url: 'https://example.com/authors/1'),
+      SourceMangaAuthor.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
     ]),
     tags: normalizeMangaTags(<SourceMangaTag>[
       SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
@@ -64,12 +86,12 @@ main() {
     ]),
     languages: normalizeMangaLanguages(<String>['zh-Hans', 'ja']),
   );
-  final dynamic creator = manga.creators!.first;
+  final dynamic author = manga.authors!.first;
   return <dynamic>[
     manga.status!.toJson(), manga.description,
-    manga.creators!.first.name, manga.creators!.first.role, creator.role, manga.creators!.first.url, manga.creators!.first.toJson(),
+    manga.authors!.first.name, manga.authors!.first.role, author.role, manga.authors!.first.url, manga.authors!.first.toJson(),
     manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.url, manga.tags!.last.toJson(), manga.tags!.last.url,
-    manga.creators!.first is SourceMangaCreator, manga.tags!.first is SourceMangaTag,
+    manga.authors!.first is SourceMangaAuthor, manga.tags!.first is SourceMangaTag,
     manga.languages,
   ];
 }
@@ -154,7 +176,7 @@ class Example extends HttpSource {
     return fetchJson('/chapter', method: 'POST', headers: {'x-source': 'chapter'});
   }
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
@@ -184,7 +206,7 @@ class Example extends HttpSource {
     return bytes.copyWith(extra: image.extra);
   }
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
@@ -274,7 +296,7 @@ class Example extends HttpSource {
     return HttpSourceBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: image.extra);
   }
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }

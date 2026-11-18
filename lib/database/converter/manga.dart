@@ -13,17 +13,17 @@ class MangaStatusConverter extends TypeConverter<SourceMangaStatus, String> {
   String toSql(SourceMangaStatus value) => value.toJson();
 }
 
-class MangaCreatorsConverter extends TypeConverter<List<SourceMangaCreator>, String> {
-  const MangaCreatorsConverter();
+class MangaAuthorsConverter extends TypeConverter<List<SourceMangaAuthor>, String> {
+  const MangaAuthorsConverter();
 
   @override
-  List<SourceMangaCreator> fromSql(String fromDb) {
+  List<SourceMangaAuthor> fromSql(String fromDb) {
     final values = jsonDecode(fromDb) as List<dynamic>;
-    return normalizeMangaCreators(values.map((value) => SourceMangaCreator.fromJson(value as Map<String, dynamic>)));
+    return normalizeMangaAuthors(values.map((value) => SourceMangaAuthor.fromJson(value as Map<String, dynamic>)));
   }
 
   @override
-  String toSql(List<SourceMangaCreator> value) => jsonEncode(normalizeMangaCreators(value));
+  String toSql(List<SourceMangaAuthor> value) => jsonEncode(normalizeMangaAuthors(value));
 }
 
 class MangaTagsConverter extends TypeConverter<List<SourceMangaTag>, String> {

@@ -86,13 +86,13 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   }
 
   /// 搜索下一页的数据
-  Future<void> onNext(Source? source, SourcePage<SourceManga>? page) async {
-    if (source == null || page == null || page.next != true) return;
+  Future<void> onNext(Source? source, SourceMangaEntries? page) async {
+    if (source == null || page == null || page.nextQuery == null) return;
     if (data?.loadings.contains(source.id) == true) return;
     final id = source.id;
     try {
       await update((state) => state.copyWith(loadings: state.addLoading(id)));
-      final result = await ref.read(searchMangasProvider(source, page.nextQuery).future);
+      final result = await ref.read(searchMangasProvider(source, page.nextQuery!).future);
       await update((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);
@@ -138,7 +138,7 @@ class SearchState with _$SearchState {
     required Map<int, String> errors,
 
     /// 搜索完成的漫画源
-    required Map<int, SourcePage<SourceManga>> results,
+    required Map<int, SourceMangaEntries> results,
 
     /// 键盘是否正在显示
     required bool keyboardVisible,
@@ -167,7 +167,7 @@ extension on SearchState {
 
   Map<int, String> addError(int sourceId, String error) => {...errors}..addAll({sourceId: error});
 
-  Map<int, SourcePage<SourceManga>> addResult(int sourceId, SourcePage<SourceManga> page) => {...results}..addAll({sourceId: page});
+  Map<int, SourceMangaEntries> addResult(int sourceId, SourceMangaEntries page) => {...results}..addAll({sourceId: page});
 }
 
 /// 搜索页面扩展配置

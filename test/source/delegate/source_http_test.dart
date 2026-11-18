@@ -24,23 +24,23 @@ class Example extends HttpSource {
   final String name = 'Example';
   final String baseUrl = 'https://example.com';
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) async {
-    return HttpSourcePage<HttpSourceManga>(next: false, data: <HttpSourceManga>[
-      HttpSourceManga(
-        url: '/manga', name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
-        creators: <SourceMangaCreator>[SourceMangaCreator(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')],
-        tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
-        languages: <String>['ja', 'zh-Hans'],
-      ),
-    ]);
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) async {
+    if (query.page == 4) return HttpSourceMangaEntries(mangas: []);
+    final mangas = ['/manga'].map((url) => HttpSourceManga(
+      url: url, name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
+      authors: <SourceMangaAuthor>[SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')],
+      tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
+      languages: <String>['ja', 'zh-Hans'],
+    ));
+    return HttpSourceMangaEntries(mangas: mangas.toList(), nextQuery: HttpSourceQuery(page: 4, keyword: query.keyword));
   }
 
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
     return HttpSourceManga(
       url: manga.url, name: manga.name, cover: manga.cover,
-      status: manga.status, description: manga.description, creators: manga.creators, tags: manga.tags, languages: manga.languages,
+      status: manga.status, description: manga.description, authors: manga.authors, tags: manga.tags, languages: manga.languages,
       chapters: [
-        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.creators!.first.name + ' (' + manga.creators!.first.role! + ')',
+        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.authors!.first.name + ' (' + manga.authors!.first.role! + ')',
           date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
       ],
     );
@@ -51,16 +51,22 @@ main() => Example();
 ''';
     final instance = await compute((source) => eval(source, libraries: evalLibraries), source) as ObjInstance;
     final host = IsolateDioHttpSource(delegate: instance, preferences: await SharedPreferences.getInstance());
-    final page = await host.getSourceMangas(HttpSourceQuery(keyword: 'Title'));
-    final manga = page.data.single;
-    expect(manga.creators, [const SourceMangaCreator(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')]);
+    final entries = await host.getMangaEntries(HttpSourceQuery(keyword: 'Title'));
+    final nextQuery = entries.nextQuery!;
+    expect(nextQuery.page, 4);
+    expect(nextQuery.keyword, 'Title');
+    final last = await host.getMangaEntries(nextQuery);
+    expect(last.mangas, isEmpty);
+    expect(last.nextQuery, isNull);
+    final manga = entries.mangas.single;
+    expect(manga.authors, [const SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')]);
     expect(manga.status, SourceMangaStatus.completed);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
     expect(manga.tags, [tag]);
     expect(manga.chapters, isNull);
     final details = await host.getMangaDetails(manga);
     expect(details.description, manga.description);
-    expect(details.creators, manga.creators);
+    expect(details.authors, manga.authors);
     expect(details.tags, manga.tags);
     expect(details.languages, manga.languages);
     final chapters = details.chapters!;

@@ -46,7 +46,7 @@ class MockManga {
     required this.auto,
     required this.status,
     required this.description,
-    required this.creators,
+    required this.authors,
     required this.tags,
     required this.languages,
   });
@@ -59,7 +59,7 @@ class MockManga {
     auto: json['auto'] == true,
     status: json['status'] == null ? SourceMangaStatus.unknown : SourceMangaStatus.fromJson(json['status']),
     description: json['description'] ?? '',
-    creators: (json['creators'] as List<dynamic>?)?.map((e) => SourceMangaCreator.fromJson(e)).toList() ?? [],
+    authors: (json['authors'] as List<dynamic>?)?.map((e) => SourceMangaAuthor.fromJson(e)).toList() ?? [],
     tags: (json['tags'] as List<dynamic>?)?.map((e) => SourceMangaTag.fromJson(e)).toList() ?? [],
     languages: (json['languages'] as List<dynamic>?)?.cast<String>() ?? [],
   );
@@ -78,7 +78,7 @@ class MockManga {
 
   final String description;
 
-  final List<SourceMangaCreator> creators;
+  final List<SourceMangaAuthor> authors;
 
   final List<SourceMangaTag> tags;
 
@@ -113,7 +113,7 @@ Future<MockDatabase> getMockDatabase() async {
               lastCheckAt: null,
               status: manga.status,
               description: manga.description,
-              creators: manga.creators,
+              authors: manga.authors,
               tags: manga.tags,
               languages: manga.languages,
             ),

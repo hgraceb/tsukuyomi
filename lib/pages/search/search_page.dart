@@ -115,7 +115,7 @@ class _SearchPageResult extends StatelessWidget {
           margin: state.result == null ? EdgeInsets.symmetric(horizontal: padding) : EdgeInsets.zero,
           shape: state.result == null ? null : const RoundedRectangleBorder(),
           child: Builder(builder: (context) {
-            if (state.result?.data case List<SourceManga> mangas) {
+            if (state.result?.mangas case List<SourceManga> mangas) {
               return TsukuyomiAnimatedSwitcher(
                 child: ListView.separated(
                   key: const ValueKey('results'),
@@ -123,7 +123,7 @@ class _SearchPageResult extends StatelessWidget {
                   itemCount: mangas.length + 1,
                   separatorBuilder: (context, index) => const SizedBox(width: 12.0),
                   // 还有下一页内容时禁用列表末尾越界滚动，避免在快速滚动时到末尾时触发滚动回弹导致滚动行为异常
-                  physics: state.result?.next == true ? const CustomBouncingScrollPhysics(end: false) : null,
+                  physics: state.result?.nextQuery != null ? const CustomBouncingScrollPhysics(end: false) : null,
                   itemBuilder: (context, index) => Padding(
                     padding: EdgeInsets.only(
                       left: index == 0 ? padding : 0.0,
@@ -147,7 +147,7 @@ class _SearchPageResult extends StatelessWidget {
                               ),
                             ),
                           );
-                        } else if (state.result?.next == true) {
+                        } else if (state.result?.nextQuery != null) {
                           controller.onNext(state.source, state.result);
                           return const Center(
                             child: SizedBox.square(

@@ -6,4 +6,7 @@ class HttpSourceQuery extends SourceQuery {
     super.page,
     required super.keyword,
   });
+
+  /// 下一页查询条件
+  HttpSourceQuery get nextPage => HttpSourceQuery(page: page + 1, keyword: keyword);
 }
