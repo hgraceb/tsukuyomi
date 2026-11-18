@@ -16,17 +16,18 @@ Future<SourceMangaEntries> readEntries(Source source, SourceQuery query) => sour
 Future<HttpSourceMangaEntries> readHttpEntries(HttpSource source, HttpSourceQuery query) => source.getMangaEntries(query);
 
 main() {
+  final query = HttpSourceQuery(keyword: 'more', page: 3);
   final entries = HttpSourceMangaEntries(
     mangas: [HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover')],
-    nextQuery: HttpSourceQuery(keyword: 'more', page: 4),
+    nextQuery: query.nextPage,
   );
   final HttpSourceManga manga = entries.mangas.single;
   final HttpSourceQuery? next = entries.nextQuery;
   final SourceMangaEntries core = entries;
-  return [manga.url, next!.page, core.mangas.single.name, core.nextQuery!.keyword];
+  return [manga.url, query.page, next!.page, core.mangas.single.name, core.nextQuery!.keyword];
 }
 ''';
-    expect(await evalValidSource(source), ['/manga', 4, 'Title', 'more']);
+    expect(await evalValidSource(source), ['/manga', 3, 4, 'Title', 'more']);
   });
 
   test('Prefixed source details preserve omitted values, explicit empty values and special language codes', () async {

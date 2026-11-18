@@ -14,7 +14,7 @@ sealed class Source {
   /// 漫画源的显示名称
   abstract final String name;
 
-  /// 获取漫画条目
+  /// 获取分页漫画条目
   Future<SourceMangaEntries> getMangaEntries(covariant SourceQuery query);
 
   /// 获取漫画章节详情

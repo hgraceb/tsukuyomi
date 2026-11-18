@@ -11,9 +11,8 @@ class TsukuyomiSource extends HttpSource {
   Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) async {
     await Future.delayed(const Duration(seconds: 1));
     const prefix = 'Example Manga';
-    final hasNext = query.page < 3;
     return HttpSourceMangaEntries(
-      nextQuery: hasNext ? HttpSourceQuery(keyword: query.keyword, page: query.page + 1) : null,
+      nextQuery: query.page < 3 ? query.nextPage : null,
       mangas: const [
         HttpSourceManga(
           name: '$prefix Sea',

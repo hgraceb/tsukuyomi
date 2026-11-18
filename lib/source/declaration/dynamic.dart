@@ -97,6 +97,7 @@ List<DartClass> get $dynamic {
       'namespace': (($) => $.namespace, ($, $$) => $.namespace = $$),
       'namespaceUri': (($) => $.namespaceUri, ($, $$) => $.namespaceUri = $$),
       'nextElementSibling': (($) => $.nextElementSibling, ($, $$) => $.nextElementSibling = $$),
+      'nextPage': (($) => $.nextPage, ($, $$) => $.nextPage = $$),
       'nextQuery': (($) => $.nextQuery, ($, $$) => $.nextQuery = $$),
       'nodeType': (($) => $.nodeType, ($, $$) => $.nodeType = $$),
       'nodes': (($) => $.nodes, ($, $$) => $.nodes = $$),

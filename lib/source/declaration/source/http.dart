@@ -176,6 +176,9 @@ class HttpSourceQuery extends SourceQuery {
     super.page,
     required super.keyword,
   });
+
+  // ${$.debug('nextPage', ($, $$) => $.nextPage)}
+  external HttpSourceQuery get nextPage;
 }
 ''');
 

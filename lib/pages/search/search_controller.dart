@@ -65,7 +65,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
         final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
         if (cachedSource != source) await update((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
         final entries = await ref.read(searchMangasProvider(source, HttpSourceQuery(keyword: keyword)).future);
-        await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries)));
+        await update((state) => state.finishLoading(id, entries));
       } catch (e) {
         await update((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
       }
@@ -87,23 +87,20 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
 
   /// 搜索下一页的数据
   Future<void> onNext(Source? source) async {
-    if (source == null) return;
-    if (data?.loadings.contains(source.id) == true) return;
+    if (!mounted || source == null) return;
+    final current = data;
+    if (current == null || current.loadings.contains(source.id)) return;
     final id = source.id;
-    final previous = data?.results[id];
+    final previous = current.results[id];
     final query = previous?.nextQuery;
     if (query == null) return;
-    try {
-      await update((state) => state.copyWith(loadings: state.addLoading(id)));
-      final entries = await ref.read(searchMangasProvider(source, query).future);
-      await update((state) {
-        if (!identical(state.results[id], previous)) return state;
-        return state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries));
-      });
-    } catch (error, stackTrace) {
-      handlerError(error, stackTrace);
-      await update((state) => identical(state.results[id], previous) ? state.copyWith(loadings: state.removeLoading(id)) : state);
-    }
+    state = AsyncData(current.copyWith(loadings: current.addLoading(id)));
+    final response = await AsyncValue.guard(() => ref.read(searchMangasProvider(source, query).future));
+    if (!mounted) return;
+    final latest = data;
+    if (latest == null || !identical(latest.results[id]?.mangas, previous?.mangas)) return;
+    if (response.hasError) handlerError(response.error!, response.stackTrace);
+    state = AsyncData(latest.finishLoading(id, response.valueOrNull));
   }
 
   /// 处理文本更新事件
@@ -163,10 +160,7 @@ class SearchState with _$SearchState {
 }
 
 /// 单个漫画源已加载的搜索结果
-@freezed
-class SearchResult with _$SearchResult {
-  const factory SearchResult({required List<SourceManga> mangas, SourceQuery? nextQuery}) = _SearchResult;
-}
+typedef SearchResult = ({List<SourceManga> mangas, SourceQuery? nextQuery});
 
 /// 搜索页面扩展方法
 extension on SearchState {
@@ -178,12 +172,12 @@ extension on SearchState {
 
   Map<int, String> addError(int sourceId, String error) => {...errors}..addAll({sourceId: error});
 
-  Map<int, SearchResult> addResult(int sourceId, SourceMangaEntries entries) {
-    final previous = results[sourceId]?.mangas;
-    return {
-      ...results,
-      sourceId: SearchResult(mangas: [...?previous, ...entries.mangas], nextQuery: entries.nextQuery),
-    };
+  SearchState finishLoading(int sourceId, SourceMangaEntries? entries) {
+    final remaining = removeLoading(sourceId);
+    if (entries == null) return copyWith(loadings: remaining);
+    final previous = results[sourceId]?.mangas ?? const <SourceManga>[];
+    final mangas = List<SourceManga>.unmodifiable(previous.followedBy(entries.mangas));
+    return copyWith(loadings: remaining, results: {...results, sourceId: (mangas: mangas, nextQuery: entries.nextQuery)});
   }
 }
 
