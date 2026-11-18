@@ -44,19 +44,19 @@ void main() {
     expect(result().mangas.map((manga) => manga.url), ['1']);
     expect(result().nextQuery, same(source.continuation));
 
-    await Future.wait([controller.onNext(source), controller.onNext(source)]);
+    await Future.wait([controller.onNext(source, result()), controller.onNext(source, result())]);
     expect(source.requests.last, same(source.continuation));
     expect(result().mangas.map((manga) => manga.url), ['1', '7']);
     expect(result().nextQuery, isNull);
 
-    await controller.onNext(source);
+    await controller.onNext(source, result());
     expect(source.requests.map((query) => query.page), [1, 7]);
   });
 
   test('A pending page from the previous search leaves the new results intact', () async {
     await search('first');
     source.nextPage = Completer<void>();
-    final pending = controller.onNext(source);
+    final pending = controller.onNext(source, result());
     await search('second');
     final current = result();
     source.nextPage!.complete();

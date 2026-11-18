@@ -148,7 +148,7 @@ class _SearchPageResult extends StatelessWidget {
                             ),
                           );
                         } else if (state.result?.nextQuery != null) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) => controller.onNext(state.source));
+                          controller.onNext(state.source, state.result);
                           return const Center(
                             child: SizedBox.square(
                               dimension: 24.0,

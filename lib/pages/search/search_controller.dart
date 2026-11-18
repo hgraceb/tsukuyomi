@@ -65,7 +65,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
         final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
         if (cachedSource != source) await update((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
         final entries = await ref.read(searchMangasProvider(source, HttpSourceQuery(keyword: keyword)).future);
-        await update((state) => state.finishLoading(id, entries));
+        await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries)));
       } catch (e) {
         await update((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
       }
@@ -86,21 +86,19 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   }
 
   /// 搜索下一页的数据
-  Future<void> onNext(Source? source) async {
-    if (!mounted || source == null) return;
-    final current = data;
-    if (current == null || current.loadings.contains(source.id)) return;
-    final id = source.id;
-    final previous = current.results[id];
+  Future<void> onNext(Source? source, SearchResult? previous) async {
     final query = previous?.nextQuery;
-    if (query == null) return;
-    state = AsyncData(current.copyWith(loadings: current.addLoading(id)));
+    if (source == null || query == null) return;
+    final id = source.id;
+    if (data?.loadings.contains(id) == true) return;
+    await update((state) => state.copyWith(loadings: state.addLoading(id)));
     final response = await AsyncValue.guard(() => ref.read(searchMangasProvider(source, query).future));
     if (!mounted) return;
-    final latest = data;
-    if (latest == null || !identical(latest.results[id]?.mangas, previous?.mangas)) return;
-    if (response.hasError) handlerError(response.error!, response.stackTrace);
-    state = AsyncData(latest.finishLoading(id, response.valueOrNull));
+    await update((state) {
+      if (state.results[id] != previous) return state;
+      if (response.hasError) handlerError(response.error!, response.stackTrace);
+      return state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, response.valueOrNull));
+    });
   }
 
   /// 处理文本更新事件
@@ -172,12 +170,10 @@ extension on SearchState {
 
   Map<int, String> addError(int sourceId, String error) => {...errors}..addAll({sourceId: error});
 
-  SearchState finishLoading(int sourceId, SourceMangaEntries? entries) {
-    final remaining = removeLoading(sourceId);
-    if (entries == null) return copyWith(loadings: remaining);
-    final previous = results[sourceId]?.mangas ?? const <SourceManga>[];
-    final mangas = List<SourceManga>.unmodifiable(previous.followedBy(entries.mangas));
-    return copyWith(loadings: remaining, results: {...results, sourceId: (mangas: mangas, nextQuery: entries.nextQuery)});
+  Map<int, SearchResult> addResult(int id, SourceMangaEntries? entries) {
+    if (entries == null) return results;
+    final mangas = results[id]?.mangas.followedBy(entries.mangas) ?? entries.mangas;
+    return {...results, id: (mangas: List.unmodifiable(mangas), nextQuery: entries.nextQuery)};
   }
 }
 

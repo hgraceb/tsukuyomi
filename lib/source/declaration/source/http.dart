@@ -149,13 +149,9 @@ class HttpSourceImage extends SourceImage {
 }
 ''');
 
-HttpSourceMangaEntries _httpSourceMangaEntries({required Iterable<dynamic> mangas, HttpSourceQuery? nextQuery}) {
-  return HttpSourceMangaEntries(mangas: mangas.cast<HttpSourceManga>(), nextQuery: nextQuery);
-}
-
 DartClass get _$HttpSourceMangaEntries => DartClass<HttpSourceMangaEntries>(($) => '''
 class HttpSourceMangaEntries extends SourceMangaEntries {
-  // ${$.empty('HttpSourceMangaEntries.new', () => _httpSourceMangaEntries)}
+  // ${$.empty('HttpSourceMangaEntries.new', () => HttpSourceMangaEntries.new)}
   HttpSourceMangaEntries({
     required Iterable<HttpSourceManga> mangas,
     this.nextQuery,
