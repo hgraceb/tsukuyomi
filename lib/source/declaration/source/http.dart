@@ -153,9 +153,9 @@ DartClass get _$HttpSourceMangaEntries => DartClass<HttpSourceMangaEntries>(($) 
 class HttpSourceMangaEntries extends SourceMangaEntries {
   // ${$.empty('HttpSourceMangaEntries.new', () => HttpSourceMangaEntries.new)}
   HttpSourceMangaEntries({
-    required Iterable<HttpSourceManga> mangas,
+    required this.mangas,
     this.nextQuery,
-  }) : mangas = List.unmodifiable(mangas);
+  });
 
   // ${$.debug('mangas', ($, $$) => $.mangas)}
   final List<HttpSourceManga> mangas;

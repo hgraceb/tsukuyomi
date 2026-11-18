@@ -24,7 +24,7 @@ extension SourceMangaEntriesExtension on SourceMangaEntries {
   SourceMangaEntries prepend(SourceMangaEntries page) {
     return switch ((page, this)) {
       (HttpSourceMangaEntries previous, HttpSourceMangaEntries current) => HttpSourceMangaEntries(
-        mangas: previous.mangas.followedBy(current.mangas),
+        mangas: [...previous.mangas, ...current.mangas],
         nextQuery: current.nextQuery,
       ),
     };

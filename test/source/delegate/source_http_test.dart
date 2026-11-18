@@ -32,7 +32,7 @@ class Example extends HttpSource {
       tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
       languages: <String>['ja', 'zh-Hans'],
     ));
-    return HttpSourceMangaEntries(mangas: mangas, nextQuery: HttpSourceQuery(page: 4, keyword: query.keyword));
+    return HttpSourceMangaEntries(mangas: mangas.toList(), nextQuery: HttpSourceQuery(page: 4, keyword: query.keyword));
   }
 
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
