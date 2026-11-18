@@ -18,27 +18,3 @@ extension SourceExtension on Source {
     };
   }
 }
-
-extension SourcePageExtension<T> on SourcePage<T> {
-  /// 下页查询条件
-  SourceQuery get nextQuery {
-    return switch (query) {
-      HttpSourceQuery() => HttpSourceQuery(page: query.page + 1, keyword: query.keyword),
-    };
-  }
-
-  /// 前插页面数据
-  SourcePage<T> prepend(SourcePage<T> page) {
-    return copyWith(data: [...page.data, ...data]);
-  }
-
-  /// 创建对象副本
-  SourcePage<T> copyWith({bool? next, List<T>? data, SourceQuery? query}) {
-    return switch (this) {
-      HttpSourcePage() => HttpSourcePage(
-        next: next ?? this.next,
-        data: data?.cast<T>() ?? this.data,
-      )..query = query ?? this.query,
-    };
-  }
-}

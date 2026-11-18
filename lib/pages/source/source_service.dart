@@ -37,10 +37,10 @@ Stream<List<DatabaseSource>> sourcesStream(SourcesStreamRef ref) {
 }
 
 @riverpod
-Future<SourcePage<SourceManga>> searchMangas(SearchMangasRef ref, Source source, SourceQuery query) async {
-  final page = await source.getSourceMangas(query);
-  if (page.data.isEmpty) throw const TsukuyomiSourceException.mangasNotFound('search');
-  return page..query = query;
+Future<SourceMangaEntries> searchMangas(SearchMangasRef ref, Source source, SourceQuery query) async {
+  final entries = await source.getMangaEntries(query);
+  if (entries.mangas.isEmpty) throw const TsukuyomiSourceException.mangasNotFound('search');
+  return entries;
 }
 
 @riverpod

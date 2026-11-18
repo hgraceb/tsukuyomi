@@ -8,6 +8,27 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
+  test('Manga entries expose typed mangas and continuation through HTTP and core declarations', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+Future<SourceMangaEntries> readEntries(Source source, SourceQuery query) => source.getMangaEntries(query);
+Future<HttpSourceMangaEntries> readHttpEntries(HttpSource source, HttpSourceQuery query) => source.getMangaEntries(query);
+
+main() {
+  final entries = HttpSourceMangaEntries(
+    mangas: [HttpSourceManga(url: '/manga', name: 'Title', cover: '/cover')],
+    nextQuery: HttpSourceQuery(keyword: 'more', page: 4),
+  );
+  final HttpSourceManga manga = entries.mangas.single;
+  final HttpSourceQuery? next = entries.nextQuery;
+  final SourceMangaEntries core = entries;
+  return [manga.url, next!.page, core.mangas.single.name, core.nextQuery!.keyword];
+}
+''';
+    expect(await evalValidSource(source), ['/manga', 4, 'Title', 'more']);
+  });
+
   test('Prefixed source details preserve omitted values, explicit empty values and special language codes', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart' as source;
@@ -154,7 +175,7 @@ class Example extends HttpSource {
     return fetchJson('/chapter', method: 'POST', headers: {'x-source': 'chapter'});
   }
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
@@ -184,7 +205,7 @@ class Example extends HttpSource {
     return bytes.copyWith(extra: image.extra);
   }
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }
@@ -274,7 +295,7 @@ class Example extends HttpSource {
     return HttpSourceBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: image.extra);
   }
 
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query) => throw 'unused';
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
 }

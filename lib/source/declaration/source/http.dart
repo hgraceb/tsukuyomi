@@ -61,8 +61,8 @@ abstract class HttpSource extends Source {
   // ${$.debug('getReplaceHeaders', ($, $$) => $.getReplaceHeaders)}
   external Future<Map<String, String>> getReplaceHeaders(HttpSourceResponse response);
 
-  // ${$.debug('getSourceMangas', ($, $$) => $.getSourceMangas)}
-  Future<HttpSourcePage<HttpSourceManga>> getSourceMangas(HttpSourceQuery query);
+  // ${$.debug('getMangaEntries', ($, $$) => $.getMangaEntries)}
+  Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query);
 
   // ${$.debug('getMangaDetails', ($, $$) => $.getMangaDetails)}
   Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga);
@@ -149,13 +149,23 @@ class HttpSourceImage extends SourceImage {
 }
 ''');
 
-DartClass get _$HttpSourcePage => DartClass<HttpSourcePage>(($) => '''
-class HttpSourcePage<T> extends SourcePage<T> {
-  // ${$.empty('HttpSourcePage.new', () => HttpSourcePage.new)}
-  HttpSourcePage({
-    super.next,
-    required super.data,
-  });
+HttpSourceMangaEntries _httpSourceMangaEntries({required Iterable<dynamic> mangas, HttpSourceQuery? nextQuery}) {
+  return HttpSourceMangaEntries(mangas: mangas.cast<HttpSourceManga>(), nextQuery: nextQuery);
+}
+
+DartClass get _$HttpSourceMangaEntries => DartClass<HttpSourceMangaEntries>(($) => '''
+class HttpSourceMangaEntries extends SourceMangaEntries {
+  // ${$.empty('HttpSourceMangaEntries.new', () => _httpSourceMangaEntries)}
+  HttpSourceMangaEntries({
+    required Iterable<HttpSourceManga> mangas,
+    this.nextQuery,
+  }) : mangas = List.unmodifiable(mangas);
+
+  // ${$.debug('mangas', ($, $$) => $.mangas)}
+  final List<HttpSourceManga> mangas;
+
+  // ${$.debug('nextQuery', ($, $$) => $.nextQuery)}
+  final HttpSourceQuery? nextQuery;
 }
 ''');
 
@@ -182,7 +192,7 @@ List<DartDeclaration> get $http {
     _$HttpSourceChapter,
     _$HttpSourceFrame,
     _$HttpSourceImage,
-    _$HttpSourcePage,
+    _$HttpSourceMangaEntries,
     _$HttpSourceQuery,
     _$HttpSourceException,
   ];

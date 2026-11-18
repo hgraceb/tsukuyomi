@@ -64,8 +64,8 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
         final cachedSource = data?.cachedSources[id];
         final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
         if (cachedSource != source) await update((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
-        final page = await ref.read(searchMangasProvider(source, HttpSourceQuery(keyword: keyword)).future);
-        await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
+        final entries = await ref.read(searchMangasProvider(source, HttpSourceQuery(keyword: keyword)).future);
+        await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries)));
       } catch (e) {
         await update((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
       }
@@ -86,18 +86,23 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   }
 
   /// 搜索下一页的数据
-  Future<void> onNext(Source? source, SourcePage<SourceManga>? page) async {
-    if (source == null || page == null || page.next != true) return;
+  Future<void> onNext(Source? source) async {
+    if (source == null) return;
     if (data?.loadings.contains(source.id) == true) return;
     final id = source.id;
+    final previous = data?.results[id];
+    final query = previous?.nextQuery;
+    if (query == null) return;
     try {
       await update((state) => state.copyWith(loadings: state.addLoading(id)));
-      final result = await ref.read(searchMangasProvider(source, page.nextQuery).future);
-      await update((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
+      final entries = await ref.read(searchMangasProvider(source, query).future);
+      await update((state) {
+        if (!identical(state.results[id], previous)) return state;
+        return state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries));
+      });
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);
-    } finally {
-      await update((state) => state.copyWith(loadings: state.removeLoading(id)));
+      await update((state) => identical(state.results[id], previous) ? state.copyWith(loadings: state.removeLoading(id)) : state);
     }
   }
 
@@ -138,7 +143,7 @@ class SearchState with _$SearchState {
     required Map<int, String> errors,
 
     /// 搜索完成的漫画源
-    required Map<int, SourcePage<SourceManga>> results,
+    required Map<int, SearchResult> results,
 
     /// 键盘是否正在显示
     required bool keyboardVisible,
@@ -157,6 +162,12 @@ class SearchState with _$SearchState {
   }) = _SearchState;
 }
 
+/// 单个漫画源已加载的搜索结果
+@freezed
+class SearchResult with _$SearchResult {
+  const factory SearchResult({required List<SourceManga> mangas, SourceQuery? nextQuery}) = _SearchResult;
+}
+
 /// 搜索页面扩展方法
 extension on SearchState {
   Map<int, Source> addCachedSource(int id, Source source) => {...cachedSources}..addAll({id: source});
@@ -167,7 +178,13 @@ extension on SearchState {
 
   Map<int, String> addError(int sourceId, String error) => {...errors}..addAll({sourceId: error});
 
-  Map<int, SourcePage<SourceManga>> addResult(int sourceId, SourcePage<SourceManga> page) => {...results}..addAll({sourceId: page});
+  Map<int, SearchResult> addResult(int sourceId, SourceMangaEntries entries) {
+    final previous = results[sourceId]?.mangas;
+    return {
+      ...results,
+      sourceId: SearchResult(mangas: [...?previous, ...entries.mangas], nextQuery: entries.nextQuery),
+    };
+  }
 }
 
 /// 搜索页面扩展配置
