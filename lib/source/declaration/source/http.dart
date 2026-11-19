@@ -115,10 +115,16 @@ class HttpSourceBytes extends SourceBytes {
   HttpSourceBytes({
     required super.type,
     required super.data,
-    required super.statusCode,
-    required super.responseHeaders,
+    required this.statusCode,
+    required this.responseHeaders,
     super.extra,
   });
+
+  // ${$.debug('statusCode', ($, $$) => $.statusCode)}
+  final int statusCode;
+
+  // ${$.debug('responseHeaders', ($, $$) => $.responseHeaders)}
+  final Headers responseHeaders;
 
   // ${$.debug('copyWith', ($, $$) => $.copyWith)}
   external HttpSourceBytes copyWith({

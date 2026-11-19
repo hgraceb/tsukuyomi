@@ -97,6 +97,18 @@ void main() {
     expect(utf8.decode(request.body), 'token=a%2Bb&empty=');
   });
 
+  test('Default image requests leave page metadata on the image', () async {
+    final server = await serve(body: [0, 1], contentType: 'image/png');
+    final source = await loadRequestSource(server.baseUrl, "    throw 'unused';");
+    const image = HttpSourceImage(url: '/page.png', extra: 'request parameter');
+    final bytes = await source.getImageBytes(image);
+    expect(bytes.type, 'png');
+    expect(bytes.data, [0, 1]);
+    expect(bytes.statusCode, 200);
+    expect(bytes.extra, isNull);
+    expect(await source.getRepaintBytes(bytes), same(bytes));
+  });
+
   test('Protobuf responses accept binary request bodies and request headers', () async {
     final server = await serve(body: [8, 42], contentType: 'application/x-protobuf');
     final source = await loadRequestSource(server.baseUrl, '''

@@ -18,6 +18,9 @@ sealed class Source {
   // ${$.debug('getChapterImages', ($, $$) => $.getChapterImages)}
   Future<SourceChapterImages> getChapterImages(covariant SourceChapter chapter);
 
+  // ${$.debug('getImageBytes', ($, $$) => $.getImageBytes)}
+  Future<SourceBytes> getImageBytes(covariant SourceImage image);
+
   // ${$.debug('getRepaintBytes', ($, $$) => $.getRepaintBytes)}
   Future<SourceBytes> getRepaintBytes(covariant SourceBytes bytes);
 }
@@ -47,8 +50,6 @@ sealed class SourceBytes {
   SourceBytes({
     required this.type,
     required this.data,
-    required this.statusCode,
-    required this.responseHeaders,
     this.extra,
   });
 
@@ -57,12 +58,6 @@ sealed class SourceBytes {
 
   // ${$.debug('data', ($, $$) => $.data)}
   final List<int> data;
-
-  // ${$.debug('statusCode', ($, $$) => $.statusCode)}
-  final int statusCode;
-
-  // ${$.debug('responseHeaders', ($, $$) => $.responseHeaders)}
-  final Headers responseHeaders;
 
   // ${$.debug('extra', ($, $$) => $.extra)}
   final dynamic extra;

@@ -5,10 +5,16 @@ class HttpSourceBytes extends SourceBytes {
   HttpSourceBytes({
     required super.type,
     required super.data,
-    required super.statusCode,
-    required super.responseHeaders,
+    required this.statusCode,
+    required this.responseHeaders,
     super.extra,
   });
+
+  /// 状态码
+  final int statusCode;
+
+  /// 原始 HTTP 响应头
+  final Headers responseHeaders;
 
   /// 创建网络字节数据副本
   HttpSourceBytes copyWith({

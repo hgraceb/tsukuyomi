@@ -260,13 +260,11 @@ class Example extends HttpSource {
     return bytes.copyWith(extra: image.extra);
   }
 
+  Future<SourceBytes> readImage(Source source, SourceImage image) => source.getImageBytes(image);
+
   Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
-}
-
-Future<HttpSourceBytes> readImage(HttpSource source, HttpSourceImage image) {
-  return source.getImageBytes(image);
 }
 
 main() => Example();
@@ -276,7 +274,7 @@ main() => Example();
     Future<HttpSourceBytes> fetchBytes(String url, {String? method}) async => bytes;
     instance.props['fetchBytes'] = EvalProperty.getter((_) => fetchBytes);
     final image = HttpSourceImage(url: '/chapter', extra: {'frame': 'chapter'});
-    final result = await instance.invoke('getImageBytes', [image]) as HttpSourceBytes;
+    final result = await instance.invoke('readImage', [instance, image]) as HttpSourceBytes;
     expect(result.data, same(bytes.data));
     expect(result.type, bytes.type);
     expect(result.statusCode, bytes.statusCode);

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/forward/flutter_cache_manager/cache_store.dart';
@@ -52,13 +51,13 @@ class _DioFileService extends FileService {
 
 class _DioGetResponse implements FileServiceResponse {
   _DioGetResponse(HttpSourceBytes bytes) : fileExtension = '.${bytes.type}' {
-    // 所有的响应头数据
+    // 原始响应缓存信息
     final headers = bytes.responseHeaders;
     // 创建响应数据代理
     _delegate = HttpGetResponse(http.StreamedResponse(
       Stream.value(bytes.data),
       bytes.statusCode,
-      contentLength: int.tryParse('${headers[Headers.contentLengthHeader]?.firstOrNull}'),
+      contentLength: bytes.data.length,
       headers: headers.map.map((key, value) => MapEntry(key, value.firstOrNull ?? '')),
     ));
   }
