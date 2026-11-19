@@ -22,9 +22,8 @@ class ChapterSyncWithSource {
 
   Future<ChapterSyncResult> sync() async {
     final details = await source.getMangaDetails(manga.toHttpSourceManga());
-    final sourceChapters = details.chapters ?? (throw const FormatException('Missing manga chapters'));
     await mangaRepository.updateManga(details.toUpdatable(manga.id));
-    return apply(sourceChapters);
+    return apply(details.chapters);
   }
 
   Future<ChapterSyncResult> apply(Iterable<SourceChapter> sourceChapters) async {

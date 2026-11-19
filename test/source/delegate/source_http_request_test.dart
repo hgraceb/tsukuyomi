@@ -26,9 +26,9 @@ void main() {
       headers: {'X-Source': 'search'},
       data: {'keyword': '漫画 & +', 'paging': {'page': 2}, 'genres': ['action', 'comedy']},
     );
-    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: json['title'])]);
+    return HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: json['title'])]);
 ''');
-    expect((await source.getMangaDetails(manga)).chapters!.single.name, 'Chapter');
+    expect((await source.getMangaDetails(manga)).chapters.single.name, 'Chapter');
     final request = server.requests.single;
     expect(request.method, 'POST');
     expect(request.uri.toString(), '/search?page=2');
@@ -52,9 +52,9 @@ void main() {
       data: {'action': 'manga_get_chapters', 'manga': '42', 'vars[s]': '漫画 & +', 'empty': ''},
     );
     await fetchHtml('/next');
-    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: html.querySelector('h1')!.text)]);
+    return HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: html.querySelector('h1')!.text)]);
 ''');
-    expect((await source.getMangaDetails(manga)).chapters!.single.name, 'Chapter');
+    expect((await source.getMangaDetails(manga)).chapters.single.name, 'Chapter');
     expect(server.requests, hasLength(2));
     final request = server.requests.first;
     expect(request.method, 'POST');
@@ -85,9 +85,9 @@ void main() {
       headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Source': 'image'},
       data: 'token=a%2Bb&empty=',
     );
-    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: bytes.type, name: '\${bytes.statusCode}:\${bytes.data.join(",")}')]);
+    return HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: bytes.type, name: '\${bytes.statusCode}:\${bytes.data.join(",")}')]);
 ''');
-    final chapter = (await source.getMangaDetails(manga)).chapters!.single;
+    final chapter = (await source.getMangaDetails(manga)).chapters.single;
     expect(chapter.url, 'png');
     expect(chapter.name, '200:0,127,255');
     final request = server.requests.single;
@@ -107,9 +107,9 @@ void main() {
       headers: {'Content-Type': 'application/x-protobuf', 'X-Source': 'viewer'},
       data: Uint8List.fromList([8, 7]),
     );
-    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: proto.get('id').toString())]);
+    return HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: proto.get('id').toString())]);
 ''');
-    expect((await source.getMangaDetails(manga)).chapters!.single.name, '42');
+    expect((await source.getMangaDetails(manga)).chapters.single.name, '42');
     final request = server.requests.single;
     expect(request.method, 'POST');
     expect(request.headers.contentType?.mimeType, 'application/x-protobuf');
@@ -124,7 +124,7 @@ void main() {
     await fetchBytes('/get');
     await fetchBytes('/post', method: 'POST');
     await fetchProto('/put', {}, method: 'PUT');
-    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: <HttpSourceChapter>[]);
+    return HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: <HttpSourceChapter>[]);
 ''');
     expect((await source.getMangaDetails(manga)).chapters, isEmpty);
     expect(server.requests.map((request) => request.method), ['GET', 'POST', 'PUT']);
@@ -141,9 +141,9 @@ void main() {
       headers: {'Content-Type': '$contentType', 'X-Source': 'retry'},
       data: {'manga': '42', 'keyword': '漫画 & +'},
     );
-    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: json['title'])]);
+    return HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: [HttpSourceChapter(url: '/chapter', name: json['title'])]);
 ''', retry: true);
-      expect((await source.getMangaDetails(manga)).chapters!.single.name, 'Chapter');
+      expect((await source.getMangaDetails(manga)).chapters.single.name, 'Chapter');
       expect(server.requests, hasLength(2));
       final first = server.requests.first;
       final second = server.requests.last;
@@ -182,7 +182,7 @@ class Example extends HttpSource {
 
 $replacement
 
-  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
+  Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) async {
 $request
   }
 

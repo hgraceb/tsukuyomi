@@ -16,7 +16,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  test('Manga details survive host isolate calls in both directions', () async {
+  test('Basic entries and manga details cross the host isolate', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
@@ -26,23 +26,18 @@ class Example extends HttpSource {
 
   Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) async {
     if (query.page == 4) return HttpSourceMangaEntries(mangas: []);
-    final mangas = ['/manga'].map((url) => HttpSourceManga(
-      url: url, name: 'Title', cover: '/cover', status: SourceMangaStatus.completed, description: 'Synopsis',
-      authors: <SourceMangaAuthor>[SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')],
-      tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
-      languages: <String>['ja', 'zh-Hans'],
-    ));
+    final mangas = ['/manga'].map((url) => HttpSourceManga(url: url, name: 'Title', cover: '/cover'));
     return HttpSourceMangaEntries(mangas: mangas.toList(), nextQuery: HttpSourceQuery(page: 4, keyword: query.keyword));
   }
 
-  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
-    return HttpSourceManga(
+  Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) async {
+    return HttpSourceMangaDetails(
       url: manga.url, name: manga.name, cover: manga.cover,
-      status: manga.status, description: manga.description, authors: manga.authors, tags: manga.tags, languages: manga.languages,
-      chapters: [
-        HttpSourceChapter(url: manga.tags!.first.url!, name: manga.authors!.first.name + ' (' + manga.authors!.first.role! + ')',
-          date: manga.status!.toJson() + '/' + manga.description! + '/' + manga.tags!.first.type.toJson() + '/' + manga.languages!.last),
-      ],
+      status: SourceMangaStatus.completed, description: 'Synopsis',
+      authors: <SourceMangaAuthor>[SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')],
+      tags: <SourceMangaTag>[SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1')],
+      languages: <String>['ja', 'zh-Hans'],
+      chapters: [HttpSourceChapter(url: '/chapter', name: 'Chapter')],
     );
   }
 }
@@ -59,20 +54,16 @@ main() => Example();
     expect(last.mangas, isEmpty);
     expect(last.nextQuery, isNull);
     final manga = entries.mangas.single;
-    expect(manga.authors, [const SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')]);
-    expect(manga.status, SourceMangaStatus.completed);
-    const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
-    expect(manga.tags, [tag]);
-    expect(manga.chapters, isNull);
+    expect((manga.url, manga.name, manga.cover), ('/manga', 'Title', '/cover'));
     final details = await host.getMangaDetails(manga);
-    expect(details.description, manga.description);
-    expect(details.authors, manga.authors);
-    expect(details.tags, manga.tags);
-    expect(details.languages, manga.languages);
-    final chapters = details.chapters!;
-    expect(chapters.single.name, 'Author (Writer)');
-    expect(chapters.single.url, 'https://example.com/categories/1');
-    expect(chapters.single.date, 'completed/Synopsis/category/zh-Hans');
+    expect((details.url, details.name, details.cover), (manga.url, manga.name, manga.cover));
+    expect(details.status, SourceMangaStatus.completed);
+    expect(details.description, 'Synopsis');
+    expect(details.authors, [const SourceMangaAuthor(name: 'Author', role: 'Writer', url: 'https://example.com/authors/1')]);
+    const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1');
+    expect(details.tags, [tag]);
+    expect(details.languages, ['ja', 'zh-Hans']);
+    expect((details.chapters.single.url, details.chapters.single.name), ('/chapter', 'Chapter'));
   });
 
   test('Source getters work after initialization in compute', () async {
@@ -130,9 +121,9 @@ class Example extends HttpSource {
     return getStorage('value', null);
   }
 
-  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
+  Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) async {
     await store(manga.name);
-    return HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: []);
+    return HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: []);
   }
 
   dynamic decode(String value) => parseJson(value);

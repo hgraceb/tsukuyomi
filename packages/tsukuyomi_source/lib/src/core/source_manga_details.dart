@@ -1,7 +1,44 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'source_chapter.dart';
+
+part 'package:tsukuyomi_source/src/http/source_http_manga.dart';
+part 'package:tsukuyomi_source/src/http/source_http_manga_details.dart';
+part 'source_manga.dart';
 part 'source_manga_details.freezed.dart';
 part 'source_manga_details.g.dart';
+
+/// 漫画源漫画详情
+sealed class SourceMangaDetails extends SourceManga {
+  const SourceMangaDetails({
+    required super.url,
+    required super.name,
+    required super.cover,
+    this.status,
+    this.description,
+    this.authors,
+    this.tags,
+    this.languages,
+  });
+
+  /// 连载状态
+  final SourceMangaStatus? status;
+
+  /// 漫画简介
+  final String? description;
+
+  /// 作者列表
+  final List<SourceMangaAuthor>? authors;
+
+  /// 标签列表
+  final List<SourceMangaTag>? tags;
+
+  /// 内容语言
+  final List<String>? languages;
+
+  /// 章节列表
+  abstract final List<SourceChapter> chapters;
+}
 
 /// 连载状态
 @JsonEnum(alwaysCreate: true)

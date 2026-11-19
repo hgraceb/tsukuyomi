@@ -83,10 +83,10 @@ class UpdateSourceFixture extends NoInstalledSource {
     this.details,
   }) : super(id);
 
-  final Iterable<SourceChapter> chapters;
+  final List<HttpSourceChapter> chapters;
   final Object? error;
   final Future<void>? pending;
-  final SourceManga? details;
+  final SourceMangaDetails? details;
   final _requested = Completer<void>();
   int calls = 0;
 
@@ -96,11 +96,11 @@ class UpdateSourceFixture extends NoInstalledSource {
   String get name => 'source-name';
 
   @override
-  Future<SourceManga> getMangaDetails(SourceManga manga) async {
+  Future<SourceMangaDetails> getMangaDetails(SourceManga manga) async {
     calls++;
     if (!_requested.isCompleted) _requested.complete();
     await pending;
     if (error != null) throw error!;
-    return details ?? HttpSourceManga(url: manga.url, name: manga.name, cover: manga.cover, chapters: chapters.toList());
+    return details ?? HttpSourceMangaDetails(url: manga.url, name: manga.name, cover: manga.cover, chapters: chapters);
   }
 }

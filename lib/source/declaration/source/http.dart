@@ -65,7 +65,7 @@ abstract class HttpSource extends Source {
   Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query);
 
   // ${$.debug('getMangaDetails', ($, $$) => $.getMangaDetails)}
-  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga);
+  Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga);
 
   // ${$.debug('getChapterImages', ($, $$) => $.getChapterImages)}
   Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter);
@@ -85,13 +85,27 @@ class HttpSourceManga extends SourceManga {
     required super.url,
     required super.name,
     required super.cover,
+  });
+}
+''');
+
+DartClass get _$HttpSourceMangaDetails => DartClass<HttpSourceMangaDetails>(($) => '''
+class HttpSourceMangaDetails extends SourceMangaDetails implements HttpSourceManga {
+  // ${$.empty('HttpSourceMangaDetails.new', () => HttpSourceMangaDetails.new)}
+  const HttpSourceMangaDetails({
+    required super.url,
+    required super.name,
+    required super.cover,
+    required this.chapters,
     super.status,
     super.description,
     super.authors,
     super.tags,
     super.languages,
-    super.chapters,
   });
+
+  // ${$.debug('chapters', ($, $$) => $.chapters)}
+  final List<HttpSourceChapter> chapters;
 }
 ''');
 
@@ -187,6 +201,7 @@ List<DartDeclaration> get $http {
   return [
     _$HttpSource,
     _$HttpSourceManga,
+    _$HttpSourceMangaDetails,
     _$HttpSourceBytes,
     _$HttpSourceChapter,
     _$HttpSourceFrame,

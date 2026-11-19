@@ -13,7 +13,7 @@ sealed class Source {
   Future<SourceMangaEntries> getMangaEntries(covariant SourceQuery query);
 
   // ${$.debug('getMangaDetails', ($, $$) => $.getMangaDetails)}
-  Future<SourceManga> getMangaDetails(covariant SourceManga manga);
+  Future<SourceMangaDetails> getMangaDetails(covariant SourceManga manga);
 
   // ${$.debug('getChapterImages', ($, $$) => $.getChapterImages)}
   Future<Iterable<SourceImage>> getChapterImages(covariant SourceChapter chapter);
@@ -29,12 +29,6 @@ sealed class SourceManga {
     required this.url,
     required this.name,
     required this.cover,
-    this.status,
-    this.description,
-    this.authors,
-    this.tags,
-    this.languages,
-    this.chapters,
   });
 
   // ${$.debug('url', ($, $$) => $.url)}
@@ -45,24 +39,6 @@ sealed class SourceManga {
 
   // ${$.debug('cover', ($, $$) => $.cover)}
   final String cover;
-
-  // ${$.debug('status', ($, $$) => $.status)}
-  final SourceMangaStatus? status;
-
-  // ${$.debug('description', ($, $$) => $.description)}
-  final String? description;
-
-  // ${$.debug('authors', ($, $$) => $.authors)}
-  final List<SourceMangaAuthor>? authors;
-
-  // ${$.debug('tags', ($, $$) => $.tags)}
-  final List<SourceMangaTag>? tags;
-
-  // ${$.debug('languages', ($, $$) => $.languages)}
-  final List<String>? languages;
-
-  // ${$.debug('chapters', ($, $$) => $.chapters)}
-  final List<SourceChapter>? chapters;
 }
 ''');
 

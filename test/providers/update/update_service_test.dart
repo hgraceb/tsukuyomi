@@ -511,7 +511,7 @@ void main() {
   });
 
   test('Empty source responses fail without syncing or downloading, and a later attempt can recover', () async {
-    final chapters = <SourceChapter>[];
+    final chapters = <HttpSourceChapter>[];
     final source = UpdateSourceFixture(chapters: chapters);
     final sync = _Sync(_unchanged);
     final downloads = _Downloads(const DownloadEnqueueResult());

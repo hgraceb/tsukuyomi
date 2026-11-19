@@ -34,11 +34,11 @@ class TsukuyomiSource extends HttpSource {
   }
 
   @override
-  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga) async {
+  Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) async {
     await Future.delayed(const Duration(seconds: 1));
     final date = DateTime.now().toString().split('.').first;
     const prefix = 'Example Chapter';
-    return HttpSourceManga(
+    return HttpSourceMangaDetails(
       url: manga.url,
       name: manga.name,
       cover: manga.cover,

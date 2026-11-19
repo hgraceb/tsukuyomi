@@ -31,11 +31,6 @@ class DatabaseManga with _$DatabaseManga, $MangaTableTableToColumns {
       url: url,
       name: title,
       cover: cover,
-      status: status,
-      description: description,
-      authors: authors,
-      tags: tags,
-      languages: languages,
     );
   }
 }
@@ -50,15 +45,17 @@ extension SourceMangaExtension on SourceManga {
   }
 
   MangaTableCompanion _toCompanion() {
+    final manga = this;
+    final details = manga is SourceMangaDetails ? manga : null;
     return MangaTableCompanion(
       url: Value(url),
       title: Value(name.toValidDirectoryName),
       cover: Value(cover),
-      status: Value.absentIfNull(status),
-      description: Value.absentIfNull(description),
-      authors: Value.absentIfNull(authors),
-      tags: Value.absentIfNull(tags),
-      languages: Value.absentIfNull(languages),
+      status: Value.absentIfNull(details?.status),
+      description: Value.absentIfNull(details?.description),
+      authors: Value.absentIfNull(details?.authors),
+      tags: Value.absentIfNull(details?.tags),
+      languages: Value.absentIfNull(details?.languages),
     );
   }
 }

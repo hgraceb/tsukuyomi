@@ -1,6 +1,39 @@
 import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
+DartClass get _$SourceMangaDetails => DartClass<SourceMangaDetails>(($) => '''
+sealed class SourceMangaDetails extends SourceManga {
+  const SourceMangaDetails({
+    required super.url,
+    required super.name,
+    required super.cover,
+    this.status,
+    this.description,
+    this.authors,
+    this.tags,
+    this.languages,
+  });
+
+  // ${$.debug('status', ($, $$) => $.status)}
+  final SourceMangaStatus? status;
+
+  // ${$.debug('description', ($, $$) => $.description)}
+  final String? description;
+
+  // ${$.debug('authors', ($, $$) => $.authors)}
+  final List<SourceMangaAuthor>? authors;
+
+  // ${$.debug('tags', ($, $$) => $.tags)}
+  final List<SourceMangaTag>? tags;
+
+  // ${$.debug('languages', ($, $$) => $.languages)}
+  final List<String>? languages;
+
+  // ${$.debug('chapters', ($, $$) => $.chapters)}
+  abstract final List<SourceChapter> chapters;
+}
+''');
+
 DartClass get _$SourceMangaStatus => DartClass<SourceMangaStatus>(($) => '''
 // ${$.empty('SourceMangaStatus.values', () => SourceMangaStatus.values)}
 enum SourceMangaStatus {
@@ -101,6 +134,7 @@ external List<String> normalizeMangaLanguages(Iterable<String> values);
 
 List<DartDeclaration> get $mangaDetails {
   return [
+    _$SourceMangaDetails,
     _$SourceMangaStatus,
     _$SourceMangaTagType,
     _$SourceMangaAuthor,
