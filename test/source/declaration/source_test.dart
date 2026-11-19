@@ -260,13 +260,11 @@ class Example extends HttpSource {
     return bytes.copyWith(extra: image.extra);
   }
 
+  Future<SourceBytes> readImage(Source source, SourceImage image) => source.getImageBytes(image);
+
   Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) => throw 'unused';
   Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter) => throw 'unused';
-}
-
-Future<HttpSourceBytes> readImage(HttpSource source, HttpSourceImage image) {
-  return source.getImageBytes(image);
 }
 
 main() => Example();
@@ -276,7 +274,7 @@ main() => Example();
     Future<HttpSourceBytes> fetchBytes(String url, {String? method}) async => bytes;
     instance.props['fetchBytes'] = EvalProperty.getter((_) => fetchBytes);
     final image = HttpSourceImage(url: '/chapter', extra: {'frame': 'chapter'});
-    final result = await instance.invoke('getImageBytes', [image]) as HttpSourceBytes;
+    final result = await instance.invoke('readImage', [instance, image]) as HttpSourceBytes;
     expect(result.data, same(bytes.data));
     expect(result.type, bytes.type);
     expect(result.statusCode, bytes.statusCode);
@@ -298,6 +296,18 @@ main() => Example();
     final image = HttpSourceImage(url: '/chapter', extra: {'frame': 'chapter'});
     expect(await instance.invoke('read', [image]), same(image.extra));
     expect(await instance.invoke('read', [const HttpSourceImage(url: '/chapter')]), isNull);
+  });
+
+  test('Source bytes construct and copy without HTTP metadata', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() => SourceBytes(type: 'png', data: [0], extra: 'local').copyWith(data: [1]);
+''';
+    final bytes = await evalValidSource(source) as SourceBytes;
+    expect(bytes.type, 'png');
+    expect(bytes.data, [1]);
+    expect(bytes.extra, 'local');
   });
 
   test('Image bytes construct and copy all declared response fields', () async {

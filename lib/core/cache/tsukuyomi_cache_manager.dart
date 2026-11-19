@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/forward/flutter_cache_manager/cache_store.dart';
@@ -58,7 +57,7 @@ class _DioGetResponse implements FileServiceResponse {
     _delegate = HttpGetResponse(http.StreamedResponse(
       Stream.value(bytes.data),
       bytes.statusCode,
-      contentLength: int.tryParse('${headers[Headers.contentLengthHeader]?.firstOrNull}'),
+      contentLength: bytes.data.length,
       headers: headers.map.map((key, value) => MapEntry(key, value.firstOrNull ?? '')),
     ));
   }

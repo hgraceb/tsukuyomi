@@ -1,16 +1,23 @@
-part of 'package:tsukuyomi_source/src/core/source_bytes.dart';
+import 'package:dio/dio.dart';
+import 'package:tsukuyomi_source/src/core/source_bytes.dart';
 
 /// 网络漫画源字节数据
 class HttpSourceBytes extends SourceBytes {
   HttpSourceBytes({
     required super.type,
     required super.data,
-    required super.statusCode,
-    required super.responseHeaders,
+    required this.statusCode,
+    required this.responseHeaders,
     super.extra,
   });
 
-  /// 创建网络字节数据副本
+  /// 状态码
+  final int statusCode;
+
+  /// 响应头
+  final Headers responseHeaders;
+
+  @override
   HttpSourceBytes copyWith({
     String? type,
     List<int>? data,

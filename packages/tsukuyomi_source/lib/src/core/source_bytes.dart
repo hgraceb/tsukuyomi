@@ -1,29 +1,22 @@
-import 'package:dio/dio.dart';
-
-part 'package:tsukuyomi_source/src/http/source_http_bytes.dart';
-
 /// 漫画源字节数据
-sealed class SourceBytes {
+class SourceBytes {
   SourceBytes({
     required this.type,
     required this.data,
-    required this.statusCode,
-    required this.responseHeaders,
     this.extra,
   }) : assert(!type.startsWith('.'));
 
-  /// 数据类型
+  /// 文件扩展名
   final String type;
 
   /// 字节数据
   final List<int> data;
 
-  /// 状态码
-  final int statusCode;
-
-  /// 响应头
-  final Headers responseHeaders;
-
   /// 额外数据
   final dynamic extra;
+
+  /// 创建字节数据副本
+  SourceBytes copyWith({String? type, List<int>? data, dynamic extra}) {
+    return SourceBytes(type: type ?? this.type, data: data ?? this.data, extra: extra ?? this.extra);
+  }
 }
