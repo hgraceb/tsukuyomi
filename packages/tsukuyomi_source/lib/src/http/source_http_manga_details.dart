@@ -6,11 +6,11 @@ class HttpSourceMangaDetails extends SourceMangaDetails<HttpSourceChapter> imple
     required super.url,
     required super.name,
     required super.cover,
+    required super.chapters,
     super.status,
     super.description,
     super.authors,
     super.tags,
     super.languages,
-    required super.chapters,
   });
 }

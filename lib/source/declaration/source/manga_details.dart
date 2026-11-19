@@ -7,12 +7,12 @@ sealed class SourceMangaDetails<T extends SourceChapter> extends SourceManga {
     required super.url,
     required super.name,
     required super.cover,
+    required this.chapters,
     this.status,
     this.description,
     this.authors,
     this.tags,
     this.languages,
-    required this.chapters,
   });
 
   // ${$.debug('status', ($, $$) => $.status)}
