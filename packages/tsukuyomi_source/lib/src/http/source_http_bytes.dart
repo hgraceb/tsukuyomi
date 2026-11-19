@@ -14,7 +14,7 @@ class HttpSourceBytes extends SourceBytes {
   /// 状态码
   final int statusCode;
 
-  /// 响应头
+  /// 原始 HTTP 响应头
   final Headers responseHeaders;
 
   @override

@@ -51,7 +51,7 @@ class _DioFileService extends FileService {
 
 class _DioGetResponse implements FileServiceResponse {
   _DioGetResponse(HttpSourceBytes bytes) : fileExtension = '.${bytes.type}' {
-    // 所有的响应头数据
+    // 原始响应缓存信息
     final headers = bytes.responseHeaders;
     // 创建响应数据代理
     _delegate = HttpGetResponse(http.StreamedResponse(
