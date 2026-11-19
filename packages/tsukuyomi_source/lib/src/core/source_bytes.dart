@@ -6,7 +6,7 @@ class SourceBytes {
     this.extra,
   }) : assert(!type.startsWith('.'));
 
-  /// 数据类型
+  /// 数据格式
   final String type;
 
   /// 字节数据
