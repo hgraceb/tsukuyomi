@@ -265,7 +265,7 @@ void main() {
     }
   });
 
-  test('Invalid details leave the existing record unchanged', () async {
+  test('Invalid details cannot update an existing manga or insert a new one', () async {
     final container = await _seed();
     final original = await _read(container);
     final source = UpdateSourceFixture(
@@ -279,9 +279,15 @@ void main() {
       ),
     );
     await expectLater(container.read(chapterSyncWithSourceProvider(source, original)).sync(), throwsFormatException);
+    final repository = container.read(mangaRepositoryProvider);
     const update = MangaTableCompanion(id: Value(1600), languages: Value(['pt-br']));
-    await expectLater(container.read(mangaRepositoryProvider).updateManga(update), throwsFormatException);
+    await expectLater(repository.updateManga(update), throwsFormatException);
     expect(await _read(container), original);
+
+    const entry = HttpSourceMangaDetails(url: 'new-url', name: 'New title', cover: 'cover', languages: ['zh_hans'], chapters: []);
+    final service = container.read(mangaServiceProvider);
+    await expectLater(service.insertSourceManga(original.source, entry), throwsFormatException);
+    expect(await repository.queryMangaOrNull(original.source, entry.url), null);
     final database = container.read(databaseProvider);
     expect(await database.select(database.mangaTable).get(), hasLength(1));
   });
