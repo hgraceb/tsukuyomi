@@ -62,9 +62,6 @@ class SourceBytes {
 
   // ${$.debug('extra', ($, $$) => $.extra)}
   final dynamic extra;
-
-  // ${$.debug('copyWith', ($, $$) => $.copyWith)}
-  external SourceBytes copyWith({String? type, List<int>? data, dynamic extra});
 }
 ''');
 

@@ -17,7 +17,7 @@ class HttpSourceBytes extends SourceBytes {
   /// 原始 HTTP 响应头
   final Headers responseHeaders;
 
-  @override
+  /// 创建网络字节数据副本
   HttpSourceBytes copyWith({
     String? type,
     List<int>? data,

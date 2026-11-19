@@ -14,9 +14,4 @@ class SourceBytes {
 
   /// 额外数据
   final dynamic extra;
-
-  /// 创建字节数据副本
-  SourceBytes copyWith({String? type, List<int>? data, dynamic extra}) {
-    return SourceBytes(type: type ?? this.type, data: data ?? this.data, extra: extra ?? this.extra);
-  }
 }
