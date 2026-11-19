@@ -46,8 +46,7 @@ sealed class SourceManga {
 ''');
 
 DartClass get _$SourceBytes => DartClass<SourceBytes>(($) => '''
-class SourceBytes {
-  // ${$.empty('SourceBytes.new', () => SourceBytes.new)}
+sealed class SourceBytes {
   SourceBytes({
     required this.type,
     required this.data,

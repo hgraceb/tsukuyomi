@@ -10,7 +10,6 @@ export 'src/core/source_manga_details.dart';
 export 'src/core/source_manga_entries.dart';
 export 'src/core/source_proto.dart';
 export 'src/core/source_query.dart';
-export 'src/http/source_http_bytes.dart';
 export 'src/http/source_http_dio.dart';
 export 'src/http/source_http_dio_interceptor.dart';
 export 'src/http/source_http_exception.dart';

@@ -1,5 +1,4 @@
-import 'package:dio/dio.dart';
-import 'package:tsukuyomi_source/src/core/source_bytes.dart';
+part of 'package:tsukuyomi_source/src/core/source_bytes.dart';
 
 /// 网络漫画源字节数据
 class HttpSourceBytes extends SourceBytes {

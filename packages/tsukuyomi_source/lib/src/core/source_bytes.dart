@@ -1,5 +1,9 @@
+import 'package:dio/dio.dart';
+
+part 'package:tsukuyomi_source/src/http/source_http_bytes.dart';
+
 /// 漫画源字节数据
-class SourceBytes {
+sealed class SourceBytes {
   SourceBytes({
     required this.type,
     required this.data,

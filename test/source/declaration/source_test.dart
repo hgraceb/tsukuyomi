@@ -298,18 +298,6 @@ main() => Example();
     expect(await instance.invoke('read', [const HttpSourceImage(url: '/chapter')]), isNull);
   });
 
-  test('Source bytes construct without HTTP metadata', () async {
-    const source = '''
-import 'package:tsukuyomi_source/tsukuyomi_source.dart';
-
-main() => SourceBytes(type: 'png', data: [1], extra: 'local');
-''';
-    final bytes = await evalValidSource(source) as SourceBytes;
-    expect(bytes.type, 'png');
-    expect(bytes.data, [1]);
-    expect(bytes.extra, 'local');
-  });
-
   test('Image bytes construct and copy all declared response fields', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
