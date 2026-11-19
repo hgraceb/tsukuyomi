@@ -1,4 +1,4 @@
-part of 'package:tsukuyomi_source/src/core/source_manga.dart';
+part of 'package:tsukuyomi_source/src/core/source_manga_details.dart';
 
 /// 网络漫画源漫画数据
 class HttpSourceManga extends SourceManga {
@@ -6,11 +6,5 @@ class HttpSourceManga extends SourceManga {
     required super.url,
     required super.name,
     required super.cover,
-    super.status,
-    super.description,
-    super.authors,
-    super.tags,
-    super.languages,
-    super.chapters,
   });
 }

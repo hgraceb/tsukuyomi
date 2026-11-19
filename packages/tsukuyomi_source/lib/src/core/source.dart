@@ -17,8 +17,8 @@ sealed class Source {
   /// 获取分页漫画条目
   Future<SourceMangaEntries> getMangaEntries(covariant SourceQuery query);
 
-  /// 获取漫画章节详情
-  Future<SourceManga> getMangaDetails(covariant SourceManga manga);
+  /// 获取漫画详情数据
+  Future<SourceMangaDetails> getMangaDetails(covariant SourceManga manga);
 
   /// 获取章节图片列表
   Future<Iterable<SourceImage>> getChapterImages(covariant SourceChapter chapter);

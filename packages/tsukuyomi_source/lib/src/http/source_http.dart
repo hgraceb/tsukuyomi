@@ -65,7 +65,7 @@ abstract class HttpSource extends Source {
 
   /// 获取网络漫画章节详情
   @override
-  Future<HttpSourceManga> getMangaDetails(HttpSourceManga manga);
+  Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga);
 
   /// 获取网络章节图片列表
   @override

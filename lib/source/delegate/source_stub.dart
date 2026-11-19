@@ -14,7 +14,7 @@ class NoInstalledSource extends StubSource {
   Future<SourceMangaEntries> getMangaEntries(SourceQuery query) => throw TsukuyomiSourceException.notInstalled(id);
 
   @override
-  Future<SourceManga> getMangaDetails(SourceManga manga) => throw TsukuyomiSourceException.notInstalled(id);
+  Future<SourceMangaDetails> getMangaDetails(SourceManga manga) => throw TsukuyomiSourceException.notInstalled(id);
 
   @override
   Future<Iterable<SourceImage>> getChapterImages(SourceChapter chapter) => throw TsukuyomiSourceException.notInstalled(id);

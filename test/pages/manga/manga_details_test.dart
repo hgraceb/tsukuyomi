@@ -37,8 +37,8 @@ void main() {
         await database.into(database.downloadTable).insert(local.toDownloadable(1));
         final chapter = HttpSourceChapter(url: local.url, name: 'Updated chapter', date: 'new-date', public: false);
         final source = UpdateSourceFixture(
-          details: HttpSourceManga(
-            url: original.url,
+          details: HttpSourceMangaDetails(
+            url: 'canonical-url',
             name: 'Updated title',
             cover: 'updated-cover',
             status: SourceMangaStatus.completed,
@@ -59,6 +59,7 @@ void main() {
 
         final updated = await _read(container);
         expect(source.calls, 1);
+        expect(updated.url, 'canonical-url');
         expect(updated.title, 'Updated title');
         expect(updated.cover, 'updated-cover');
         expect(updated.status, SourceMangaStatus.completed);
@@ -79,17 +80,15 @@ void main() {
       });
     }
 
-    test('Missing chapters fail without saving a partial detail response: automatic=$automatic', () async {
+    test('A detail parsing failure preserves the previous record: automatic=$automatic', () async {
       final container = await _seed();
       final original = await _read(container);
-      final source = UpdateSourceFixture(
-        details: HttpSourceManga(url: original.url, name: 'Incomplete', cover: 'cover', description: 'Incomplete details'),
-      );
+      final source = UpdateSourceFixture(error: const FormatException('Invalid chapter'));
 
       if (automatic) {
         final item = await container.read(updateServiceProvider).updateManga(source, original);
         expect(item.outcome, UpdateOutcome.parseError);
-        expect(item.message, contains('Missing manga chapters'));
+        expect(item.message, contains('Invalid chapter'));
       } else {
         await expectLater(container.read(chapterSyncWithSourceProvider(source, original)).sync(), throwsFormatException);
       }
@@ -98,7 +97,7 @@ void main() {
     });
   }
 
-  test('Index details persist as separate columns and survive source conversion', () async {
+  test('Index details persist as separate columns and local records provide the detail request', () async {
     final container = await _seed();
     final database = container.read(databaseProvider);
     final manga = await _read(container);
@@ -114,11 +113,7 @@ void main() {
     expect(manga.favorite, isTrue);
     expect(manga.auto, isTrue);
     final source = manga.toHttpSourceManga();
-    expect(source.status, manga.status);
-    expect(source.description, manga.description);
-    expect(source.authors, manga.authors);
-    expect(source.tags, manga.tags);
-    expect(source.languages, manga.languages);
+    expect((source.url, source.name, source.cover), (manga.url, manga.title, manga.cover));
     final row = await database.customSelect('SELECT * FROM manga').getSingle();
     expect(row.data.containsKey('metadata'), isFalse);
     expect(row.read<String>('status'), 'ongoing');
@@ -155,9 +150,8 @@ void main() {
     expect(updated.auto, isFalse);
     expect(updated.lastCheckAt?.toUtc(), checked);
 
-    await service.insertSourceManga(
-      original.source,
-      HttpSourceManga(
+    final source = UpdateSourceFixture(
+      details: HttpSourceMangaDetails(
         url: original.url,
         name: updated.title,
         cover: updated.cover,
@@ -166,8 +160,10 @@ void main() {
         authors: [],
         tags: [],
         languages: [],
+        chapters: [],
       ),
     );
+    await container.read(chapterSyncWithSourceProvider(source, original)).sync();
     final cleared = await _read(container);
     _expectEmptyDetails(cleared);
     expect(cleared.favorite, isFalse);
@@ -179,9 +175,8 @@ void main() {
     final container = await _seed();
     final service = container.read(mangaServiceProvider);
     final original = await _read(container);
-    await service.insertSourceManga(
-      original.source,
-      HttpSourceManga(
+    final source = UpdateSourceFixture(
+      details: HttpSourceMangaDetails(
         url: original.url,
         name: 'New title',
         cover: 'new-cover',
@@ -190,8 +185,10 @@ void main() {
         authors: [const SourceMangaAuthor(name: 'New author', url: 'https://example.com/authors/2')],
         tags: [const SourceMangaTag(type: SourceMangaTagType.other, name: 'New tag', url: 'https://example.com/tags/2')],
         languages: ['zxx'],
+        chapters: [],
       ),
     );
+    await container.read(chapterSyncWithSourceProvider(source, original)).sync();
     final fetched = await _read(container);
     expect(fetched.authors.single.url, 'https://example.com/authors/2');
     expect(fetched.tags.single.url, 'https://example.com/tags/2');
@@ -216,15 +213,49 @@ void main() {
     expect(await database.select(database.mangaTable).get(), hasLength(2));
   });
 
+  test('Source entries carrying details persist their metadata on insert and update', () async {
+    final container = await _seed();
+    final service = container.read(mangaServiceProvider);
+    final repository = container.read(mangaRepositoryProvider);
+    final original = await _read(container);
+    for (final url in ['new-url', original.url]) {
+      final SourceManga entry = HttpSourceMangaDetails(
+        url: url,
+        name: 'Source title',
+        cover: 'source-cover',
+        status: SourceMangaStatus.completed,
+        description: 'Source synopsis',
+        authors: [const SourceMangaAuthor(name: 'Source author')],
+        tags: [],
+        chapters: [],
+      );
+      final id = await service.insertSourceManga(original.source, entry);
+      final saved = await repository.queryManga(id);
+      expect((saved.title, saved.cover), ('Source title', 'source-cover'));
+      expect(saved.status, SourceMangaStatus.completed);
+      expect(saved.description, 'Source synopsis');
+      expect(saved.authors, [const SourceMangaAuthor(name: 'Source author')]);
+      expect(saved.tags, isEmpty);
+      expect(saved.languages, url == original.url ? original.languages : <String>[]);
+    }
+  });
+
   test('Every status and tag type retain stable JSON codes in SQLite', () async {
     final container = await _seed();
     final database = container.read(databaseProvider);
     final original = await _read(container);
-    final service = container.read(mangaServiceProvider);
+    final repository = container.read(mangaRepositoryProvider);
     final tags = [for (final type in SourceMangaTagType.values) SourceMangaTag(type: type, name: 'Shared tag')];
     for (final status in SourceMangaStatus.values) {
-      final sourceManga = HttpSourceManga(url: original.url, name: original.title, cover: original.cover, status: status, tags: tags);
-      await service.insertSourceManga(original.source, sourceManga);
+      final details = HttpSourceMangaDetails(
+        url: original.url,
+        name: original.title,
+        cover: original.cover,
+        status: status,
+        tags: tags,
+        chapters: [],
+      );
+      await repository.updateManga(details.toUpdatable(original.id));
       final manga = await _read(container);
       expect(manga.status, status);
       expect(manga.tags, tags);
@@ -234,20 +265,20 @@ void main() {
     }
   });
 
-  test('Invalid details leave existing rows unchanged and cannot be inserted', () async {
+  test('Invalid details leave the existing record unchanged', () async {
     final container = await _seed();
     final original = await _read(container);
-    final service = container.read(mangaServiceProvider);
-    for (final url in [original.url, 'new-url']) {
-      final sourceManga = HttpSourceManga(
-        url: url,
+    final source = UpdateSourceFixture(
+      details: HttpSourceMangaDetails(
+        url: original.url,
         name: 'Invalid update',
         cover: 'new-cover',
         description: 'New description',
         languages: ['zh_hans'],
-      );
-      await expectLater(service.insertSourceManga(original.source, sourceManga), throwsFormatException);
-    }
+        chapters: [],
+      ),
+    );
+    await expectLater(container.read(chapterSyncWithSourceProvider(source, original)).sync(), throwsFormatException);
     const update = MangaTableCompanion(id: Value(1600), languages: Value(['pt-br']));
     await expectLater(container.read(mangaRepositoryProvider).updateManga(update), throwsFormatException);
     expect(await _read(container), original);

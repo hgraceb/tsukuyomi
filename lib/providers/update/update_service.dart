@@ -36,7 +36,7 @@ class UpdateService {
     var downloads = const DownloadEnqueueResult();
     try {
       final details = await source.getMangaDetails(manga.toHttpSourceManga());
-      final chapters = details.chapters ?? (throw const FormatException('Missing manga chapters'));
+      final chapters = details.chapters;
       failureOutcome = UpdateOutcome.storageError;
       final repository = ref.read(mangaRepositoryProvider);
       await repository.updateManga(details.toUpdatable(manga.id));
