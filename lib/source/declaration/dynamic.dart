@@ -80,6 +80,7 @@ List<DartClass> get $dynamic {
       'headers': (($) => $.headers, ($, $$) => $.headers = $$),
       'id': (($) => $.id, ($, $$) => $.id = $$),
       'image': (($) => $.image, ($, $$) => $.image = $$),
+      'images': (($) => $.images, ($, $$) => $.images = $$),
       'innerHtml': (($) => $.innerHtml, ($, $$) => $.innerHtml = $$),
       'insertBefore': (($) => $.insertBefore, ($, $$) => $.insertBefore = $$),
       'isCompressed': (($) => $.isCompressed, ($, $$) => $.isCompressed = $$),

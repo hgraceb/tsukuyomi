@@ -21,7 +21,7 @@ sealed class Source {
   Future<SourceMangaDetails> getMangaDetails(covariant SourceManga manga);
 
   /// 获取章节图片列表
-  Future<Iterable<SourceImage>> getChapterImages(covariant SourceChapter chapter);
+  Future<SourceChapterImages> getChapterImages(covariant SourceChapter chapter);
 
   /// 获取章节图片数据
   Future<SourceBytes> getImageBytes(covariant SourceImage image);

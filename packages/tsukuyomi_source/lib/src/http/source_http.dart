@@ -69,7 +69,7 @@ abstract class HttpSource extends Source {
 
   /// 获取网络章节图片列表
   @override
-  Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter);
+  Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter);
 
   /// 获取网络章节图片数据
   @override

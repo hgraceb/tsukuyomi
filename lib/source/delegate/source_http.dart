@@ -10,14 +10,6 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_html/dom.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
-extension on Iterable {
-  /// 类型强转后使用 toList 避免 Iterable 的闭包可能捕获无法通过 Isolate 传递的数据
-  Iterable<T> castList<T>() {
-    assert(<dynamic>[] is! List<T>, T);
-    return cast<T>().toList();
-  }
-}
-
 // 使用弱引用持有漫画源对应的网络请求器，避免多次请求导致网络请求器内部包含无法通过 Isolate 传递的数据
 final _clients = Expando<Dio>();
 
@@ -137,8 +129,8 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) {
-    return isolate(() async => (await delegate.invoke('getChapterImages', [chapter]) as Iterable).castList<HttpSourceImage>());
+  Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter) {
+    return isolate(() async => await delegate.invoke('getChapterImages', [chapter]) as HttpSourceChapterImages);
   }
 
   @override
