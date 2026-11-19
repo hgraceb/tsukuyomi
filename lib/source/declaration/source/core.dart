@@ -16,7 +16,7 @@ sealed class Source {
   Future<SourceMangaDetails> getMangaDetails(covariant SourceManga manga);
 
   // ${$.debug('getChapterImages', ($, $$) => $.getChapterImages)}
-  Future<Iterable<SourceImage>> getChapterImages(covariant SourceChapter chapter);
+  Future<SourceChapterImages> getChapterImages(covariant SourceChapter chapter);
 
   // ${$.debug('getRepaintBytes', ($, $$) => $.getRepaintBytes)}
   Future<SourceBytes> getRepaintBytes(covariant SourceBytes bytes);
@@ -89,6 +89,15 @@ sealed class SourceChapter {
 
   // ${$.debug('public', ($, $$) => $.public)}
   final bool public;
+}
+''');
+
+DartClass get _$SourceChapterImages => DartClass<SourceChapterImages>(($) => '''
+sealed class SourceChapterImages {
+  const SourceChapterImages();
+
+  // ${$.debug('images', ($, $$) => $.images)}
+  abstract final List<SourceImage> images;
 }
 ''');
 
@@ -295,6 +304,7 @@ List<DartDeclaration> get $core {
     _$SourceManga,
     _$SourceBytes,
     _$SourceChapter,
+    _$SourceChapterImages,
     _$SourceFrame,
     _$SourceImage,
     _$SourceMangaEntries,

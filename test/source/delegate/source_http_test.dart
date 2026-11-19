@@ -16,7 +16,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  test('Basic entries and manga details cross the host isolate', () async {
+  test('Manga entries, details and chapter images cross the host isolate', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
@@ -39,6 +39,11 @@ class Example extends HttpSource {
       languages: <String>['ja', 'zh-Hans'],
       chapters: [HttpSourceChapter(url: '/chapter', name: 'Chapter')],
     );
+  }
+
+  Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter) async {
+    final images = ['1', '2'].map((page) => HttpSourceImage(url: chapter.url + '/' + page, extra: page));
+    return HttpSourceChapterImages(images: images.toList());
   }
 }
 
@@ -64,6 +69,8 @@ main() => Example();
     expect(details.tags, [tag]);
     expect(details.languages, ['ja', 'zh-Hans']);
     expect((details.chapters.single.url, details.chapters.single.name), ('/chapter', 'Chapter'));
+    final result = await host.getChapterImages(details.chapters.single);
+    expect(result.images.map((image) => (image.url, image.extra)), [('/chapter/1', '1'), ('/chapter/2', '2')]);
   });
 
   test('Source getters work after initialization in compute', () async {

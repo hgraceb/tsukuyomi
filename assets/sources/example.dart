@@ -55,15 +55,17 @@ class TsukuyomiSource extends HttpSource {
   }
 
   @override
-  Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter) async {
+  Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter) async {
     await Future.delayed(const Duration(seconds: 1));
     final ids = chapter.url.split(',').sublist(1);
-    return [
-      for (final id in ids) ...[
-        HttpSourceImage(
-          url: 'https://picsum.photos/id/$id/800/1200',
-        ),
+    return HttpSourceChapterImages(
+      images: [
+        for (final id in ids) ...[
+          HttpSourceImage(
+            url: 'https://picsum.photos/id/$id/800/1200',
+          ),
+        ],
       ],
-    ];
+    );
   }
 }

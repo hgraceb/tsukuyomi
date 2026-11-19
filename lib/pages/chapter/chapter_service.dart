@@ -41,12 +41,12 @@ Future<List<SourceImage>> chapterImages(ChapterImagesRef ref, Source source, Dat
   final directory = await ref.read(downloadServiceProvider).getChapterDir(source, manga, chapter);
   final images = switch (directory.existsSync()) {
     true => await ref.read(downloadedByChapterProvider(source, manga, chapter).future),
-    false => await source.getChapterImages(chapter.toHttpSourceChapter()),
+    false => (await source.getChapterImages(chapter.toHttpSourceChapter())).images,
   };
   // 章节图片列表获取失败
   if (images.isEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
   // 更新当前章节下载状态
   await ref.read(downloadServiceProvider).refreshDownloadedByChapter(source, manga, chapter);
   // 返回章节图片列表信息
-  return images.toList(growable: false);
+  return images;
 }

@@ -68,7 +68,7 @@ abstract class HttpSource extends Source {
   Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga);
 
   // ${$.debug('getChapterImages', ($, $$) => $.getChapterImages)}
-  Future<Iterable<HttpSourceImage>> getChapterImages(HttpSourceChapter chapter);
+  Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter);
 
   // ${$.debug('getImageBytes', ($, $$) => $.getImageBytes)}
   external Future<HttpSourceBytes> getImageBytes(HttpSourceImage image);
@@ -143,6 +143,16 @@ class HttpSourceChapter extends SourceChapter {
 }
 ''');
 
+DartClass get _$HttpSourceChapterImages => DartClass<HttpSourceChapterImages>(($) => '''
+class HttpSourceChapterImages extends SourceChapterImages {
+  // ${$.empty('HttpSourceChapterImages.new', () => HttpSourceChapterImages.new)}
+  const HttpSourceChapterImages({required this.images});
+
+  // ${$.debug('images', ($, $$) => $.images)}
+  final List<HttpSourceImage> images;
+}
+''');
+
 DartClass get _$HttpSourceFrame => DartClass<HttpSourceFrame>(($) => '''
 class HttpSourceFrame extends SourceFrame {
   // ${$.empty('HttpSourceFrame.new', () => HttpSourceFrame.new)}
@@ -204,6 +214,7 @@ List<DartDeclaration> get $http {
     _$HttpSourceMangaDetails,
     _$HttpSourceBytes,
     _$HttpSourceChapter,
+    _$HttpSourceChapterImages,
     _$HttpSourceFrame,
     _$HttpSourceImage,
     _$HttpSourceMangaEntries,
