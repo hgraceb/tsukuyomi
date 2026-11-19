@@ -9,12 +9,11 @@ part 'source_manga_details.freezed.dart';
 part 'source_manga_details.g.dart';
 
 /// 漫画源漫画详情
-sealed class SourceMangaDetails<T extends SourceChapter> extends SourceManga {
+sealed class SourceMangaDetails extends SourceManga {
   const SourceMangaDetails({
     required super.url,
     required super.name,
     required super.cover,
-    required this.chapters,
     this.status,
     this.description,
     this.authors,
@@ -38,7 +37,7 @@ sealed class SourceMangaDetails<T extends SourceChapter> extends SourceManga {
   final List<String>? languages;
 
   /// 章节列表
-  final List<T> chapters;
+  abstract final List<SourceChapter> chapters;
 }
 
 /// 连载状态

@@ -90,19 +90,22 @@ class HttpSourceManga extends SourceManga {
 ''');
 
 DartClass get _$HttpSourceMangaDetails => DartClass<HttpSourceMangaDetails>(($) => '''
-class HttpSourceMangaDetails extends SourceMangaDetails<HttpSourceChapter> implements HttpSourceManga {
+class HttpSourceMangaDetails extends SourceMangaDetails implements HttpSourceManga {
   // ${$.empty('HttpSourceMangaDetails.new', () => HttpSourceMangaDetails.new)}
   const HttpSourceMangaDetails({
     required super.url,
     required super.name,
     required super.cover,
-    required super.chapters,
+    required this.chapters,
     super.status,
     super.description,
     super.authors,
     super.tags,
     super.languages,
   });
+
+  // ${$.debug('chapters', ($, $$) => $.chapters)}
+  final List<HttpSourceChapter> chapters;
 }
 ''');
 

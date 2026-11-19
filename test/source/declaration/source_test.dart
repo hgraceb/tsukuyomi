@@ -47,7 +47,7 @@ main() {
     expect(errors.map((error) => error.errorCode.name.toLowerCase()), unorderedEquals(['missing_required_argument', 'undefined_getter']));
   });
 
-  test('Details expose the same chapter through HTTP and core declarations', () async {
+  test('HTTP and core detail list literals preserve their chapter types', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
@@ -55,9 +55,10 @@ main() {
   final details = HttpSourceMangaDetails(
     url: '/manga', name: 'Title', cover: '', chapters: [HttpSourceChapter(url: '/chapter', name: 'Chapter')],
   );
-  final HttpSourceChapter httpChapter = details.chapters.single;
-  final SourceMangaDetails core = details;
-  final SourceChapter chapter = core.chapters.single;
+  final httpDetails = <HttpSourceMangaDetails>[details];
+  final coreDetails = <SourceMangaDetails>[details];
+  final HttpSourceChapter httpChapter = httpDetails.single.chapters.single;
+  final SourceChapter chapter = coreDetails.single.chapters.single;
   return [httpChapter.url, chapter.name];
 }
 ''';

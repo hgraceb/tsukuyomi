@@ -2,12 +2,11 @@ import 'package:tsukuyomi_eval/tsukuyomi_eval.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 DartClass get _$SourceMangaDetails => DartClass<SourceMangaDetails>(($) => '''
-sealed class SourceMangaDetails<T extends SourceChapter> extends SourceManga {
+sealed class SourceMangaDetails extends SourceManga {
   const SourceMangaDetails({
     required super.url,
     required super.name,
     required super.cover,
-    required this.chapters,
     this.status,
     this.description,
     this.authors,
@@ -31,7 +30,7 @@ sealed class SourceMangaDetails<T extends SourceChapter> extends SourceManga {
   final List<String>? languages;
 
   // ${$.debug('chapters', ($, $$) => $.chapters)}
-  final List<T> chapters;
+  abstract final List<SourceChapter> chapters;
 }
 ''');
 
