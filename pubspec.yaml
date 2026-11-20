@@ -60,7 +60,7 @@ dependencies:
   cached_network_image: 3.4.1
   # 本地缓存文件管理
   flutter_cache_manager: 3.4.1
-  # 阅读图片下载并发控制
+  # 并发请求控制
   pool: 1.5.2
   # 动画效果
   flutter_animate: 4.5.2
@@ -90,6 +90,8 @@ dev_dependencies:
   melos: 7.8.1
   # 代码生成工具
   build_runner: 2.4.13
+  # 内存文件系统缓存测试
+  file: 7.0.1
   # 生成代码合并配置
   source_gen: 1.5.0
   # 代码检查工具：dart run custom_lint
