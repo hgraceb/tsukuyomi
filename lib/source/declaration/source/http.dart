@@ -74,7 +74,7 @@ abstract class HttpSource extends Source {
   external Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image);
 
   // ${$.debug('getRepaintBytes', ($, $$) => $.getRepaintBytes)}
-  external Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes imageBytes);
+  external Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes);
 }
 ''');
 

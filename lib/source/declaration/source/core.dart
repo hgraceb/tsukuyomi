@@ -22,7 +22,7 @@ sealed class Source {
   Future<SourceImageBytes> getImageBytes(covariant SourceImage image);
 
   // ${$.debug('getRepaintBytes', ($, $$) => $.getRepaintBytes)}
-  Future<SourceImageBytes> getRepaintBytes(covariant SourceImageBytes imageBytes);
+  Future<SourceImageBytes> getRepaintBytes(covariant SourceImageBytes bytes);
 }
 ''');
 

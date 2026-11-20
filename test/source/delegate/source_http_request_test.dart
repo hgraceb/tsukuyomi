@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart'; // ignore: depend_on_referenced_packages
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart'; // ignore: depend_on_referenced_packages
 import 'package:tsukuyomi/core/cache/tsukuyomi_cache_manager.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
@@ -105,15 +108,17 @@ void main() {
     return HttpSourceImageBytes(bytes: bytes, extra: bytes.data.last);
   }
 
-  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes imageBytes) async {
-    final bytes = imageBytes.bytes.copyWith(type: 'gif', data: [imageBytes.extra as int]);
-    return HttpSourceImageBytes(bytes: bytes);
+  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) async {
+    return HttpSourceImageBytes(bytes: bytes.bytes.copyWith(type: 'gif', data: [bytes.extra as int]));
   }
 ''';
     final server = await serve(body: [1, 2, 3], contentType: 'image/png');
     final source = await loadRequestSource(server.baseUrl, "    throw 'unused';", imageMethods: imageMethods);
     const image = HttpSourceImage(url: '/page.png', extra: 'request parameter');
-    final response = await SourceImageFileService(source, image).get(image.url);
+    await useTemporaryCache();
+    final cache = TsukuyomiCacheManager(source, image);
+    addTearDown(cache.store.dispose);
+    final response = await cache.webHelper.fileFetcher.get(image.url);
     expect(response.fileExtension, '.gif');
     expect(response.contentLength, 1);
     expect(await response.content.expand((chunk) => chunk).toList(), [3]);
@@ -195,6 +200,54 @@ void main() {
 }
 
 const manga = HttpSourceManga(url: '/manga', name: 'Manga', cover: '');
+
+Future<void> useTemporaryCache() async {
+  final directory = await Directory.systemTemp.createTemp('tsukuyomi-cache-');
+  final paths = PathProviderPlatform.instance;
+  PathProviderPlatform.instance = _CachePaths(directory.path);
+  addTearDown(() async {
+    PathProviderPlatform.instance = paths;
+    await directory.delete(recursive: true);
+  });
+
+  if (Platform.isMacOS || Platform.isIOS || Platform.isAndroid) {
+    const channel = MethodChannel('com.tekartik.sqflite');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final factory = databaseFactoryOrNull;
+    databaseFactoryOrNull = databaseFactorySqflitePlugin;
+    messenger.setMockMethodCallHandler(
+      channel,
+      (call) async => switch (call.method) {
+        'getDatabasesPath' => directory.path,
+        'openDatabase' => {'id': 1},
+        'query' => {
+          'columns': ['user_version'],
+          'rows': [
+            [3],
+          ],
+        },
+        'closeDatabase' => null,
+        _ => throw UnsupportedError(call.method),
+      },
+    );
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(channel, null);
+      databaseFactoryOrNull = factory;
+    });
+  }
+}
+
+class _CachePaths extends PathProviderPlatform {
+  _CachePaths(this.path);
+
+  final String path;
+
+  @override
+  Future<String> getApplicationSupportPath() async => path;
+
+  @override
+  Future<String> getTemporaryPath() async => path;
+}
 
 Future<IsolateDioHttpSource> loadRequestSource(String baseUrl, String request, {bool retry = false, String imageMethods = ''}) async {
   final replacement = retry

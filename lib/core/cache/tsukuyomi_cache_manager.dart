@@ -14,10 +14,10 @@ class TsukuyomiCacheManager extends CacheManager with ImageCacheManager {
 
   static final _store = CacheStore(_config);
 
-  factory TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage extra) => TsukuyomiCacheManager._(SourceImageFileService(source, extra));
+  factory TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage extra) => TsukuyomiCacheManager._(_DioFileService(source, extra));
 
   // ignore: invalid_use_of_visible_for_testing_member
-  TsukuyomiCacheManager._(SourceImageFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: WebHelper(_store, fetcher));
+  TsukuyomiCacheManager._(_DioFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: WebHelper(_store, fetcher));
 }
 
 class _DioGetResponse extends HttpGetResponse {
@@ -27,8 +27,8 @@ class _DioGetResponse extends HttpGetResponse {
   final String fileExtension;
 }
 
-class SourceImageFileService extends FileService {
-  SourceImageFileService(this._source, this._image);
+class _DioFileService extends FileService {
+  _DioFileService(this._source, this._image);
 
   final DioHttpSource _source;
 

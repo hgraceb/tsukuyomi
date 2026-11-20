@@ -27,5 +27,5 @@ sealed class Source {
   Future<SourceImageBytes> getImageBytes(covariant SourceImage image);
 
   /// 获取章节重绘图片
-  Future<SourceImageBytes> getRepaintBytes(covariant SourceImageBytes imageBytes);
+  Future<SourceImageBytes> getRepaintBytes(covariant SourceImageBytes bytes);
 }

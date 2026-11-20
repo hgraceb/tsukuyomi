@@ -23,5 +23,5 @@ class NoInstalledSource extends StubSource {
   Future<SourceImageBytes> getImageBytes(SourceImage image) => throw TsukuyomiSourceException.notInstalled(id);
 
   @override
-  Future<SourceImageBytes> getRepaintBytes(SourceImageBytes imageBytes) => throw TsukuyomiSourceException.notInstalled(id);
+  Future<SourceImageBytes> getRepaintBytes(SourceImageBytes bytes) => throw TsukuyomiSourceException.notInstalled(id);
 }
