@@ -125,16 +125,43 @@ void main() {
     expect(server.requests, hasLength(1));
   });
 
-  test('Default image requests leave page metadata on the image', () async {
+  test('Default image requests pass the page metadata to repainting', () async {
     final server = await serve(body: [0, 1], contentType: 'image/png');
     final source = await loadRequestSource(server.baseUrl, "    throw 'unused';");
-    const image = HttpSourceImage(url: '/page.png', extra: 'request parameter');
-    final imageBytes = await source.getImageBytes(image);
-    expect(imageBytes.bytes.type, 'png');
-    expect(imageBytes.bytes.data, [0, 1]);
-    expect(imageBytes.bytes.statusCode, 200);
-    expect(imageBytes.extra, isNull);
-    expect(await source.getRepaintBytes(imageBytes), same(imageBytes));
+    for (final extra in [null, false, 'seed', [1, 0]]) {
+      final imageBytes = await source.getImageBytes(HttpSourceImage(url: '/page.png', extra: extra));
+      expect(imageBytes.bytes.type, 'png');
+      expect(imageBytes.bytes.data, [0, 1]);
+      expect(imageBytes.bytes.statusCode, 200);
+      expect(imageBytes.extra, extra);
+      expect(await source.getRepaintBytes(imageBytes), same(imageBytes));
+    }
+    expect(server.requests, hasLength(4));
+  });
+
+  test('Image requests can choose the repaint metadata and HTTP options', () async {
+    const imageMethods = '''
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) {
+    return fetchImageBytes(
+      HttpSourceImage(url: image.url, extra: image.url == '/raw' ? null : 'new seed'),
+      method: 'POST',
+      headers: {'X-Source': 'page'},
+      data: 'body',
+    );
+  }
+''';
+    final server = await serve(body: [0, 1], contentType: 'image/png');
+    final source = await loadRequestSource(server.baseUrl, "    throw 'unused';", imageMethods: imageMethods);
+    final replaced = await source.getImageBytes(const HttpSourceImage(url: '/page', extra: 'original'));
+    final cleared = await source.getImageBytes(const HttpSourceImage(url: '/raw', extra: 'original'));
+    expect(replaced.extra, 'new seed');
+    expect(cleared.extra, isNull);
+    expect(server.requests.map((request) => request.uri.path), ['/page', '/raw']);
+    for (final request in server.requests) {
+      expect(request.method, 'POST');
+      expect(request.headers.value('x-source'), 'page');
+      expect(utf8.decode(request.body), 'body');
+    }
   });
 
   test('Protobuf responses accept binary request bodies and request headers', () async {

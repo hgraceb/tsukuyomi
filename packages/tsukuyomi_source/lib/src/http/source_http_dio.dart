@@ -84,14 +84,13 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
-  Future<SourceProtoMessage> fetchProto(
-    String url,
-    SourceProtoFields fields, {
-    Dio? client,
-    String? method,
-    Map<String, String>? headers,
-    Object? data,
-  }) async {
+  Future<HttpSourceImageBytes> fetchImageBytes(HttpSourceImage image, {String? method, Map<String, String>? headers, Object? data}) async {
+    final bytes = await fetchBytes(image.url, method: method, headers: headers, data: data);
+    return HttpSourceImageBytes(bytes: bytes, extra: image.extra);
+  }
+
+  @override
+  Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {Dio? client, String? method, Map<String, String>? headers, Object? data}) async {
     client ??= this.client;
     final bytes = await fetchBytes(url, client: client, method: method, headers: headers, data: data);
     return parseProto(bytes.data, fields);
