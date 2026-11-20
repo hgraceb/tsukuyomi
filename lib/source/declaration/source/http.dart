@@ -28,6 +28,14 @@ abstract class HttpSource extends Source {
   // ${$.debug('fetchBytes', ($, $$) => $.fetchBytes)}
   external Future<HttpSourceBytes> fetchBytes(String url, {String? method, Map<String, String>? headers, Object? data});
 
+  // ${$.debug('fetchImageBytes', ($, $$) => $.fetchImageBytes)}
+  external Future<HttpSourceImageBytes> fetchImageBytes(
+    HttpSourceImage image, {
+    String? method,
+    Map<String, String>? headers,
+    Object? data,
+  });
+
   // ${$.debug('fetchProto', ($, $$) => $.fetchProto)}
   external Future<SourceProtoMessage> fetchProto(
     String url,
@@ -71,10 +79,10 @@ abstract class HttpSource extends Source {
   Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter);
 
   // ${$.debug('getImageBytes', ($, $$) => $.getImageBytes)}
-  external Future<HttpSourceBytes> getImageBytes(HttpSourceImage image);
+  external Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image);
 
   // ${$.debug('getRepaintBytes', ($, $$) => $.getRepaintBytes)}
-  external Future<HttpSourceBytes> getRepaintBytes(HttpSourceBytes bytes);
+  external Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes);
 }
 ''');
 
@@ -117,7 +125,6 @@ class HttpSourceBytes extends SourceBytes {
     required super.data,
     required this.statusCode,
     required this.responseHeaders,
-    super.extra,
   });
 
   // ${$.debug('statusCode', ($, $$) => $.statusCode)}
@@ -132,7 +139,6 @@ class HttpSourceBytes extends SourceBytes {
     List<int>? data,
     int? statusCode,
     Headers? responseHeaders,
-    dynamic extra,
   });
 }
 ''');
@@ -176,6 +182,16 @@ class HttpSourceImage extends SourceImage {
     super.extra,
     required super.url,
   });
+}
+''');
+
+DartClass get _$HttpSourceImageBytes => DartClass<HttpSourceImageBytes>(($) => '''
+class HttpSourceImageBytes extends SourceImageBytes {
+  // ${$.empty('HttpSourceImageBytes.new', () => HttpSourceImageBytes.new)}
+  const HttpSourceImageBytes({required this.bytes, super.extra});
+
+  // ${$.debug('bytes', ($, $$) => $.bytes)}
+  final HttpSourceBytes bytes;
 }
 ''');
 
@@ -223,6 +239,7 @@ List<DartDeclaration> get $http {
     _$HttpSourceChapterImages,
     _$HttpSourceFrame,
     _$HttpSourceImage,
+    _$HttpSourceImageBytes,
     _$HttpSourceMangaEntries,
     _$HttpSourceQuery,
     _$HttpSourceException,

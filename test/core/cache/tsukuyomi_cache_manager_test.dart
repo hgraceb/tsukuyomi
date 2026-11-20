@@ -62,7 +62,7 @@ void main() {
     const shared = HttpSourceImage(url: 'https://example.invalid/shared');
     source.repaint = (bytes) async {
       if (bytes.extra == 'fail') throw StateError('Repaint failed');
-      return bytes.copyWith(data: [1, 2]);
+      return HttpSourceImageBytes(bytes: bytes.bytes.copyWith(data: [1, 2]), extra: bytes.extra);
     };
     final failing = TsukuyomiCacheManager(source, failed);
     final failure = expectLater(failing.getImageFile(failed.url).single, throwsStateError);
@@ -84,7 +84,7 @@ void main() {
   test('Canceling the only reader while queued still caches the repainted image', () async {
     final slot = await fillPool('cancel');
     const image = HttpSourceImage(url: 'https://example.invalid/canceled');
-    source.repaint = (bytes) async => bytes.copyWith(data: [3, 4]);
+    source.repaint = (bytes) async => HttpSourceImageBytes(bytes: bytes.bytes.copyWith(data: [3, 4]), extra: bytes.extra);
     final manager = TsukuyomiCacheManager(source, image);
     final listener = manager.getImageFile(image.url).listen(null);
     await waitForActiveDownloads(manager, 1);
@@ -105,7 +105,10 @@ void main() {
       'Content-Type': ['image/jpeg'],
       'Content-Length': ['800'],
     });
-    source.repaint = (bytes) async => bytes.copyWith(type: 'webp', data: [1, 2], statusCode: 202, responseHeaders: headers);
+    source.repaint = (bytes) async {
+      final repaint = bytes.bytes.copyWith(type: 'webp', data: [1, 2], statusCode: 202, responseHeaders: headers);
+      return HttpSourceImageBytes(bytes: repaint, extra: bytes.extra);
+    };
 
     final start = DateTime.now();
     final events = await cache.getImageFile(page.url, withProgress: true).toList();
@@ -127,15 +130,16 @@ void main() {
 }
 
 class _ImageSource extends Fake implements DioHttpSource {
-  late Future<HttpSourceBytes> Function(HttpSourceBytes) repaint;
+  late Future<HttpSourceImageBytes> Function(HttpSourceImageBytes) repaint;
   final requests = <HttpSourceImage>[];
 
   @override
-  Future<HttpSourceBytes> getImageBytes(HttpSourceImage image) async {
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
     requests.add(image);
-    return HttpSourceBytes(type: 'jpg', data: [0], extra: image.extra, statusCode: 200, responseHeaders: Headers());
+    final bytes = HttpSourceBytes(type: 'jpg', data: [0], statusCode: 200, responseHeaders: Headers());
+    return HttpSourceImageBytes(bytes: bytes, extra: image.extra);
   }
 
   @override
-  Future<HttpSourceBytes> getRepaintBytes(HttpSourceBytes bytes) => repaint(bytes);
+  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) => repaint(bytes);
 }

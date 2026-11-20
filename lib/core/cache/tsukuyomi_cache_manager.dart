@@ -40,7 +40,7 @@ class _DioFileService extends FileService {
   Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) {
     return _pool.withResource(() async {
       final imageBytes = await _source.getImageBytes(_image);
-      final repaintBytes = await _source.getRepaintBytes(imageBytes);
+      final repaintBytes = (await _source.getRepaintBytes(imageBytes)).bytes;
       final fileExtension = '.${repaintBytes.type}';
       final stream = Stream.value(repaintBytes.data);
       final statusCode = repaintBytes.statusCode;

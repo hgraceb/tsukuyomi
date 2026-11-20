@@ -50,6 +50,7 @@ List<DartClass> get $dynamic {
       'extra': (($) => $.extra, ($, $$) => $.extra = $$),
       'fetchBytes': (($) => $.fetchBytes, ($, $$) => $.fetchBytes = $$),
       'fetchHtml': (($) => $.fetchHtml, ($, $$) => $.fetchHtml = $$),
+      'fetchImageBytes': (($) => $.fetchImageBytes, ($, $$) => $.fetchImageBytes = $$),
       'fetchJson': (($) => $.fetchJson, ($, $$) => $.fetchJson = $$),
       'fetchProto': (($) => $.fetchProto, ($, $$) => $.fetchProto = $$),
       'fields': (($) => $.fields, ($, $$) => $.fields = $$),

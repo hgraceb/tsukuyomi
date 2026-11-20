@@ -2,7 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart'; // ignore: depend_on_referenced_packages
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common/sqflite.dart'; // ignore: depend_on_referenced_packages
+import 'package:sqflite_common/src/factory.dart'; // ignore: depend_on_referenced_packages, implementation_imports
+import 'package:tsukuyomi/core/cache/tsukuyomi_cache_manager.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
 import 'package:tsukuyomi_eval/src/declaration/declaration.dart';
@@ -97,16 +101,67 @@ void main() {
     expect(utf8.decode(request.body), 'token=a%2Bb&empty=');
   });
 
-  test('Default image requests leave page metadata on the image', () async {
+  test('The cache reports the final image format and length after repainting', () async {
+    const imageMethods = '''
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
+    final bytes = await fetchBytes(image.url);
+    return HttpSourceImageBytes(bytes: bytes, extra: bytes.data.last);
+  }
+
+  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) async {
+    return HttpSourceImageBytes(bytes: bytes.bytes.copyWith(type: 'gif', data: [bytes.extra as int]));
+  }
+''';
+    final server = await serve(body: [1, 2, 3], contentType: 'image/png');
+    final source = await loadRequestSource(server.baseUrl, "    throw 'unused';", imageMethods: imageMethods);
+    const image = HttpSourceImage(url: '/page.png', extra: 'request parameter');
+    await useTemporaryCache();
+    final cache = TsukuyomiCacheManager(source, image);
+    addTearDown(cache.store.dispose);
+    final response = await cache.webHelper.fileFetcher.get(image.url);
+    expect(response.fileExtension, '.gif');
+    expect(response.contentLength, 1);
+    expect(await response.content.expand((chunk) => chunk).toList(), [3]);
+    expect(server.requests, hasLength(1));
+  });
+
+  test('Default image requests pass the page metadata to repainting', () async {
     final server = await serve(body: [0, 1], contentType: 'image/png');
     final source = await loadRequestSource(server.baseUrl, "    throw 'unused';");
-    const image = HttpSourceImage(url: '/page.png', extra: 'request parameter');
-    final bytes = await source.getImageBytes(image);
-    expect(bytes.type, 'png');
-    expect(bytes.data, [0, 1]);
-    expect(bytes.statusCode, 200);
-    expect(bytes.extra, isNull);
-    expect(await source.getRepaintBytes(bytes), same(bytes));
+    for (final extra in [null, false, 'seed', [1, 0]]) {
+      final imageBytes = await source.getImageBytes(HttpSourceImage(url: '/page.png', extra: extra));
+      expect(imageBytes.bytes.type, 'png');
+      expect(imageBytes.bytes.data, [0, 1]);
+      expect(imageBytes.bytes.statusCode, 200);
+      expect(imageBytes.extra, extra);
+      expect(await source.getRepaintBytes(imageBytes), same(imageBytes));
+    }
+    expect(server.requests, hasLength(4));
+  });
+
+  test('Image requests can choose the repaint metadata and HTTP options', () async {
+    const imageMethods = '''
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) {
+    return fetchImageBytes(
+      HttpSourceImage(url: image.url, extra: image.url == '/raw' ? null : 'new seed'),
+      method: 'POST',
+      headers: {'X-Source': 'page'},
+      data: 'body',
+    );
+  }
+''';
+    final server = await serve(body: [0, 1], contentType: 'image/png');
+    final source = await loadRequestSource(server.baseUrl, "    throw 'unused';", imageMethods: imageMethods);
+    final replaced = await source.getImageBytes(const HttpSourceImage(url: '/page', extra: 'original'));
+    final cleared = await source.getImageBytes(const HttpSourceImage(url: '/raw', extra: 'original'));
+    expect(replaced.extra, 'new seed');
+    expect(cleared.extra, isNull);
+    expect(server.requests.map((request) => request.uri.path), ['/page', '/raw']);
+    for (final request in server.requests) {
+      expect(request.method, 'POST');
+      expect(request.headers.value('x-source'), 'page');
+      expect(utf8.decode(request.body), 'body');
+    }
   });
 
   test('Protobuf responses accept binary request bodies and request headers', () async {
@@ -173,7 +228,49 @@ void main() {
 
 const manga = HttpSourceManga(url: '/manga', name: 'Manga', cover: '');
 
-Future<IsolateDioHttpSource> loadRequestSource(String baseUrl, String request, {bool retry = false}) async {
+Future<void> useTemporaryCache() async {
+  final directory = await Directory.systemTemp.createTemp('tsukuyomi-cache-');
+  final paths = PathProviderPlatform.instance;
+  final factory = databaseFactoryOrNull;
+  PathProviderPlatform.instance = _CachePaths(directory.path);
+  databaseFactoryOrNull = _CacheDatabaseFactory(directory.path);
+  addTearDown(() async {
+    PathProviderPlatform.instance = paths;
+    databaseFactoryOrNull = factory;
+    await directory.delete(recursive: true);
+  });
+}
+
+class _CachePaths extends PathProviderPlatform {
+  _CachePaths(this.path);
+
+  final String path;
+
+  @override
+  Future<String> getApplicationSupportPath() async => path;
+
+  @override
+  Future<String> getTemporaryPath() async => path;
+}
+
+class _CacheDatabaseFactory extends Fake implements SqfliteDatabaseFactory {
+  _CacheDatabaseFactory(this.path);
+
+  final String path;
+
+  @override
+  Future<String> getDatabasesPath() async => path;
+
+  @override
+  Future<Database> openDatabase(String path, {OpenDatabaseOptions? options}) async => _CacheDatabase();
+}
+
+class _CacheDatabase extends Fake implements Database {
+  @override
+  Future<void> close() async {}
+}
+
+Future<IsolateDioHttpSource> loadRequestSource(String baseUrl, String request, {bool retry = false, String imageMethods = ''}) async {
   final replacement = retry
       ? '''
   Future<Map<String, String>> getReplaceHeaders(dynamic response) async {
@@ -193,6 +290,7 @@ class Example extends HttpSource {
   Map<String, String> getRequestHeaders() => {'Referer': baseUrl, 'X-Source': 'default'};
 
 $replacement
+$imageMethods
 
   Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) async {
 $request
@@ -219,6 +317,7 @@ Future<RequestServer> serve({required List<int> body, required String contentTyp
     result.requests.add((method: request.method, uri: request.uri, headers: request.headers, body: data));
     request.response.statusCode = result.requests.length == 1 ? firstStatusCode ?? 200 : 200;
     request.response.headers.contentType = ContentType.parse(contentType);
+    request.response.contentLength = body.length;
     request.response.add(body);
     await request.response.close();
   });

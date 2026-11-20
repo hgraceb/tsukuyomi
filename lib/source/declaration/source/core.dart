@@ -19,10 +19,10 @@ sealed class Source {
   Future<SourceChapterImages> getChapterImages(covariant SourceChapter chapter);
 
   // ${$.debug('getImageBytes', ($, $$) => $.getImageBytes)}
-  Future<SourceBytes> getImageBytes(covariant SourceImage image);
+  Future<SourceImageBytes> getImageBytes(covariant SourceImage image);
 
   // ${$.debug('getRepaintBytes', ($, $$) => $.getRepaintBytes)}
-  Future<SourceBytes> getRepaintBytes(covariant SourceBytes bytes);
+  Future<SourceImageBytes> getRepaintBytes(covariant SourceImageBytes bytes);
 }
 ''');
 
@@ -50,7 +50,6 @@ sealed class SourceBytes {
   SourceBytes({
     required this.type,
     required this.data,
-    this.extra,
   });
 
   // ${$.debug('type', ($, $$) => $.type)}
@@ -58,9 +57,6 @@ sealed class SourceBytes {
 
   // ${$.debug('data', ($, $$) => $.data)}
   final List<int> data;
-
-  // ${$.debug('extra', ($, $$) => $.extra)}
-  final dynamic extra;
 }
 ''');
 
@@ -123,6 +119,18 @@ sealed class SourceImage {
 
   // ${$.debug('extra', ($, $$) => $.extra)}
   final dynamic extra;
+}
+''');
+
+DartClass get _$SourceImageBytes => DartClass<SourceImageBytes>(($) => '''
+sealed class SourceImageBytes {
+  const SourceImageBytes({this.extra});
+
+  // ${$.debug('bytes', ($, $$) => $.bytes)}
+  abstract final SourceBytes bytes;
+
+  // ${$.debug('extra', ($, $$) => $.extra)}
+  final Object? extra;
 }
 ''');
 
@@ -302,6 +310,7 @@ List<DartDeclaration> get $core {
     _$SourceChapterImages,
     _$SourceFrame,
     _$SourceImage,
+    _$SourceImageBytes,
     _$SourceMangaEntries,
     _$SourceProtoFields,
     _$SourceProtoField,

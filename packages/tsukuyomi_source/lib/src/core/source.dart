@@ -24,8 +24,8 @@ sealed class Source {
   Future<SourceChapterImages> getChapterImages(covariant SourceChapter chapter);
 
   /// 获取章节图片数据
-  Future<SourceBytes> getImageBytes(covariant SourceImage image);
+  Future<SourceImageBytes> getImageBytes(covariant SourceImage image);
 
   /// 获取章节重绘图片
-  Future<SourceBytes> getRepaintBytes(covariant SourceBytes bytes);
+  Future<SourceImageBytes> getRepaintBytes(covariant SourceImageBytes bytes);
 }

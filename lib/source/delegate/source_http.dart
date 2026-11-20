@@ -22,6 +22,7 @@ class IsolateDioHttpSource extends DioHttpSource {
     delegate.props['fetchJson'] ??= EvalProperty.getter(($) => fetchJson);
     delegate.props['fetchHtml'] ??= EvalProperty.getter(($) => fetchHtml);
     delegate.props['fetchBytes'] ??= EvalProperty.getter(($) => fetchBytes);
+    delegate.props['fetchImageBytes'] ??= EvalProperty.getter(($) => fetchImageBytes);
     delegate.props['fetchProto'] ??= EvalProperty.getter(($) => fetchProto);
     delegate.props['setStorage'] ??= EvalProperty.getter(($) => setStorage);
     delegate.props['getStorage'] ??= EvalProperty.getter(($) => getStorage);
@@ -134,12 +135,12 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<HttpSourceBytes> getImageBytes(HttpSourceImage image) {
-    return isolate(() async => delegate.has('getImageBytes') ? await delegate.invoke('getImageBytes', [image]) : fetchBytes(image.url));
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) {
+    return isolate(() async => delegate.has('getImageBytes') ? await delegate.invoke('getImageBytes', [image]) : fetchImageBytes(image));
   }
 
   @override
-  Future<HttpSourceBytes> getRepaintBytes(HttpSourceBytes bytes) async {
+  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) async {
     return delegate.has('getRepaintBytes') ? await delegate.invoke('getRepaintBytes', [bytes]) : bytes;
   }
 }
