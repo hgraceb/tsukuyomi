@@ -16,12 +16,7 @@ class HttpSourceBytes extends SourceBytes {
   final Headers responseHeaders;
 
   /// 创建网络字节数据副本
-  HttpSourceBytes copyWith({
-    String? type,
-    List<int>? data,
-    int? statusCode,
-    Headers? responseHeaders,
-  }) {
+  HttpSourceBytes copyWith({String? type, List<int>? data, int? statusCode, Headers? responseHeaders}) {
     return HttpSourceBytes(
       type: type ?? this.type,
       data: data ?? this.data,
