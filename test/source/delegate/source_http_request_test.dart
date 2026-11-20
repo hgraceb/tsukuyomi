@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart'; // ignore: depend_on_referenced_packages
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart'; // ignore: depend_on_referenced_packages
+import 'package:sqflite_common/sqflite.dart'; // ignore: depend_on_referenced_packages
+import 'package:sqflite_common/src/factory.dart'; // ignore: depend_on_referenced_packages, implementation_imports
 import 'package:tsukuyomi/core/cache/tsukuyomi_cache_manager.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
@@ -204,37 +204,14 @@ const manga = HttpSourceManga(url: '/manga', name: 'Manga', cover: '');
 Future<void> useTemporaryCache() async {
   final directory = await Directory.systemTemp.createTemp('tsukuyomi-cache-');
   final paths = PathProviderPlatform.instance;
+  final factory = databaseFactoryOrNull;
   PathProviderPlatform.instance = _CachePaths(directory.path);
+  databaseFactoryOrNull = _CacheDatabaseFactory(directory.path);
   addTearDown(() async {
     PathProviderPlatform.instance = paths;
+    databaseFactoryOrNull = factory;
     await directory.delete(recursive: true);
   });
-
-  if (Platform.isMacOS || Platform.isIOS || Platform.isAndroid) {
-    const channel = MethodChannel('com.tekartik.sqflite');
-    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    final factory = databaseFactoryOrNull;
-    databaseFactoryOrNull = databaseFactorySqflitePlugin;
-    messenger.setMockMethodCallHandler(
-      channel,
-      (call) async => switch (call.method) {
-        'getDatabasesPath' => directory.path,
-        'openDatabase' => {'id': 1},
-        'query' => {
-          'columns': ['user_version'],
-          'rows': [
-            [3],
-          ],
-        },
-        'closeDatabase' => null,
-        _ => throw UnsupportedError(call.method),
-      },
-    );
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(channel, null);
-      databaseFactoryOrNull = factory;
-    });
-  }
 }
 
 class _CachePaths extends PathProviderPlatform {
@@ -247,6 +224,23 @@ class _CachePaths extends PathProviderPlatform {
 
   @override
   Future<String> getTemporaryPath() async => path;
+}
+
+class _CacheDatabaseFactory extends Fake implements SqfliteDatabaseFactory {
+  _CacheDatabaseFactory(this.path);
+
+  final String path;
+
+  @override
+  Future<String> getDatabasesPath() async => path;
+
+  @override
+  Future<Database> openDatabase(String path, {OpenDatabaseOptions? options}) async => _CacheDatabase();
+}
+
+class _CacheDatabase extends Fake implements Database {
+  @override
+  Future<void> close() async {}
 }
 
 Future<IsolateDioHttpSource> loadRequestSource(String baseUrl, String request, {bool retry = false, String imageMethods = ''}) async {
