@@ -26,36 +26,76 @@ void main() {
 
   setUp(source.requests.clear);
 
-  test('Images share the fetch limit through repaint and queued requests resume after failure and success', () async {
+  Future<Completer<void>> fillPool(String prefix) async {
     final limit = cache.config.fileService.concurrentFetches;
-    final gates = List.generate(limit + 2, (_) => Completer<void>());
-    source.repaint = (bytes) async {
-      await gates[bytes.extra as int].future;
+    final full = Completer<void>();
+    final first = Completer<void>();
+    final rest = Completer<void>();
+    var repainting = 0;
+    final blockers = _ImageSource();
+    blockers.repaint = (bytes) async {
+      if (++repainting == limit) full.complete();
+      await (bytes.extra == 0 ? first : rest).future;
       return bytes;
     };
-    final downloads = List.generate(gates.length, (index) {
-      final image = HttpSourceImage(url: 'https://example.invalid/$index', extra: index);
-      return TsukuyomiCacheManager(source, image).webHelper.fileFetcher.get(image.url);
+    final downloads = List.generate(limit, (index) {
+      final image = HttpSourceImage(url: 'https://example.invalid/$prefix/$index', extra: index);
+      return TsukuyomiCacheManager(blockers, image).getImageFile(image.url).single;
     });
     addTearDown(() async {
-      for (final gate in gates) {
-        if (!gate.isCompleted) gate.complete();
-      }
-      await Future.wait(downloads.skip(1));
+      if (!first.isCompleted) first.complete();
+      rest.complete();
+      await Future.wait(downloads);
     });
+    await full.future;
+    return first;
+  }
 
-    await pumpEventQueue();
-    expect(source.requests, hasLength(limit));
-    final failure = expectLater(downloads[0], throwsStateError);
-    gates[0].completeError(StateError('Repaint failed'));
+  Future<void> waitForActiveDownloads(TsukuyomiCacheManager manager, int count) async {
+    final active = Stream.periodic(const Duration(milliseconds: 5), (_) => manager.webHelper.concurrentCalls);
+    await active.where((value) => value == count).timeout(const Duration(seconds: 5)).first;
+  }
+
+  test('Queued reads resume after success and failure and share one download for the same image', () async {
+    final slot = await fillPool('queue');
+    const failed = HttpSourceImage(url: 'https://example.invalid/failure', extra: 'fail');
+    const shared = HttpSourceImage(url: 'https://example.invalid/shared');
+    source.repaint = (bytes) async {
+      if (bytes.extra == 'fail') throw StateError('Repaint failed');
+      return bytes.copyWith(data: [1, 2]);
+    };
+    final failing = TsukuyomiCacheManager(source, failed);
+    final failure = expectLater(failing.getImageFile(failed.url).single, throwsStateError);
+    await waitForActiveDownloads(failing, 1);
+    final manager = TsukuyomiCacheManager(source, shared);
+    final reads = List.generate(2, (_) => manager.getImageFile(shared.url).cast<FileInfo>().single);
+    await waitForActiveDownloads(manager, 1);
+    expect(source.requests, isEmpty);
+
+    slot.complete();
     await failure;
-    await pumpEventQueue();
-    expect(source.requests, hasLength(limit + 1));
+    final files = await Future.wait(reads);
+    expect(source.requests, [failed, shared]);
+    expect(files.map((info) => info.source), everyElement(FileSource.Online));
+    expect(files.first.file.path, files.last.file.path);
+    expect(await files.first.file.readAsBytes(), [1, 2]);
+  });
 
-    gates[1].complete();
-    await downloads[1];
-    await pumpEventQueue();
-    expect(source.requests, hasLength(limit + 2));
+  test('Canceling the only reader while queued still caches the repainted image', () async {
+    final slot = await fillPool('cancel');
+    const image = HttpSourceImage(url: 'https://example.invalid/canceled');
+    source.repaint = (bytes) async => bytes.copyWith(data: [3, 4]);
+    final manager = TsukuyomiCacheManager(source, image);
+    final listener = manager.getImageFile(image.url).listen(null);
+    await waitForActiveDownloads(manager, 1);
+    expect(source.requests, isEmpty);
+    await listener.cancel();
+
+    slot.complete();
+    await waitForActiveDownloads(manager, 0);
+    final cached = await manager.getFileFromCache(image.url);
+    expect(await cached?.file.readAsBytes(), [3, 4]);
+    expect(source.requests, [image]);
   });
 
   test('The cache stores repainted bytes and honors mixed-case response headers', () async {
