@@ -60,6 +60,8 @@ dependencies:
   cached_network_image: 3.4.1
   # 本地缓存文件管理
   flutter_cache_manager: 3.4.1
+  # 并发请求控制
+  pool: 1.5.2
   # 动画效果
   flutter_animate: 4.5.2
   # Sliver 组件扩展

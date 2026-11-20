@@ -1,11 +1,10 @@
-import 'dart:async';
-
 import 'package:collection/collection.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:pool/pool.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/forward/flutter_cache_manager/cache_store.dart';
 import 'package:tsukuyomi/forward/flutter_cache_manager/web_helper.dart';
-import 'package:tsukuyomi/forward/http/http.dart' as http;
+import 'package:tsukuyomi/forward/http/http.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class TsukuyomiCacheManager extends CacheManager with ImageCacheManager {
@@ -18,20 +17,14 @@ class TsukuyomiCacheManager extends CacheManager with ImageCacheManager {
   factory TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage extra) => TsukuyomiCacheManager._(_DioFileService(source, extra));
 
   // ignore: invalid_use_of_visible_for_testing_member
-  TsukuyomiCacheManager._(_DioFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: _DioWebHelper(_store, fetcher));
+  TsukuyomiCacheManager._(_DioFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: WebHelper(_store, fetcher));
 }
 
-class _DioWebHelper extends WebHelper {
-  _DioWebHelper(super._store, _DioFileService super.fileFetcher);
-
-  // 共享并发请求计数
-  static int _concurrentCalls = 0;
+class _DioGetResponse extends HttpGetResponse {
+  _DioGetResponse(this.fileExtension, super._response);
 
   @override
-  int get concurrentCalls => _concurrentCalls;
-
-  @override
-  set concurrentCalls(int concurrentCalls) => _concurrentCalls = concurrentCalls;
+  final String fileExtension;
 }
 
 class _DioFileService extends FileService {
@@ -41,44 +34,19 @@ class _DioFileService extends FileService {
 
   final HttpSourceImage _image;
 
+  static final _pool = Pool(TsukuyomiCacheManager._config.fileService.concurrentFetches);
+
   @override
-  Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) async {
-    final bytes = await _source.getImageBytes(_image);
-    final repaint = await _source.getRepaintBytes(bytes);
-    return _DioGetResponse(repaint);
+  Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) {
+    return _pool.withResource(() async {
+      final imageBytes = await _source.getImageBytes(_image);
+      final repaintBytes = await _source.getRepaintBytes(imageBytes);
+      final fileExtension = '.${repaintBytes.type}';
+      final stream = Stream.value(repaintBytes.data);
+      final statusCode = repaintBytes.statusCode;
+      final contentLength = repaintBytes.data.length;
+      final headers = repaintBytes.responseHeaders.map.map((key, value) => MapEntry(key.toLowerCase(), value.firstOrNull ?? ''));
+      return _DioGetResponse(fileExtension, StreamedResponse(stream, statusCode, contentLength: contentLength, headers: headers));
+    });
   }
-}
-
-class _DioGetResponse implements FileServiceResponse {
-  _DioGetResponse(HttpSourceBytes bytes) : fileExtension = '.${bytes.type}' {
-    // 原始响应缓存信息
-    final headers = bytes.responseHeaders;
-    // 创建响应数据代理
-    _delegate = HttpGetResponse(http.StreamedResponse(
-      Stream.value(bytes.data),
-      bytes.statusCode,
-      contentLength: bytes.data.length,
-      headers: headers.map.map((key, value) => MapEntry(key, value.firstOrNull ?? '')),
-    ));
-  }
-
-  late final FileServiceResponse _delegate;
-
-  @override
-  get content => _delegate.content;
-
-  @override
-  get contentLength => _delegate.contentLength;
-
-  @override
-  get statusCode => _delegate.statusCode;
-
-  @override
-  get validTill => _delegate.validTill;
-
-  @override
-  get eTag => _delegate.eTag;
-
-  @override
-  final String fileExtension;
 }
