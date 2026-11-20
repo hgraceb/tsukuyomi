@@ -1,4 +1,4 @@
 include: package:flutter_lints/flutter.yaml
 
 formatter:
-  page_width: 160
+  page_width: 140

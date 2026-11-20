@@ -30,7 +30,14 @@ abstract class DioHttpSource extends HttpSource {
   Options buildOptions(String? method, [Map<String, String>? headers]) {
     const timeout = Duration(seconds: 15);
     final allHeaders = {...getRequestHeaders(), ...?headers};
-    return Options(method: method, headers: allHeaders, connectTimeout: timeout, sendTimeout: timeout, receiveTimeout: timeout, transformTimeout: timeout);
+    return Options(
+      method: method,
+      headers: allHeaders,
+      connectTimeout: timeout,
+      sendTimeout: timeout,
+      receiveTimeout: timeout,
+      transformTimeout: timeout,
+    );
   }
 
   @override
@@ -83,7 +90,14 @@ abstract class DioHttpSource extends HttpSource {
   }
 
   @override
-  Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {Dio? client, String? method, Map<String, String>? headers, Object? data}) async {
+  Future<SourceProtoMessage> fetchProto(
+    String url,
+    SourceProtoFields fields, {
+    Dio? client,
+    String? method,
+    Map<String, String>? headers,
+    Object? data,
+  }) async {
     client ??= this.client;
     final bytes = await fetchBytes(url, client: client, method: method, headers: headers, data: data);
     return parseProto(bytes.data, fields);

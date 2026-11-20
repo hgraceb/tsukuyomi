@@ -27,10 +27,21 @@ abstract class HttpSource extends Source {
   external Future<HttpSourceBytes> fetchBytes(String url, {String? method, Map<String, String>? headers, Object? data});
 
   /// 请求图片字节并附带处理参数
-  external Future<HttpSourceImageBytes> fetchImageBytes(HttpSourceImage image, {String? method, Map<String, String>? headers, Object? data});
+  external Future<HttpSourceImageBytes> fetchImageBytes(
+    HttpSourceImage image, {
+    String? method,
+    Map<String, String>? headers,
+    Object? data,
+  });
 
   /// 请求 Protobuf 格式数据 TODO 判断是否需要限制访问权限
-  external Future<SourceProtoMessage> fetchProto(String url, SourceProtoFields fields, {String? method, Map<String, String>? headers, Object? data});
+  external Future<SourceProtoMessage> fetchProto(
+    String url,
+    SourceProtoFields fields, {
+    String? method,
+    Map<String, String>? headers,
+    Object? data,
+  });
 
   /// 解析 `List<int>` 格式图片数据
   external Future<Image> resolveImageBytes(List<int> bytes);
