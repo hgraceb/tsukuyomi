@@ -59,11 +59,16 @@ Future<HttpSourceMangaDetails> readHttpDetails(HttpSource source, HttpSourceMang
 main() {
   HttpSourceMangaDetails(url: '/manga', name: 'Title', cover: '');
   HttpSourceManga(url: '/manga', name: 'Title', cover: '').status;
+  final details = HttpSourceMangaDetails(url: '/manga', name: 'Title', cover: '', chapters: []);
+  HttpSourceMangaEntries(mangas: [details]);
 }
 ''';
     final resolved = await resolve(source, [...dartLibraries, ...evalLibraries]);
     final errors = resolved.errors.where((error) => error.errorCode.errorSeverity.name == 'ERROR');
-    expect(errors.map((error) => error.errorCode.name.toLowerCase()), unorderedEquals(['missing_required_argument', 'undefined_getter']));
+    expect(
+      errors.map((error) => error.errorCode.name.toLowerCase()),
+      unorderedEquals(['missing_required_argument', 'undefined_getter', 'list_element_type_not_assignable']),
+    );
   });
 
   test('HTTP and core detail list literals preserve their chapter types', () async {
@@ -84,7 +89,7 @@ main() {
     expect(await evalValidSource(source), ['/chapter', 'Chapter']);
   });
 
-  test('Prefixed source details preserve omitted values, explicit empty values and special language codes', () async {
+  test('Prefixed source details preserve omitted and explicit empty values', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart' as source;
 
@@ -94,12 +99,10 @@ main() {
     url: '/manga', name: 'Title', cover: '/cover',
     status: source.SourceMangaStatus.unknown, description: '', authors: [], tags: [], languages: [], chapters: [],
   );
-  final normalize = source.normalizeMangaLanguages;
   final parseStatus = source.SourceMangaStatus.fromJson;
   return <dynamic>[
     absent.status, absent.description, absent.authors, absent.tags, absent.languages, absent.chapters,
     empty.status == parseStatus('unknown'), empty.description, empty.authors, empty.tags, empty.languages, empty.chapters,
-    normalize(['all', 'und-Latn', 'und', 'mul', 'zxx']),
     source.SourceMangaStatus.values.first == empty.status,
   ];
 }
@@ -117,12 +120,11 @@ main() {
       [],
       [],
       [],
-      ['all', 'mul', 'und', 'und-Latn', 'zxx'],
       true,
     ]);
   });
 
-  test('Manga details construct, normalize and read through the source bridge', () async {
+  test('Manga details preserve source field values through the bridge', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
@@ -130,20 +132,20 @@ main() {
   final SourceMangaDetails manga = HttpSourceMangaDetails(
     url: '/manga', name: 'Title', cover: '/cover',
     status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
-    authors: normalizeMangaAuthors(<SourceMangaAuthor>[
+    authors: <SourceMangaAuthor>[
       SourceMangaAuthor(name: ' Author ', role: 'Writer', url: 'https://example.com/authors/1'),
       SourceMangaAuthor.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
-    ]),
-    tags: normalizeMangaTags(<SourceMangaTag>[
+    ],
+    tags: <SourceMangaTag>[
       SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
       SourceMangaTag.fromJson({'type': 'tag', 'name': 'Space'}),
-    ]),
-    languages: normalizeMangaLanguages(<String>['zh-Hans', 'ja']), chapters: [],
+    ],
+    languages: <String>['zh-Hans', 'ja'], chapters: [],
   );
   final dynamic author = manga.authors!.first;
   return <dynamic>[
     manga.status!.toJson(), manga.description,
-    manga.authors!.first.name, manga.authors!.first.role, author.role, manga.authors!.first.url, manga.authors!.first.toJson(),
+    manga.authors!.first.name, manga.authors!.first.role, author.role, manga.authors!.first.url, manga.authors!.last.toJson(),
     manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.url, manga.tags!.last.toJson(), manga.tags!.last.url,
     manga.authors!.first is SourceMangaAuthor, manga.tags!.first is SourceMangaTag,
     manga.languages,
@@ -153,7 +155,7 @@ main() {
     expect(await evalValidSource(source), [
       'ongoing',
       'First paragraph\nSecond paragraph',
-      'Author',
+      ' Author ',
       'Writer',
       'Writer',
       'https://example.com/authors/1',
@@ -165,27 +167,8 @@ main() {
       null,
       true,
       true,
-      ['ja', 'zh-Hans'],
+      ['zh-Hans', 'ja'],
     ]);
-  });
-
-  test('Source language validation rejects noncanonical codes through the bridge', () async {
-    const source = '''
-import 'package:tsukuyomi_source/tsukuyomi_source.dart';
-
-main() {
-  final rejected = <String>[];
-  for (final value in <String>['zh_Hans', 'zh-hans', 'ja ']) {
-    try {
-      normalizeMangaLanguages(<String>[value]);
-    } on FormatException {
-      rejected.add(value);
-    }
-  }
-  return rejected;
-}
-''';
-    expect(await evalValidSource(source), ['zh_Hans', 'zh-hans', 'ja ']);
   });
 
   test('Source enum values retain their host identity and JSON codes', () async {

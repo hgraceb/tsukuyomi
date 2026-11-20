@@ -127,38 +127,3 @@ class SourceMangaTag with _$SourceMangaTag {
 
   factory SourceMangaTag.fromJson(Map<String, dynamic> json) => _$SourceMangaTagFromJson(json);
 }
-
-/// 校验漫画作者并去重
-List<SourceMangaAuthor> normalizeMangaAuthors(Iterable<SourceMangaAuthor> values) {
-  final authors = <SourceMangaAuthor>{};
-  for (final value in values) {
-    final name = value.name.trim();
-    if (name.isEmpty) throw const FormatException('Empty manga author name');
-    authors.add(value.copyWith(name: name));
-  }
-  return List.unmodifiable(authors);
-}
-
-/// 校验漫画标签并去重
-List<SourceMangaTag> normalizeMangaTags(Iterable<SourceMangaTag> values) {
-  final tags = <SourceMangaTag>{};
-  for (final value in values) {
-    final name = value.name.trim();
-    if (name.isEmpty) throw const FormatException('Empty manga tag name');
-    tags.add(value.copyWith(name: name));
-  }
-  return List.unmodifiable(tags);
-}
-
-/// 校验内容语言并去重排序
-List<String> normalizeMangaLanguages(Iterable<String> values) {
-  final pattern = RegExp(r'^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$');
-  final languages = <String>{};
-  for (final value in values) {
-    if (pattern.stringMatch(value) != value) {
-      throw FormatException('Invalid manga content language format; expected zh-Hans or pt-BR', value);
-    }
-    languages.add(value);
-  }
-  return List.unmodifiable(languages.toList()..sort());
-}

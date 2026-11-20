@@ -4,103 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
-  test('Content languages retain their spelling, deduplicate and sort without guessing scripts', () {
-    final values = ['zh', 'zh-Hans', 'pt-BR', 'zh-Hans', 'ja', 'es-419', 'zh-TW', 'de-1901', 'zh-Hant-HK', 'sl-rozaj-biske'];
-    expect(normalizeMangaLanguages(values), [
-      'de-1901',
-      'es-419',
-      'ja',
-      'pt-BR',
-      'sl-rozaj-biske',
-      'zh',
-      'zh-Hans',
-      'zh-Hant-HK',
-      'zh-TW',
-    ]);
-    expect(normalizeMangaLanguages([]), isEmpty);
-  });
-
-  test('Content languages reject malformed codes, underscores, whitespace and noncanonical casing', () {
-    for (final value in [
-      'chinese',
-      '4',
-      '',
-      'zh--Hans',
-      'en-US-US',
-      'zh_Hans',
-      'ZH_hans',
-      'pt_BR',
-      ' ja',
-      'ja ',
-      'ja\n',
-      'ja\r\n',
-      '\tja',
-      'zh- Hans',
-      'JA',
-      'zh-hans',
-      'zh-HANS',
-      'pt-br',
-      'pt-Br',
-      'zh-Hant-hk',
-      'sl-ROZAJ',
-    ]) {
-      expect(
-        () => normalizeMangaLanguages(['en', value]),
-        throwsA(isA<FormatException>().having((error) => error.source, 'source', value)),
-        reason: jsonEncode(value),
-      );
-    }
-  });
-
-  test('Language normalization preserves standard special codes and unrecognized languages', () {
-    expect(normalizeMangaLanguages(['all', 'und', 'mul', 'zxx', 'und-Latn', 'qaa', 'und']), [
-      'all',
-      'mul',
-      'qaa',
-      'und',
-      'und-Latn',
-      'zxx',
-    ]);
-  });
-
-  test('Authors preserve names, distinct roles, links and source order when deduplicating', () {
-    final authors = normalizeMangaAuthors([
-      const SourceMangaAuthor(name: ' Alice ', role: 'Writer', url: 'https://example.com/authors/1'),
-      const SourceMangaAuthor(name: 'Bob'),
-      SourceMangaAuthor.fromJson({'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
-      const SourceMangaAuthor(name: 'Alice', role: 'Artist', url: 'https://example.com/authors/1'),
-      const SourceMangaAuthor(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/2'),
-    ]);
-    expect(authors.map((value) => value.toJson()), [
-      {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
-      {'name': 'Bob', 'role': null, 'url': null},
-      {'name': 'Alice', 'role': 'Artist', 'url': 'https://example.com/authors/1'},
-      {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/2'},
-    ]);
-    expect(authors.map((value) => SourceMangaAuthor.fromJson(value.toJson())), authors);
-    expect(() => normalizeMangaAuthors([const SourceMangaAuthor(name: ' ')]), throwsFormatException);
-  });
-
-  test('Tags preserve distinct types and links when deduplicating', () {
-    final tags = normalizeMangaTags([
-      const SourceMangaTag(type: SourceMangaTagType.category, name: ' Adventure ', url: 'https://example.com/categories/1'),
-      const SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
-      SourceMangaTag.fromJson({'type': 'tag', 'name': 'Adventure'}),
-      const SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/2'),
-    ]);
-    expect(tags.map((value) => value.toJson()), [
-      {'type': 'category', 'name': 'Adventure', 'url': 'https://example.com/categories/1'},
-      {'type': 'tag', 'name': 'Adventure', 'url': null},
-      {'type': 'category', 'name': 'Adventure', 'url': 'https://example.com/categories/2'},
-    ]);
-    expect(tags.map((value) => SourceMangaTag.fromJson(value.toJson())), tags);
-    expect(tags.first.toJson().keys, ['type', 'name', 'url']);
-    for (final type in ['genre', 'theme', 'format', 'demographic', 'content', 'site-category']) {
-      expect(() => SourceMangaTag.fromJson({'type': type, 'name': 'Adventure'}), throwsArgumentError, reason: type);
-    }
-    expect(() => normalizeMangaTags([const SourceMangaTag(type: SourceMangaTagType.tag, name: '')]), throwsFormatException);
-  });
-
   test('Status JSON uses stable string codes and rejects unsupported values', () {
     const values = {
       SourceMangaStatus.unknown: 'unknown',
@@ -152,5 +55,8 @@ void main() {
     expect(() => SourceMangaTag.fromJson({'name': 'Adventure'}), throwsArgumentError);
     expect(() => SourceMangaTag.fromJson({'type': 0, 'name': 'Adventure'}), throwsArgumentError);
     expect(() => SourceMangaTag.fromJson({'type': 'tag', 'name': 'Adventure', 'url': 1}), throwsA(isA<TypeError>()));
+    for (final type in ['genre', 'theme', 'format', 'demographic', 'content', 'site-category']) {
+      expect(() => SourceMangaTag.fromJson({'type': type, 'name': 'Adventure'}), throwsArgumentError, reason: type);
+    }
   });
 }
