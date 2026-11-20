@@ -1,5 +1,4 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:pool/pool.dart';
 import 'package:tsukuyomi/constants/constants.dart';
@@ -11,17 +10,14 @@ import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 class TsukuyomiCacheManager extends CacheManager with ImageCacheManager {
   static const _cacheKey = App.cachedImagesPath;
 
-  static final _fileService = HttpFileService();
-
-  static final _config = Config(_cacheKey, fileService: _fileService);
+  static final _config = Config(_cacheKey);
 
   static final _store = CacheStore(_config);
 
-  TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage image) : this.withStore(source, image, _store, _config);
+  factory TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage extra) => TsukuyomiCacheManager._(_DioFileService(source, extra));
 
-  @visibleForTesting
-  TsukuyomiCacheManager.withStore(DioHttpSource source, HttpSourceImage image, CacheStore store, super.config)
-    : super.custom(cacheStore: store, webHelper: WebHelper(store, _DioFileService(source, image))); // ignore: invalid_use_of_visible_for_testing_member
+  // ignore: invalid_use_of_visible_for_testing_member
+  TsukuyomiCacheManager._(_DioFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: WebHelper(_store, fetcher));
 }
 
 class _DioGetResponse extends HttpGetResponse {
@@ -38,7 +34,7 @@ class _DioFileService extends FileService {
 
   final HttpSourceImage _image;
 
-  static final _pool = Pool(TsukuyomiCacheManager._fileService.concurrentFetches);
+  static final _pool = Pool(TsukuyomiCacheManager._config.fileService.concurrentFetches);
 
   @override
   Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) {
