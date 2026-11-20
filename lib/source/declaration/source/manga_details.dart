@@ -120,18 +120,6 @@ class SourceMangaTag {
 }
 ''');
 
-DartFunction get _$normalizeMangaAuthors => DartFunction('normalizeMangaAuthors', normalizeMangaAuthors, '''
-external List<SourceMangaAuthor> normalizeMangaAuthors(Iterable<SourceMangaAuthor> values);
-''');
-
-DartFunction get _$normalizeMangaTags => DartFunction('normalizeMangaTags', normalizeMangaTags, '''
-external List<SourceMangaTag> normalizeMangaTags(Iterable<SourceMangaTag> values);
-''');
-
-DartFunction get _$normalizeMangaLanguages => DartFunction('normalizeMangaLanguages', normalizeMangaLanguages, '''
-external List<String> normalizeMangaLanguages(Iterable<String> values);
-''');
-
 List<DartDeclaration> get $mangaDetails {
   return [
     _$SourceMangaDetails,
@@ -139,8 +127,5 @@ List<DartDeclaration> get $mangaDetails {
     _$SourceMangaTagType,
     _$SourceMangaAuthor,
     _$SourceMangaTag,
-    _$normalizeMangaAuthors,
-    _$normalizeMangaTags,
-    _$normalizeMangaLanguages,
   ];
 }
