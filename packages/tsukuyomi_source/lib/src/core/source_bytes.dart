@@ -7,7 +7,6 @@ sealed class SourceBytes {
   SourceBytes({
     required this.type,
     required this.data,
-    this.extra,
   }) : assert(!type.startsWith('.'));
 
   /// 数据格式
@@ -15,7 +14,4 @@ sealed class SourceBytes {
 
   /// 字节数据
   final List<int> data;
-
-  /// 额外数据
-  final dynamic extra;
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tsukuyomi/core/cache/tsukuyomi_cache_manager.dart';
 import 'package:tsukuyomi/source/declaration/declaration.dart';
 import 'package:tsukuyomi/source/delegate/source_http.dart';
 import 'package:tsukuyomi_eval/src/declaration/declaration.dart';
@@ -97,16 +98,38 @@ void main() {
     expect(utf8.decode(request.body), 'token=a%2Bb&empty=');
   });
 
+  test('The cache reports the final image format and length after repainting', () async {
+    const imageMethods = '''
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
+    final bytes = await fetchBytes(image.url);
+    return HttpSourceImageBytes(bytes: bytes, extra: bytes.data.last);
+  }
+
+  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes imageBytes) async {
+    final bytes = imageBytes.bytes.copyWith(type: 'gif', data: [imageBytes.extra as int]);
+    return HttpSourceImageBytes(bytes: bytes);
+  }
+''';
+    final server = await serve(body: [1, 2, 3], contentType: 'image/png');
+    final source = await loadRequestSource(server.baseUrl, "    throw 'unused';", imageMethods: imageMethods);
+    const image = HttpSourceImage(url: '/page.png', extra: 'request parameter');
+    final response = await SourceImageFileService(source, image).get(image.url);
+    expect(response.fileExtension, '.gif');
+    expect(response.contentLength, 1);
+    expect(await response.content.expand((chunk) => chunk).toList(), [3]);
+    expect(server.requests, hasLength(1));
+  });
+
   test('Default image requests leave page metadata on the image', () async {
     final server = await serve(body: [0, 1], contentType: 'image/png');
     final source = await loadRequestSource(server.baseUrl, "    throw 'unused';");
     const image = HttpSourceImage(url: '/page.png', extra: 'request parameter');
-    final bytes = await source.getImageBytes(image);
-    expect(bytes.type, 'png');
-    expect(bytes.data, [0, 1]);
-    expect(bytes.statusCode, 200);
-    expect(bytes.extra, isNull);
-    expect(await source.getRepaintBytes(bytes), same(bytes));
+    final imageBytes = await source.getImageBytes(image);
+    expect(imageBytes.bytes.type, 'png');
+    expect(imageBytes.bytes.data, [0, 1]);
+    expect(imageBytes.bytes.statusCode, 200);
+    expect(imageBytes.extra, isNull);
+    expect(await source.getRepaintBytes(imageBytes), same(imageBytes));
   });
 
   test('Protobuf responses accept binary request bodies and request headers', () async {
@@ -173,7 +196,7 @@ void main() {
 
 const manga = HttpSourceManga(url: '/manga', name: 'Manga', cover: '');
 
-Future<IsolateDioHttpSource> loadRequestSource(String baseUrl, String request, {bool retry = false}) async {
+Future<IsolateDioHttpSource> loadRequestSource(String baseUrl, String request, {bool retry = false, String imageMethods = ''}) async {
   final replacement = retry
       ? '''
   Future<Map<String, String>> getReplaceHeaders(dynamic response) async {
@@ -193,6 +216,7 @@ class Example extends HttpSource {
   Map<String, String> getRequestHeaders() => {'Referer': baseUrl, 'X-Source': 'default'};
 
 $replacement
+$imageMethods
 
   Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) async {
 $request
@@ -219,6 +243,7 @@ Future<RequestServer> serve({required List<int> body, required String contentTyp
     result.requests.add((method: request.method, uri: request.uri, headers: request.headers, body: data));
     request.response.statusCode = result.requests.length == 1 ? firstStatusCode ?? 200 : 200;
     request.response.headers.contentType = ContentType.parse(contentType);
+    request.response.contentLength = body.length;
     request.response.add(body);
     await request.response.close();
   });

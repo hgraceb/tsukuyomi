@@ -73,9 +73,9 @@ abstract class HttpSource extends Source {
 
   /// 获取网络章节图片数据
   @override
-  external Future<HttpSourceBytes> getImageBytes(HttpSourceImage image);
+  external Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image);
 
   /// 获取网络章节重绘图片
   @override
-  external Future<HttpSourceBytes> getRepaintBytes(HttpSourceBytes bytes);
+  external Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes imageBytes);
 }

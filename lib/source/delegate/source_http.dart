@@ -134,12 +134,15 @@ class IsolateDioHttpSource extends DioHttpSource {
   }
 
   @override
-  Future<HttpSourceBytes> getImageBytes(HttpSourceImage image) {
-    return isolate(() async => delegate.has('getImageBytes') ? await delegate.invoke('getImageBytes', [image]) : fetchBytes(image.url));
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) {
+    return isolate(() async {
+      if (delegate.has('getImageBytes')) return await delegate.invoke('getImageBytes', [image]) as HttpSourceImageBytes;
+      return HttpSourceImageBytes(bytes: await fetchBytes(image.url));
+    });
   }
 
   @override
-  Future<HttpSourceBytes> getRepaintBytes(HttpSourceBytes bytes) async {
-    return delegate.has('getRepaintBytes') ? await delegate.invoke('getRepaintBytes', [bytes]) : bytes;
+  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes imageBytes) async {
+    return delegate.has('getRepaintBytes') ? await delegate.invoke('getRepaintBytes', [imageBytes]) : imageBytes;
   }
 }

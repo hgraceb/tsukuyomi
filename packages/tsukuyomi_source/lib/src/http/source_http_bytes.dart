@@ -7,7 +7,6 @@ class HttpSourceBytes extends SourceBytes {
     required super.data,
     required this.statusCode,
     required this.responseHeaders,
-    super.extra,
   });
 
   /// 状态码
@@ -22,14 +21,12 @@ class HttpSourceBytes extends SourceBytes {
     List<int>? data,
     int? statusCode,
     Headers? responseHeaders,
-    dynamic extra,
   }) {
     return HttpSourceBytes(
       type: type ?? this.type,
       data: data ?? this.data,
       statusCode: statusCode ?? this.statusCode,
       responseHeaders: responseHeaders ?? this.responseHeaders,
-      extra: extra ?? this.extra,
     );
   }
 }

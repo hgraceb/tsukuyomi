@@ -14,10 +14,10 @@ class TsukuyomiCacheManager extends CacheManager with ImageCacheManager {
 
   static final _store = CacheStore(_config);
 
-  factory TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage extra) => TsukuyomiCacheManager._(_DioFileService(source, extra));
+  factory TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage extra) => TsukuyomiCacheManager._(SourceImageFileService(source, extra));
 
   // ignore: invalid_use_of_visible_for_testing_member
-  TsukuyomiCacheManager._(_DioFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: WebHelper(_store, fetcher));
+  TsukuyomiCacheManager._(SourceImageFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: WebHelper(_store, fetcher));
 }
 
 class _DioGetResponse extends HttpGetResponse {
@@ -27,8 +27,8 @@ class _DioGetResponse extends HttpGetResponse {
   final String fileExtension;
 }
 
-class _DioFileService extends FileService {
-  _DioFileService(this._source, this._image);
+class SourceImageFileService extends FileService {
+  SourceImageFileService(this._source, this._image);
 
   final DioHttpSource _source;
 
@@ -40,7 +40,7 @@ class _DioFileService extends FileService {
   Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) {
     return _pool.withResource(() async {
       final imageBytes = await _source.getImageBytes(_image);
-      final repaintBytes = await _source.getRepaintBytes(imageBytes);
+      final repaintBytes = (await _source.getRepaintBytes(imageBytes)).bytes;
       final fileExtension = '.${repaintBytes.type}';
       final stream = Stream.value(repaintBytes.data);
       final statusCode = repaintBytes.statusCode;
