@@ -8,27 +8,26 @@ import 'package:tsukuyomi/forward/http/http.dart' as http;
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class TsukuyomiCacheManager extends CacheManager with ImageCacheManager {
-  static final _config = Config(App.cachedImagesPath);
+  static const _cacheKey = App.cachedImagesPath;
+
+  static final _config = Config(_cacheKey);
 
   static final _store = CacheStore(_config);
 
-  TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage image)
-    // ignore: invalid_use_of_visible_for_testing_member
-    : super.custom(
-        _config,
-        cacheStore: _store,
-        webHelper: WebHelper(_store, _DioFileService(source, image)),
-      );
+  factory TsukuyomiCacheManager(DioHttpSource source, HttpSourceImage extra) => TsukuyomiCacheManager._(_DioFileService(source, extra));
+
+  // ignore: invalid_use_of_visible_for_testing_member
+  TsukuyomiCacheManager._(_DioFileService fetcher) : super.custom(_config, cacheStore: _store, webHelper: WebHelper(_store, fetcher));
 }
 
 class _DioFileService extends FileService {
   _DioFileService(this._source, this._image);
 
-  static final _pool = Pool(TsukuyomiCacheManager._config.fileService.concurrentFetches);
-
   final DioHttpSource _source;
 
   final HttpSourceImage _image;
+
+  static final _pool = Pool(TsukuyomiCacheManager._config.fileService.concurrentFetches);
 
   @override
   Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) {
