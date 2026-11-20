@@ -90,7 +90,7 @@ class HttpSourceManga extends SourceManga {
 ''');
 
 DartClass get _$HttpSourceMangaDetails => DartClass<HttpSourceMangaDetails>(($) => '''
-class HttpSourceMangaDetails extends SourceMangaDetails implements HttpSourceManga {
+class HttpSourceMangaDetails extends SourceMangaDetails {
   // ${$.empty('HttpSourceMangaDetails.new', () => HttpSourceMangaDetails.new)}
   const HttpSourceMangaDetails({
     required super.url,

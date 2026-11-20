@@ -59,11 +59,16 @@ Future<HttpSourceMangaDetails> readHttpDetails(HttpSource source, HttpSourceMang
 main() {
   HttpSourceMangaDetails(url: '/manga', name: 'Title', cover: '');
   HttpSourceManga(url: '/manga', name: 'Title', cover: '').status;
+  final details = HttpSourceMangaDetails(url: '/manga', name: 'Title', cover: '', chapters: []);
+  HttpSourceMangaEntries(mangas: [details]);
 }
 ''';
     final resolved = await resolve(source, [...dartLibraries, ...evalLibraries]);
     final errors = resolved.errors.where((error) => error.errorCode.errorSeverity.name == 'ERROR');
-    expect(errors.map((error) => error.errorCode.name.toLowerCase()), unorderedEquals(['missing_required_argument', 'undefined_getter']));
+    expect(
+      errors.map((error) => error.errorCode.name.toLowerCase()),
+      unorderedEquals(['missing_required_argument', 'undefined_getter', 'list_element_type_not_assignable']),
+    );
   });
 
   test('HTTP and core detail list literals preserve their chapter types', () async {
