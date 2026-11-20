@@ -45,7 +45,7 @@ class _DioFileService extends FileService {
       final stream = Stream.value(repaintBytes.data);
       final statusCode = repaintBytes.statusCode;
       final contentLength = repaintBytes.data.length;
-      final headers = repaintBytes.responseHeaders.map.map((key, value) => MapEntry(key, value.firstOrNull ?? ''));
+      final headers = repaintBytes.responseHeaders.map.map((key, value) => MapEntry(key.toLowerCase(), value.firstOrNull ?? ''));
       return _DioGetResponse(fileExtension, StreamedResponse(stream, statusCode, contentLength: contentLength, headers: headers));
     });
   }
