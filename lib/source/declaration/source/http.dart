@@ -188,10 +188,31 @@ class HttpSourceImage extends SourceImage {
 DartClass get _$HttpSourceImageBytes => DartClass<HttpSourceImageBytes>(($) => '''
 class HttpSourceImageBytes extends SourceImageBytes {
   // ${$.empty('HttpSourceImageBytes.new', () => HttpSourceImageBytes.new)}
-  const HttpSourceImageBytes({required this.bytes, super.extra});
+  HttpSourceImageBytes({
+    required super.type,
+    required super.data,
+    required this.statusCode,
+    required this.responseHeaders,
+    super.extra,
+  });
 
-  // ${$.debug('bytes', ($, $$) => $.bytes)}
-  final HttpSourceBytes bytes;
+  // ${$.empty('HttpSourceImageBytes.fromBytes', () => HttpSourceImageBytes.fromBytes)}
+  HttpSourceImageBytes.fromBytes(HttpSourceBytes bytes, {Object? extra});
+
+  // ${$.debug('statusCode', ($, $$) => $.statusCode)}
+  final int statusCode;
+
+  // ${$.debug('responseHeaders', ($, $$) => $.responseHeaders)}
+  final Headers responseHeaders;
+
+  // ${$.debug('copyWith', ($, $$) => $.copyWith)}
+  external HttpSourceImageBytes copyWith({
+    String? type,
+    List<int>? data,
+    int? statusCode,
+    Headers? responseHeaders,
+    Object? extra,
+  });
 }
 ''');
 

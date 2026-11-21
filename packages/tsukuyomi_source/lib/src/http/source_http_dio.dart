@@ -86,7 +86,7 @@ abstract class DioHttpSource extends HttpSource {
   @override
   Future<HttpSourceImageBytes> fetchImageBytes(HttpSourceImage image, {String? method, Map<String, String>? headers, Object? data}) async {
     final bytes = await fetchBytes(image.url, method: method, headers: headers, data: data);
-    return HttpSourceImageBytes(bytes: bytes, extra: image.extra);
+    return HttpSourceImageBytes.fromBytes(bytes, extra: image.extra);
   }
 
   @override

@@ -104,12 +104,12 @@ void main() {
   test('The cache reports the final image format and length after repainting', () async {
     const imageMethods = '''
   Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
-    final bytes = await fetchBytes(image.url);
-    return HttpSourceImageBytes(bytes: bytes, extra: bytes.data.last);
+    final bytes = await fetchImageBytes(image);
+    return bytes.copyWith(extra: bytes.data.last);
   }
 
   Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) async {
-    return HttpSourceImageBytes(bytes: bytes.bytes.copyWith(type: 'gif', data: [bytes.extra as int]));
+    return bytes.copyWith(type: 'gif', data: [bytes.extra as int]);
   }
 ''';
     final server = await serve(body: [1, 2, 3], contentType: 'image/png');
@@ -130,9 +130,9 @@ void main() {
     final source = await loadRequestSource(server.baseUrl, "    throw 'unused';");
     for (final extra in [null, false, 'seed', [1, 0]]) {
       final imageBytes = await source.getImageBytes(HttpSourceImage(url: '/page.png', extra: extra));
-      expect(imageBytes.bytes.type, 'png');
-      expect(imageBytes.bytes.data, [0, 1]);
-      expect(imageBytes.bytes.statusCode, 200);
+      expect(imageBytes.type, 'png');
+      expect(imageBytes.data, [0, 1]);
+      expect(imageBytes.statusCode, 200);
       expect(imageBytes.extra, extra);
       expect(await source.getRepaintBytes(imageBytes), same(imageBytes));
     }

@@ -240,12 +240,12 @@ class Example extends HttpSource {
 
   Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
     final bytes = await fetchBytes(image.url);
-    return HttpSourceImageBytes(bytes: bytes, extra: image.extra);
+    return HttpSourceImageBytes.fromBytes(bytes, extra: image.extra);
   }
 
   Future<SourceImageBytes> readImage(Source source, SourceImage image) => source.getImageBytes(image);
 
-  List<dynamic> readFields(SourceImageBytes result) => <dynamic>[result.bytes, result.extra];
+  List<dynamic> readFields(SourceImageBytes result) => <dynamic>[result.type, result.data, result.extra];
 
   Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
   Future<HttpSourceMangaDetails> getMangaDetails(HttpSourceManga manga) => throw 'unused';
@@ -260,9 +260,11 @@ main() => Example();
     instance.props['fetchBytes'] = EvalProperty.getter((_) => fetchBytes);
     final image = HttpSourceImage(url: '/chapter', extra: {'frame': 'chapter'});
     final result = await instance.invoke('readImage', [instance, image]) as HttpSourceImageBytes;
-    expect(result.bytes, same(bytes));
+    expect(result.data, same(bytes.data));
+    expect(result.statusCode, bytes.statusCode);
+    expect(result.responseHeaders, same(bytes.responseHeaders));
     expect(result.extra, same(image.extra));
-    expect(await instance.invoke('readFields', [result]), [bytes, image.extra]);
+    expect(await instance.invoke('readFields', [result]), [bytes.type, bytes.data, image.extra]);
   });
 
   test('Image metadata is available through SourceImage', () async {
@@ -316,6 +318,37 @@ main() => Example();
     expect(copied.responseHeaders, same(copiedHeaders));
   });
 
+  test('Image bytes preserve omitted fields and allow replacing or clearing extra from a script', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+class Example {
+  List<HttpSourceImageBytes> repaint(HttpSourceImageBytes bytes, dynamic headers) {
+    final jpeg = bytes.copyWith(type: 'jpg', data: [1, 2]);
+    final replaced = jpeg.copyWith(statusCode: 202, responseHeaders: headers, extra: false);
+    return [jpeg, replaced, replaced.copyWith(extra: null)];
+  }
+}
+
+main() => Example();
+''';
+    final instance = await evalValidSource(source) as ObjInstance;
+    final bytes = HttpSourceImageBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: Headers(), extra: 'seed');
+    expect(bytes.copyWith(extra: kNoDefaultValue).extra, 'seed');
+    final headers = Headers();
+    final copies = await instance.invoke('repaint', [bytes, headers]) as List<HttpSourceImageBytes>;
+    expect(copies.map((copy) => copy.extra), ['seed', false, null]);
+    expect(copies.map((copy) => copy.statusCode), [200, 202, 202]);
+    expect(copies.first.responseHeaders, same(bytes.responseHeaders));
+    expect(copies.last.responseHeaders, same(headers));
+    expect(copies.last.type, 'jpg');
+    expect(copies.last.data, [1, 2]);
+    expect(copies.last.data, same(copies.first.data));
+    expect(bytes.type, 'png');
+    expect(bytes.data, [0]);
+    expect(bytes.extra, 'seed');
+  });
+
   test('Image byte overrides survive compute initialization', () async {
     const source = '''
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
@@ -325,8 +358,7 @@ class Example extends HttpSource {
   final String baseUrl = 'https://example.com';
 
   Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
-    final bytes = HttpSourceBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: image.extra);
-    return HttpSourceImageBytes(bytes: bytes);
+    return HttpSourceImageBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: image.extra);
   }
 
   Future<HttpSourceMangaEntries> getMangaEntries(HttpSourceQuery query) => throw 'unused';
@@ -340,8 +372,8 @@ main() => Example();
     final instance = await compute((source) async => await eval(source, libraries: evalLibraries) as ObjInstance, source);
     final headers = Headers.fromMap({});
     final result = await instance.invoke('getImageBytes', [HttpSourceImage(url: '/chapter', extra: headers)]) as HttpSourceImageBytes;
-    expect(result.bytes.data, [0]);
-    expect(result.bytes.responseHeaders, same(headers));
+    expect(result.data, [0]);
+    expect(result.responseHeaders, same(headers));
   });
 }
 
