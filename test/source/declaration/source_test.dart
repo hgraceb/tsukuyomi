@@ -283,6 +283,29 @@ main() => Example();
     expect(await instance.invoke('read', [const HttpSourceImage(url: '/chapter')]), isNull);
   });
 
+  test('Scripts can use Dio content type constants in response headers', () async {
+    const source = '''
+import 'package:dio/dio.dart';
+
+main() {
+  final types = [
+    Headers.jsonContentType,
+    Headers.formUrlEncodedContentType,
+    Headers.textPlainContentType,
+    Headers.multipartFormDataContentType,
+  ];
+  return [for (final type in types) Headers.fromMap({Headers.contentTypeHeader: [type]}).value(Headers.contentTypeHeader)];
+}
+''';
+    final expected = [
+      Headers.jsonContentType,
+      Headers.formUrlEncodedContentType,
+      Headers.textPlainContentType,
+      Headers.multipartFormDataContentType,
+    ];
+    expect(await evalValidSource(source), expected);
+  });
+
   test('HTTP bytes construct and copy all declared response fields', () async {
     const source = '''
 import 'package:dio/dio.dart';

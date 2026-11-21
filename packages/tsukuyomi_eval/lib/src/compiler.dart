@@ -93,7 +93,9 @@ extension on SimpleIdentifier {
 }
 
 extension on InterfaceType {
-  bool get isCoreCollection => isDartCoreList || isDartCoreSet || isDartCoreMap || isDartCoreIterable;
+  bool get isCoreCollection {
+    return element.library.source.uri.toString() == 'dart:core' && const {'List', 'Iterable', 'Set', 'Map'}.contains(element.name);
+  }
 }
 
 extension on Expression {

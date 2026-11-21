@@ -23,6 +23,18 @@ class Headers {
   // ${$.empty('Headers.wwwAuthenticateHeader', () => Headers.wwwAuthenticateHeader)}
   static const String wwwAuthenticateHeader = 'www-authenticate';
 
+  // ${$.empty('Headers.jsonContentType', () => Headers.jsonContentType)}
+  static const String jsonContentType = 'application/json';
+
+  // ${$.empty('Headers.formUrlEncodedContentType', () => Headers.formUrlEncodedContentType)}
+  static const String formUrlEncodedContentType = 'application/x-www-form-urlencoded';
+
+  // ${$.empty('Headers.textPlainContentType', () => Headers.textPlainContentType)}
+  static const String textPlainContentType = 'text/plain';
+
+  // ${$.empty('Headers.multipartFormDataContentType', () => Headers.multipartFormDataContentType)}
+  static const String multipartFormDataContentType = 'multipart/form-data';
+
   // ${$.debug('preserveHeaderCase', ($, $$) => $.preserveHeaderCase)}
   final bool preserveHeaderCase;
 
