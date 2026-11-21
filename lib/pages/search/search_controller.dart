@@ -57,6 +57,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   Future<void> _search(List<DatabaseSource>? sources, String? keyword) async {
     if (sources == null || sources.isEmpty) return;
     if (keyword == null || keyword.isEmpty) return;
+    final query = HttpSourceQuery(keyword: keyword);
     final ids = sources.map((source) => source.id).toSet();
     await update((state) => state.copyWith(loadings: ids, errors: {}, results: {}, searchingText: keyword));
     for (final id in ids) {
@@ -64,7 +65,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
         final cachedSource = data?.cachedSources[id];
         final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
         if (cachedSource != source) await update((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
-        final page = await ref.read(searchMangasProvider(source, HttpSourceQuery(keyword: keyword)).future);
+        final page = await ref.read(searchMangasProvider(source, query).future);
         await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
       } catch (e) {
         await update((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
