@@ -283,49 +283,63 @@ main() => Example();
     expect(await instance.invoke('read', [const HttpSourceImage(url: '/chapter')]), isNull);
   });
 
+  test('Scripts can use Dio content type constants in response headers', () async {
+    const source = '''
+import 'package:dio/dio.dart';
+
+main() {
+  final types = [
+    Headers.jsonContentType,
+    Headers.formUrlEncodedContentType,
+    Headers.textPlainContentType,
+    Headers.multipartFormDataContentType,
+  ];
+  return [for (final type in types) Headers.fromMap({Headers.contentTypeHeader: [type]}).value(Headers.contentTypeHeader)];
+}
+''';
+    final expected = [
+      Headers.jsonContentType,
+      Headers.formUrlEncodedContentType,
+      Headers.textPlainContentType,
+      Headers.multipartFormDataContentType,
+    ];
+    expect(await evalValidSource(source), expected);
+  });
+
   test('HTTP bytes construct and copy all declared response fields', () async {
     const source = '''
+import 'package:dio/dio.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
-class Example {
-  HttpSourceBytes create(dynamic headers) {
-    return HttpSourceBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: headers);
-  }
-
-  HttpSourceBytes copy(HttpSourceBytes bytes, dynamic headers) {
-    return bytes.copyWith(type: 'gif', data: [1], statusCode: 201, responseHeaders: headers);
-  }
+main() {
+  final headers = Headers.fromMap({Headers.contentTypeHeader: ['image/png']});
+  final bytes = HttpSourceBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: headers);
+  final copiedHeaders = Headers();
+  copiedHeaders.set(Headers.contentTypeHeader, 'image/gif');
+  final copied = bytes.copyWith(type: 'gif', data: [1], statusCode: 201, responseHeaders: copiedHeaders);
+  return <HttpSourceBytes>[bytes, copied];
 }
-
-main() => Example();
 ''';
-    final instance = await evalValidSource(source) as ObjInstance;
-    final headers = Headers.fromMap({
-      'content-type': ['image/png'],
-    });
-    final bytes = await instance.invoke('create', [headers]) as HttpSourceBytes;
+    final [bytes, copied] = await evalValidSource(source) as List<HttpSourceBytes>;
     expect(bytes.type, 'png');
     expect(bytes.data, [0]);
     expect(bytes.statusCode, 200);
-    expect(bytes.responseHeaders, same(headers));
-    final copiedHeaders = Headers.fromMap({
-      'content-type': ['image/gif'],
-    });
-    final copied = await instance.invoke('copy', [bytes, copiedHeaders]) as HttpSourceBytes;
+    expect(bytes.responseHeaders.value(Headers.contentTypeHeader), 'image/png');
     expect(copied.type, 'gif');
     expect(copied.data, [1]);
     expect(copied.statusCode, 201);
-    expect(copied.responseHeaders, same(copiedHeaders));
+    expect(copied.responseHeaders.value(Headers.contentTypeHeader), 'image/gif');
   });
 
   test('Image bytes preserve omitted fields and allow replacing or clearing extra from a script', () async {
     const source = '''
+import 'package:dio/dio.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 class Example {
-  List<HttpSourceImageBytes> repaint(HttpSourceImageBytes bytes, dynamic headers) {
+  List<HttpSourceImageBytes> repaint(HttpSourceImageBytes bytes) {
     final jpeg = bytes.copyWith(type: 'jpg', data: [1, 2]);
-    final replaced = jpeg.copyWith(statusCode: 202, responseHeaders: headers, extra: false);
+    final replaced = jpeg.copyWith(statusCode: 202, responseHeaders: Headers(), extra: false);
     return [jpeg, replaced, replaced.copyWith(extra: null)];
   }
 }
@@ -335,18 +349,34 @@ main() => Example();
     final instance = await evalValidSource(source) as ObjInstance;
     final bytes = HttpSourceImageBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: Headers(), extra: 'seed');
     expect(bytes.copyWith(extra: kNoDefaultValue).extra, 'seed');
-    final headers = Headers();
-    final copies = await instance.invoke('repaint', [bytes, headers]) as List<HttpSourceImageBytes>;
+    final copies = await instance.invoke('repaint', [bytes]) as List<HttpSourceImageBytes>;
     expect(copies.map((copy) => copy.extra), ['seed', false, null]);
     expect(copies.map((copy) => copy.statusCode), [200, 202, 202]);
     expect(copies.first.responseHeaders, same(bytes.responseHeaders));
-    expect(copies.last.responseHeaders, same(headers));
+    expect(copies[1].responseHeaders, isNot(same(bytes.responseHeaders)));
+    expect(copies.last.responseHeaders, same(copies[1].responseHeaders));
     expect(copies.last.type, 'jpg');
     expect(copies.last.data, [1, 2]);
     expect(copies.last.data, same(copies.first.data));
     expect(bytes.type, 'png');
     expect(bytes.data, [0]);
     expect(bytes.extra, 'seed');
+  });
+
+  test('HTTP byte constructors and copies reject invalid response headers during script analysis', () async {
+    const source = '''
+import 'package:tsukuyomi_source/tsukuyomi_source.dart';
+
+main() {
+  final bytes = HttpSourceBytes(type: 'png', data: [], statusCode: 200, responseHeaders: 'invalid');
+  final image = HttpSourceImageBytes(type: 'png', data: [], statusCode: 200, responseHeaders: 'invalid');
+  bytes.copyWith(responseHeaders: 'invalid');
+  image.copyWith(responseHeaders: 'invalid');
+}
+''';
+    final resolved = await resolve(source, [...dartLibraries, ...evalLibraries]);
+    final errors = resolved.errors.where((error) => error.errorCode.errorSeverity.name == 'ERROR');
+    expect(errors.map((error) => error.errorCode.name.toLowerCase()), List.filled(4, 'argument_type_not_assignable'));
   });
 
   test('Image byte overrides survive compute initialization', () async {

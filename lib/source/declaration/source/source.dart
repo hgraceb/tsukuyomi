@@ -11,7 +11,7 @@ List<DartLibrary> get $sourceLibraries {
 library tsukuyomi_source;
 
 import 'package:html/dom.dart';
-import 'package:dio/dio.dart' show DioException;
+import 'package:dio/dio.dart' show DioException, Headers;
     ''', declarations: [
       ...$core,
       ...$http,

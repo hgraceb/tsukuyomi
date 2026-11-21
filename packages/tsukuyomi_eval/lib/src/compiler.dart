@@ -92,6 +92,12 @@ extension on SimpleIdentifier {
   }
 }
 
+extension on InterfaceType {
+  bool get isCoreCollection {
+    return element.library.source.uri.toString() == 'dart:core' && const {'List', 'Iterable', 'Set', 'Map'}.contains(element.name);
+  }
+}
+
 extension on Expression {
   InterfaceElement? get interfaceElement {
     return switch (this) {
@@ -118,18 +124,6 @@ extension on FunctionExpression {
       FunctionType type => type.returnType,
       _ => null,
     };
-  }
-}
-
-extension on SetOrMapLiteral {
-  Iterable<String> get typeArgumentNames {
-    return (staticType as InterfaceType).typeArguments.map((e) => e.getDisplayString(withNullability: true));
-  }
-}
-
-extension on ListLiteral {
-  Iterable<String> get typeArgumentNames {
-    return (staticType as InterfaceType).typeArguments.map((e) => e.getDisplayString(withNullability: true));
   }
 }
 
@@ -462,10 +456,8 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
     final typeArguments = <ObjTypeCheck>[];
     if (arguments != null) {
       final collection = resolvedType is InterfaceType ? resolvedType : null;
-      final isCoreCollection = collection?.element.library.source.uri.toString() == 'dart:core';
-      final isSupportedCollection = ['List', 'Iterable', 'Set', 'Map'].contains(collection?.element.name);
       final hasExpectedArguments = arguments.arguments.length == collection?.typeArguments.length;
-      if (!isCoreCollection || !isSupportedCollection || !hasExpectedArguments) {
+      if (collection == null || !collection.isCoreCollection || !hasExpectedArguments) {
         error("Unsupported type check '$type'.");
       }
       for (var index = 0; index < arguments.arguments.length; index++) {
@@ -814,6 +806,24 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
       alias = alias.aliasedType.alias?.element;
     }
     return false;
+  }
+
+  void emitCollectionLiteralTypes(TypedLiteral literal) {
+    final library = literal.thisOrAncestorOfType<CompilationUnit>()?.declaredElement?.library;
+
+    ObjTypeCheck argument(DartType type) {
+      if (type is InterfaceType && type.isCoreCollection) {
+        final suffix = type.nullabilitySuffix == NullabilitySuffix.question ? '?' : '';
+        final arguments = type.typeArguments.map(argument).toList();
+        return ObjTypeCheck('${type.element.name}$suffix', libraryUri: 'dart:core', typeArguments: arguments);
+      }
+      final libraryUri = type.element?.library?.source.uri.toString();
+      return hostTypeArgument(type, library) ?? ObjTypeCheck(type.getDisplayString(withNullability: true), libraryUri: libraryUri);
+    }
+
+    for (final type in (literal.staticType as InterfaceType).typeArguments) {
+      emitCodes(OP_CONSTANT, addConstant(argument(type)));
+    }
   }
 
   ObjTypeCheck? hostTypeArgument(DartType type, LibraryElement? library, {TypeAnnotation? syntax}) {
@@ -1437,9 +1447,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
   @override
   void compileSetOrMapLiteral(SetOrMapLiteral node) {
     assert(node.isSet || node.isMap);
-    for (final type in node.typeArgumentNames) {
-      emitCodes(OP_CONSTANT, addConstant(type));
-    }
+    emitCollectionLiteralTypes(node);
     emitCodes(node.isSet ? OP_SET : OP_MAP);
     for (final element in node.elements) {
       emitCollectionElement(element, isMap: node.isMap);
@@ -1448,9 +1456,7 @@ class _Compiler extends CompilerAstVisitor implements Compiler {
 
   @override
   void compileListLiteral(ListLiteral node) {
-    for (final type in node.typeArgumentNames) {
-      emitCodes(OP_CONSTANT, addConstant(type));
-    }
+    emitCollectionLiteralTypes(node);
     emitCodes(OP_LIST);
     for (final element in node.elements) {
       emitCollectionElement(element, isMap: false);

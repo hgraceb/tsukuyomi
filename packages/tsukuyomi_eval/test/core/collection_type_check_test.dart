@@ -302,6 +302,8 @@ void main() {
   print(value is List<Item>);
   print(value is List<SecondAlias>);
   print((value as List<Item>) == value);
+  print(<List<Item>>[[]].single.runtimeType == firstValues.runtimeType);
+  print(<List<SecondAlias>>[[]].single.runtimeType == secondValues.runtimeType);
   try { throw value; } on List<SecondAlias> { print('wrong catch'); }
   on List<Item> catch (error) { print(error == value); }
   value = secondValues;
@@ -313,7 +315,7 @@ void main() {
           entry,
           if (reverse) ...[second, first] else ...[first, second],
         ];
-        await expectLater(() => evalChecked(source, libraries: libraries), println([true, false, true, true, false, true]));
+        await expectLater(() => evalChecked(source, libraries: libraries), println([true, false, true, true, true, true, false, true]));
       });
     }
 
@@ -441,6 +443,26 @@ class List<T> {}
         await expectLater(eval(source, libraries: [library]), throwsA(isA<EvalCompileError>()));
       });
     }
+
+    test('a package named dart.core keeps its own List in type checks and literals', () async {
+      final library = DartLibrary(
+        'shadow',
+        path: 'shadow.dart',
+        source: 'library dart.core;',
+        declarations: [
+          DartClass<_First>(($) => "// ${$.alias('List')}\nclass List<T> {}"),
+        ],
+      );
+      const imports = "import 'package:shadow/shadow.dart';";
+      const check = '$imports main() { dynamic value = [1]; return value is List<int>; }';
+      const literal = '$imports main() => <List<int>>[];';
+      await expectValidSource(check, [library]);
+      await expectLater(eval(check, libraries: [library]), throwsA(isA<EvalCompileError>()));
+      await expectValidSource(literal, [library]);
+      final typeName = 'package:shadow/shadow.dart::List<int>.with';
+      final missingType = isA<EvalRuntimeError>().having((error) => error.toString(), 'message', contains(typeName));
+      await expectLater(eval(literal, libraries: [library]), throwsA(missingType));
+    });
 
     for (final operator in ['is', 'as']) {
       test('an unregistered argument is not silently accepted by nullable $operator', () async {

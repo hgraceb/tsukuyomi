@@ -190,23 +190,23 @@ class _VM implements VM {
     });
   }
 
-  bool Function(Object?) collectionTypeMatcher(ObjTypeCheck type) {
-    R bind<R>(ObjTypeCheck argument, R Function<T>() function) {
-      final isNullable = argument.name.endsWith('?');
-      final name = isNullable ? argument.name.substring(0, argument.name.length - 1) : argument.name;
-      final nativeName = argument.libraryUri != null ? '${argument.libraryUri}::$name' : name;
-      final alias = registeredTypeAlias(argument.aliases);
-      return withOrThrow(alias ?? nativeName, <T>() => isNullable ? function<T?>() : function<T>());
+  R withTypeArgument<R>(ObjTypeCheck type, R Function<T>() function) {
+    final isNullable = type.name.endsWith('?');
+    final name = isNullable ? type.name.substring(0, type.name.length - 1) : type.name;
+    R bind<T>() => isNullable ? function<T?>() : function<T>();
+
+    if (type.typeArguments.isEmpty) {
+      final nativeName = type.libraryUri != null ? '${type.libraryUri}::$name' : name;
+      return withOrThrow(registeredTypeAlias(type.aliases) ?? nativeName, bind);
     }
 
-    return bind(type.typeArguments.first, <T>() {
-      final name = type.name.endsWith('?') ? type.name.substring(0, type.name.length - 1) : type.name;
+    return withTypeArgument(type.typeArguments.first, <T>() {
       return switch (name) {
-        'List' => (Object? value) => value is List<T>,
-        'Iterable' => (Object? value) => value is Iterable<T>,
-        'Set' => (Object? value) => value is Set<T>,
-        'Map' => bind(type.typeArguments.last, <V>() => (Object? value) => value is Map<T, V>),
-        _ => throw EvalRuntimeError("Unsupported type check '$type'."),
+        'List' => bind<List<T>>(),
+        'Iterable' => bind<Iterable<T>>(),
+        'Set' => bind<Set<T>>(),
+        'Map' => withTypeArgument(type.typeArguments.last, <V>() => bind<Map<T, V>>()),
+        _ => throw EvalRuntimeError("Unsupported collection type '$type'."),
       };
     });
   }
@@ -218,7 +218,7 @@ class _VM implements VM {
     final nativeName = type.libraryUri != null ? '${type.libraryUri}::$name' : name;
     final bool Function(Object?) match;
     if (type.typeArguments.isNotEmpty) {
-      match = collectionTypeMatcher(type);
+      match = withTypeArgument(type, <T>() => (Object? value) => value is T);
     } else if (type.isScriptType) {
       final clazz = globals['$name.class']?.getter?.call();
       if (clazz is! ObjClass) {
@@ -859,17 +859,15 @@ class _VM implements VM {
             p3 = delegateOperatorArgument(property, p1, p3, 1);
             push(getter(p1, p2, p3));
           case OP_SET:
-            final type = pop() as String;
-            withOrThrow(type, <E>() => push(<E>{}));
+            withTypeArgument(pop() as ObjTypeCheck, <E>() => push(<E>{}));
           case OP_MAP:
-            final valueType = pop() as String;
-            final keyType = pop() as String;
-            withOrThrow(keyType, <K>() {
-              withOrThrow(valueType, <V>() => push(<K, V>{}));
+            final valueType = pop() as ObjTypeCheck;
+            final keyType = pop() as ObjTypeCheck;
+            withTypeArgument(keyType, <K>() {
+              withTypeArgument(valueType, <V>() => push(<K, V>{}));
             });
           case OP_LIST:
-            final type = pop() as String;
-            withOrThrow(type, <E>() => push(<E>[]));
+            withTypeArgument(pop() as ObjTypeCheck, <E>() => push(<E>[]));
           case OP_COLLECTION_ADD:
             final distance = readCode(frame);
             final value = nativeFunctionValue(pop());
