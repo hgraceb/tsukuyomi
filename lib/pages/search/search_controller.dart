@@ -59,7 +59,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     if (keyword == null || keyword.isEmpty) return;
     final query = HttpSourceQuery(keyword: keyword);
     final ids = sources.map((source) => source.id).toSet();
-    await update((state) => state.copyWith(loadings: ids, errors: {}, results: {}, searchingText: keyword));
+    await update((state) => state.copyWith(query: query, loadings: ids, errors: {}, results: {}, searchingText: keyword));
     for (final id in ids) {
       try {
         final cachedSource = data?.cachedSources[id];
@@ -89,17 +89,20 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   /// 搜索下一页的数据
   Future<void> onNext(Source? source, SourceMangaEntries? page) async {
     if (source == null || page == null || page.nextQuery == null) return;
-    if (data?.loadings.contains(source.id) == true) return;
     final id = source.id;
-    try {
-      await update((state) => state.copyWith(loadings: state.addLoading(id)));
-      final result = await ref.read(searchMangasProvider(source, page.nextQuery!).future);
-      await update((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
-    } catch (error, stackTrace) {
-      handlerError(error, stackTrace);
-    } finally {
-      await update((state) => state.copyWith(loadings: state.removeLoading(id)));
-    }
+    final search = data;
+    if (search == null || search.loadings.contains(id) || !identical(search.results[id], page)) return;
+    await update((state) => state.copyWith(loadings: state.addLoading(id)));
+    final result = await AsyncValue.guard(() => ref.read(searchMangasProvider(source, page.nextQuery!).future));
+    if (!mounted) return;
+    final current = data;
+    if (current == null || !identical(current.query, search.query)) return;
+    final next = result.valueOrNull?.prepend(page);
+    state = AsyncData(current.copyWith(
+      loadings: current.removeLoading(id),
+      results: next == null ? current.results : current.addResult(id, next),
+    ));
+    if (result case AsyncError(:final error, :final stackTrace)) handlerError(error, stackTrace);
   }
 
   /// 处理文本更新事件
@@ -131,6 +134,9 @@ class SearchState with _$SearchState {
 
     /// 当前缓存的漫画源
     required Map<int, Source> cachedSources,
+
+    /// 当前结果所属的首页查询
+    SourceQuery? query,
 
     /// 正在搜索的漫画源
     required Set<int> loadings,
