@@ -89,20 +89,17 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   /// 搜索下一页的数据
   Future<void> onNext(Source? source, SourceMangaEntries? page) async {
     if (source == null || page == null || page.nextQuery == null) return;
+    if (data?.loadings.contains(source.id) == true) return;
     final id = source.id;
-    final search = data;
-    if (search == null || search.loadings.contains(id) || !identical(search.results[id], page)) return;
-    await update((state) => state.copyWith(loadings: state.addLoading(id)));
-    final result = await AsyncValue.guard(() => ref.read(searchMangasProvider(source, page.nextQuery!).future));
-    if (!mounted) return;
-    final current = data;
-    if (current == null || !identical(current.query, search.query)) return;
-    final next = result.valueOrNull?.prepend(page);
-    state = AsyncData(current.copyWith(
-      loadings: current.removeLoading(id),
-      results: next == null ? current.results : current.addResult(id, next),
-    ));
-    if (result case AsyncError(:final error, :final stackTrace)) handlerError(error, stackTrace);
+    try {
+      await update((state) => state.copyWith(loadings: state.addLoading(id)));
+      final result = await ref.read(searchMangasProvider(source, page.nextQuery!).future);
+      await update((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
+    } catch (error, stackTrace) {
+      handlerError(error, stackTrace);
+    } finally {
+      await update((state) => state.copyWith(loadings: state.removeLoading(id)));
+    }
   }
 
   /// 处理文本更新事件
