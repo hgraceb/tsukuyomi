@@ -334,6 +334,7 @@ main() => Example();
 ''';
     final instance = await evalValidSource(source) as ObjInstance;
     final bytes = HttpSourceImageBytes(type: 'png', data: [0], statusCode: 200, responseHeaders: Headers(), extra: 'seed');
+    expect(bytes.copyWith(extra: kNoDefaultValue).extra, 'seed');
     final headers = Headers();
     final copies = await instance.invoke('repaint', [bytes, headers]) as List<HttpSourceImageBytes>;
     expect(copies.map((copy) => copy.extra), ['seed', false, null]);

@@ -25,16 +25,14 @@ class HttpSourceImageBytes extends SourceImageBytes {
     List<int>? data,
     int? statusCode,
     Headers? responseHeaders,
-    Object? extra = _Extra.omitted,
+    Object? extra = kNoDefaultValue,
   }) {
     return HttpSourceImageBytes(
       type: type ?? this.type,
       data: data ?? this.data,
       statusCode: statusCode ?? this.statusCode,
       responseHeaders: responseHeaders ?? this.responseHeaders,
-      extra: identical(extra, _Extra.omitted) ? this.extra : extra,
+      extra: identical(extra, kNoDefaultValue) ? this.extra : extra,
     );
   }
 }
-
-enum _Extra { omitted }

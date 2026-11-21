@@ -109,7 +109,7 @@ void main() {
   }
 
   Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) async {
-    return bytes.copyWith(type: 'gif', data: [bytes.extra as int], extra: null);
+    return bytes.copyWith(type: 'gif', data: [bytes.extra as int]);
   }
 ''';
     final server = await serve(body: [1, 2, 3], contentType: 'image/png');
