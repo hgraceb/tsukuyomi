@@ -62,7 +62,7 @@ void main() {
     const shared = HttpSourceImage(url: 'https://example.invalid/shared');
     source.repaint = (bytes) async {
       if (bytes.extra == 'fail') throw StateError('Repaint failed');
-      return HttpSourceImageBytes(bytes: bytes.bytes.copyWith(data: [1, 2]), extra: bytes.extra);
+      return bytes.copyWith(data: [1, 2]);
     };
     final failing = TsukuyomiCacheManager(source, failed);
     final failure = expectLater(failing.getImageFile(failed.url).single, throwsStateError);
@@ -84,7 +84,7 @@ void main() {
   test('Canceling the only reader while queued still caches the repainted image', () async {
     final slot = await fillPool('cancel');
     const image = HttpSourceImage(url: 'https://example.invalid/canceled');
-    source.repaint = (bytes) async => HttpSourceImageBytes(bytes: bytes.bytes.copyWith(data: [3, 4]), extra: bytes.extra);
+    source.repaint = (bytes) async => bytes.copyWith(data: [3, 4]);
     final manager = TsukuyomiCacheManager(source, image);
     final listener = manager.getImageFile(image.url).listen(null);
     await waitForActiveDownloads(manager, 1);
@@ -105,10 +105,7 @@ void main() {
       'Content-Type': ['image/jpeg'],
       'Content-Length': ['800'],
     });
-    source.repaint = (bytes) async {
-      final repaint = bytes.bytes.copyWith(type: 'webp', data: [1, 2], statusCode: 202, responseHeaders: headers);
-      return HttpSourceImageBytes(bytes: repaint, extra: bytes.extra);
-    };
+    source.repaint = (bytes) async => bytes.copyWith(type: 'webp', data: [1, 2], statusCode: 202, responseHeaders: headers);
 
     final start = DateTime.now();
     final events = await cache.getImageFile(page.url, withProgress: true).toList();
@@ -136,8 +133,7 @@ class _ImageSource extends Fake implements DioHttpSource {
   @override
   Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
     requests.add(image);
-    final bytes = HttpSourceBytes(type: 'jpg', data: [0], statusCode: 200, responseHeaders: Headers());
-    return HttpSourceImageBytes(bytes: bytes, extra: image.extra);
+    return HttpSourceImageBytes(type: 'jpg', data: [0], statusCode: 200, responseHeaders: Headers(), extra: image.extra);
   }
 
   @override

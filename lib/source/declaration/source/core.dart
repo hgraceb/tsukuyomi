@@ -123,11 +123,12 @@ sealed class SourceImage {
 ''');
 
 DartClass get _$SourceImageBytes => DartClass<SourceImageBytes>(($) => '''
-sealed class SourceImageBytes {
-  const SourceImageBytes({this.extra});
-
-  // ${$.debug('bytes', ($, $$) => $.bytes)}
-  abstract final SourceBytes bytes;
+sealed class SourceImageBytes extends SourceBytes {
+  SourceImageBytes({
+    required super.type,
+    required super.data,
+    this.extra,
+  });
 
   // ${$.debug('extra', ($, $$) => $.extra)}
   final Object? extra;

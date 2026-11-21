@@ -65,8 +65,8 @@ class DownloadTask {
     } else {
       final bytes = await source.getImageBytes(image);
       final repaint = await source.getRepaintBytes(bytes);
-      final path = join(dir.path, '$name.${repaint.bytes.type}');
-      await File(path).writeAsBytes(repaint.bytes.data, flush: true);
+      final path = join(dir.path, '$name.${repaint.type}');
+      await File(path).writeAsBytes(repaint.data, flush: true);
     }
   }
 
