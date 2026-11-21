@@ -241,6 +241,23 @@ void main() {
       );
     });
 
+    test('nested literals retain inferred element and map value types', () async {
+      const source = "main() => {'pages': [1, 2]};";
+      final result = await eval(source);
+      expect(result, isA<Map<String, List<int>>>());
+      expect(result, {
+        'pages': [1, 2],
+      });
+    });
+
+    test('empty literals retain nested collection types and nullability', () async {
+      const source = 'typedef Row = Map<String, Iterable<double?>>; main() => <Set<int?>, List<Row?>?>{};';
+      final result = await eval(source);
+      expect(result, isA<Map<Set<int?>, List<Map<String, Iterable<double?>>?>?>>());
+      expect(result, isNot(isA<Map<Set<int>, Object?>>()));
+      expect(result, isNot(isA<Map<Object?, List<Object?>>>()));
+    });
+
     test('collection construction preserves surrounding arguments and locals', () async {
       const source = r'''
 String join(String before, Object values, String after) => '$before/$values/$after';

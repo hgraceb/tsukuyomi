@@ -127,10 +127,6 @@ class DartClass<T> extends DartDeclaration {
     props['${'$T'.split('<').first}.with'] ??= DartProperty(getter: (Function<R>() $) => $<T>(), typeMatcher: (value) => value is T);
   }
 
-  DartClass.type() : source = '' {
-    DartClassRegister<T>(this).alias('$T');
-  }
-
   DartClass.operator(Iterable<dynamic> Function(DartOperatorRegister $) declare) : source = '' {
     assert(<dynamic>[] is List<T>, T);
     declare(DartOperatorRegister(this));

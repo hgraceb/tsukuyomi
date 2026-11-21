@@ -302,6 +302,8 @@ void main() {
   print(value is List<Item>);
   print(value is List<SecondAlias>);
   print((value as List<Item>) == value);
+  print(<List<Item>>[[]].single.runtimeType == firstValues.runtimeType);
+  print(<List<SecondAlias>>[[]].single.runtimeType == secondValues.runtimeType);
   try { throw value; } on List<SecondAlias> { print('wrong catch'); }
   on List<Item> catch (error) { print(error == value); }
   value = secondValues;
@@ -313,7 +315,7 @@ void main() {
           entry,
           if (reverse) ...[second, first] else ...[first, second],
         ];
-        await expectLater(() => evalChecked(source, libraries: libraries), println([true, false, true, true, false, true]));
+        await expectLater(() => evalChecked(source, libraries: libraries), println([true, false, true, true, true, true, false, true]));
       });
     }
 

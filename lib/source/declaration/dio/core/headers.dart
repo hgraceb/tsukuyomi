@@ -60,8 +60,6 @@ class Headers {
 
 List<DartDeclaration> get $headers {
   return [
-    // Headers.fromMap 的映射字面量需要具体的值类型
-    DartClass<List<String>>.type(),
     _$Headers,
   ];
 }
