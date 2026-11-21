@@ -10,16 +10,18 @@ class HttpSourceImageBytes extends SourceImageBytes {
     super.extra,
   });
 
-  HttpSourceImageBytes.fromBytes(HttpSourceBytes bytes, {Object? extra})
-    : this(type: bytes.type, data: bytes.data, statusCode: bytes.statusCode, responseHeaders: bytes.responseHeaders, extra: extra);
+  HttpSourceImageBytes.fromBytes(
+    HttpSourceBytes bytes, {
+    Object? extra,
+  }) : this(type: bytes.type, data: bytes.data, statusCode: bytes.statusCode, responseHeaders: bytes.responseHeaders, extra: extra);
 
   /// 状态码
   final int statusCode;
 
-  /// 原始 HTTP 响应头
+  /// 原始请求的响应头
   final Headers responseHeaders;
 
-  /// 复制网络图片数据，省略 `extra` 时沿用原值，传入 `null` 时清空
+  /// 复制网络图片数据
   HttpSourceImageBytes copyWith({
     String? type,
     List<int>? data,

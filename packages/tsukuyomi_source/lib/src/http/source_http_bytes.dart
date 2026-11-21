@@ -12,10 +12,10 @@ class HttpSourceBytes extends SourceBytes {
   /// 状态码
   final int statusCode;
 
-  /// 原始 HTTP 响应头
+  /// 原始请求的响应头
   final Headers responseHeaders;
 
-  /// 创建网络字节数据副本
+  /// 复制网络字节数据
   HttpSourceBytes copyWith({String? type, List<int>? data, int? statusCode, Headers? responseHeaders}) {
     return HttpSourceBytes(
       type: type ?? this.type,
