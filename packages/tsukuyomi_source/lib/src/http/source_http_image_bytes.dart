@@ -19,7 +19,7 @@ class HttpSourceImageBytes extends SourceImageBytes {
   /// 原始 HTTP 响应头
   final Headers responseHeaders;
 
-  /// 创建网络图片数据副本
+  /// 复制网络图片数据，省略 `extra` 时沿用原值，传入 `null` 时清空
   HttpSourceImageBytes copyWith({
     String? type,
     List<int>? data,

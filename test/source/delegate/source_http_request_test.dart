@@ -104,8 +104,8 @@ void main() {
   test('The cache reports the final image format and length after repainting', () async {
     const imageMethods = '''
   Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
-    final bytes = await fetchBytes(image.url);
-    return HttpSourceImageBytes.fromBytes(bytes, extra: bytes.data.last);
+    final bytes = await fetchImageBytes(image);
+    return bytes.copyWith(extra: bytes.data.last);
   }
 
   Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) async {
