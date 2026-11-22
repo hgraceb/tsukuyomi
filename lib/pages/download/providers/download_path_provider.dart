@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/database/database.dart';
+import 'package:tsukuyomi/pages/download/download_directory.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 part 'download_path_provider.g.dart';
@@ -18,7 +19,7 @@ class DownloadMangaPath extends _$DownloadMangaPath {
     // 应用下载文件夹路径
     final downloads = join(documents.path, App.name, App.downloadsPath);
     // 漫画下载文件夹路径
-    return Directory(join(downloads, source.name, manga.title));
+    return Directory(join(downloads, source.name, downloadDirectoryName(manga.title)));
   }
 }
 
@@ -29,7 +30,7 @@ class DownloadChapterPath extends _$DownloadChapterPath {
     // 获取漫画下载文件夹路径
     final directory = await ref.watch(downloadMangaPathProvider(source, manga).future);
     // 漫画章节下载文件夹路径
-    return Directory(join(directory.path, chapter.title));
+    return Directory(join(directory.path, downloadDirectoryName(chapter.title)));
   }
 }
 
@@ -40,6 +41,6 @@ class DownloadChapterTempPath extends _$DownloadChapterTempPath {
     // 获取漫画下载文件夹路径
     final directory = await ref.watch(downloadMangaPathProvider(source, manga).future);
     // 漫画章节下载文件夹路径
-    return Directory(join(directory.path, '${App.prefixTemp}${chapter.title}'));
+    return Directory(join(directory.path, '${App.prefixTemp}${downloadDirectoryName(chapter.title)}'));
   }
 }
