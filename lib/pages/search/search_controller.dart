@@ -69,7 +69,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
         final cachedSource = data?.cachedSources[id];
         final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
         if (cachedSource != source) await update((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
-        final page = await ref.read(searchMangasProvider(source, query).future);
+        final page = await ref.read(searchMangasProvider(searchId, source, query).future);
         await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
       } catch (e) {
         await update((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
@@ -93,11 +93,12 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   /// 搜索下一页的数据
   Future<void> onNext(Source? source, SourceMangaEntries? page) async {
     if (source == null || page == null || page.nextQuery == null) return;
-    if (data?.loadings.contains(source.id) == true) return;
+    final current = data;
+    if (current == null || current.loadings.contains(source.id)) return;
     final id = source.id;
     try {
       await update((state) => state.copyWith(loadings: state.addLoading(id)));
-      final result = await ref.read(searchMangasProvider(source, page.nextQuery!).future);
+      final result = await ref.read(searchMangasProvider(current.searchId, source, page.nextQuery!).future);
       await update((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);

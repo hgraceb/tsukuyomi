@@ -36,8 +36,9 @@ Stream<List<DatabaseSource>> sourcesStream(SourcesStreamRef ref) {
   return ref.watch(sourceServiceProvider).watchSources();
 }
 
+/// 按搜索轮次区分同一漫画源的分页请求
 @riverpod
-Future<SourceMangaEntries> searchMangas(SearchMangasRef ref, Source source, SourceQuery query) async {
+Future<SourceMangaEntries> searchMangas(SearchMangasRef ref, int searchId, Source source, SourceQuery query) async {
   final entries = await source.getMangaEntries(query);
   if (entries.mangas.isEmpty) throw const TsukuyomiSourceException.mangasNotFound('search');
   return entries;
