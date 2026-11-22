@@ -190,8 +190,6 @@ class _SearchPageResult extends StatelessWidget {
               );
             }
             if (state.error case final error?) {
-              final noResults = error is SourceMangasNotFound;
-              final message = noResults ? TsukuyomiLocalizations.of(context)!.searchNoResults : error.toString();
               return TsukuyomiAnimatedSwitcher(
                 child: Container(
                   key: const ValueKey('error'),
@@ -200,9 +198,9 @@ class _SearchPageResult extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildRetryButton(context, noResults: noResults),
+                      _buildRetryButton(context, noResults: error is SourceMangasNotFound),
                       Text(
-                        '$message\n\n',
+                        '$error\n\n',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

@@ -1,7 +1,6 @@
 {
   "debugTitle": "开发调试",
   "searchHint": "搜索漫画...",
-  "searchNoResults": "没有搜索结果",
   "libraryTitle": "书架",
   "updateTitle": "更新",
   "updateProgress": "{downloaded} / {public} · {total}",

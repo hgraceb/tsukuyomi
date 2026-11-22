@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tsukuyomi/core/core.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseSource;
 import 'package:tsukuyomi/l10n/l10n.dart';
 import 'package:tsukuyomi/pages/search/search_page.dart';
@@ -35,7 +36,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final empty = find.widgetWithIcon(IconButton, Icons.search_off_outlined);
-    expect(find.textContaining('No search results'), findsOneWidget);
+    const noResults = TsukuyomiSourceException.mangasNotFound('search');
+    expect(find.textContaining(noResults.toString()), findsOneWidget);
     expect(tester.widget<IconButton>(empty).tooltip, 'Retry');
     expect(tester.widget<IconButton>(empty).color, isNull);
     source.error = StateError('offline');

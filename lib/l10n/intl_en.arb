@@ -1,7 +1,6 @@
 {
   "debugTitle": "Debug",
   "searchHint": "Search mangas...",
-  "searchNoResults": "No search results",
   "libraryTitle": "Library",
   "updateTitle": "Updates",
   "updateProgress": "{downloaded} / {public} · {total}",
