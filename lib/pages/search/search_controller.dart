@@ -73,14 +73,14 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
       try {
         final cachedSource = data?.cachedSources[id];
         final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
-        if (cachedSource != source) await update((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
+        if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
         final page = await ref.read(searchMangasProvider(searchId, source, query).future);
-        await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
+        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
       } catch (e) {
-        await update((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
+        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
       }
     }
-    await update((state) => state.copyWith(searchingText: ''));
+    state = state.whenData((state) => state.copyWith(searchingText: ''));
   }
 
   /// 搜索所有的漫画源
@@ -102,7 +102,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     if (source == null || page == null || page.nextQuery == null || current == null || id == null) return;
     if (current.loadings.contains(id) || current.results[id] != page || !_isCurrentSearch(current)) return;
     try {
-      await update((state) => state.copyWith(loadings: state.addLoading(id)));
+      state = state.whenData((state) => state.copyWith(loadings: state.addLoading(id)));
       final result = await ref.read(searchMangasProvider(current.searchId, source, page.nextQuery!).future);
       if (_isCurrentSearch(current)) state = state.whenData((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
     } catch (error, stackTrace) {

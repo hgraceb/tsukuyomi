@@ -98,6 +98,13 @@ class _SearchPageResult extends StatelessWidget {
 
   final double padding;
 
+  /// 等列表构建完成后再加载下一页
+  void _loadNextPage(BuildContext context, Source? source, SourceMangaEntries? page) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) controller.onNext(source, page);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return builder(
@@ -148,7 +155,7 @@ class _SearchPageResult extends StatelessWidget {
                             ),
                           );
                         } else if (state.result?.nextQuery != null) {
-                          controller.onNext(state.source, state.result);
+                          _loadNextPage(context, state.source, state.result);
                           return const Center(
                             child: SizedBox.square(
                               dimension: 24.0,

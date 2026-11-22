@@ -21,15 +21,17 @@ void main() {
 
   SearchState current() => subscription.read().requireValue;
 
-  setUp(() async {
-    source = _SearchSource();
+  Future<void> loadSources([_SearchSource? other]) async {
+    source = _SearchSource(installed.id);
     errors = _Errors();
+    final sources = [installed, if (other != null) installed.copyWith(id: other.id)];
     final container = ProviderContainer(
       overrides: [
         errorHandlerProvider.overrideWithValue(errors),
         keyboardVisibleProvider.overrideWithValue(false),
-        sourcesStreamProvider.overrideWith((ref) => Stream.value([installed])),
+        sourcesStreamProvider.overrideWith((ref) => Stream.value(sources)),
         sourceByIdProvider(installed.id).overrideWith((ref) async => source),
+        if (other != null) sourceByIdProvider(other.id).overrideWith((ref) async => other),
       ],
     );
     addTearDown(container.dispose);
@@ -37,7 +39,7 @@ void main() {
     addTearDown(subscription.close);
     await container.read(searchControllerProvider.future);
     controller = container.read(searchControllerProvider.notifier);
-  });
+  }
 
   Future<void> edit(String keyword) {
     current().textController.text = keyword;
@@ -50,6 +52,7 @@ void main() {
   }
 
   test('Search follows the source continuation and appends results until the last page', () async {
+    await loadSources();
     await search('example');
     final first = current().results[installed.id]!;
     expect(first.mangas.map((manga) => manga.url), ['1']);
@@ -66,6 +69,7 @@ void main() {
   });
 
   test('Editing immediately after submitting keeps the submitted search pageable', () async {
+    await loadSources();
     await edit('example');
     await Future.wait([controller.onSearch(), edit('draft')]);
 
@@ -76,6 +80,7 @@ void main() {
   });
 
   test('Submitting immediately after editing searches and paginates the latest text', () async {
+    await loadSources();
     await edit('draft');
     await Future.wait([edit('example'), controller.onSearch()]);
 
@@ -85,8 +90,60 @@ void main() {
     expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
   });
 
+  test('Starting pagination preserves another source finishing its first page', () async {
+    final other = _SearchSource(2);
+    await loadSources(other);
+    final firstPage = Completer<void>();
+    other.pendingFirstPage = firstPage.future;
+    final searching = search('example');
+    await pumpEventQueue(times: 1);
+
+    final first = current().results[installed.id]!;
+    firstPage.complete();
+    final paging = Future.microtask(() => controller.onNext(source, first));
+    await Future.wait([searching, paging]);
+    expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
+    expect(current().results[other.id]?.mangas.map((manga) => manga.url), ['1']);
+    expect(current().loadings, isEmpty);
+    expect(current().searchingText, isEmpty);
+  });
+
+  for (final fails in [false, true]) {
+    test('Pagination keeps its results when another source ${fails ? 'fails' : 'finishes'} loading its first page', () async {
+      final other = _SearchSource(2);
+      await loadSources(other);
+      final firstPage = Completer<void>();
+      other.pendingFirstPage = firstPage.future;
+      final searching = search('example');
+      await pumpEventQueue(times: 1);
+
+      final nextPage = Completer<void>();
+      source.pendingPage = nextPage.future;
+      final paging = controller.onNext(source, current().results[installed.id]!);
+      await pumpEventQueue(times: 1);
+      expect(current().loadings, {source.id, other.id});
+
+      final error = StateError('first page');
+      if (fails) {
+        firstPage.completeError(error);
+      } else {
+        firstPage.complete();
+      }
+      nextPage.complete();
+      await Future.wait([searching, paging]);
+      expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
+      expect(current().loadings, isEmpty);
+      if (fails) {
+        expect(current().errors[other.id], error.toString());
+      } else {
+        expect(current().results[other.id]!.mangas.map((manga) => manga.url), ['1']);
+      }
+    });
+  }
+
   for (final fails in [false, true]) {
     test('Repeating a search ignores the previous pagination ${fails ? 'error' : 'result'}', () async {
+      await loadSources();
       await search('example');
       final oldPage = Completer<void>();
       source.pendingPage = oldPage.future;
@@ -120,16 +177,18 @@ void main() {
 }
 
 class _SearchSource extends NoInstalledSource {
-  _SearchSource() : super(1);
+  _SearchSource(super.id);
 
   final continuation = HttpSourceQuery(page: 7, keyword: 'example');
   final requests = <SourceQuery>[];
+  Future<void>? pendingFirstPage;
   Future<void>? pendingPage;
 
   @override
   Future<HttpSourceMangaEntries> getMangaEntries(SourceQuery query) async {
     requests.add(query);
-    if (query.page != 1) await pendingPage;
+    final pending = query.page == 1 ? pendingFirstPage : pendingPage;
+    if (pending != null) await pending;
     final manga = HttpSourceManga(url: '${query.page}', name: 'Example', cover: 'cover');
     return HttpSourceMangaEntries(mangas: [manga], nextQuery: query.page == 1 ? continuation : null);
   }
