@@ -69,6 +69,31 @@ void main() {
     expect(source.requests.map((query) => query.page), [1, 7]);
   });
 
+  test('Retrying a failed first page uses the submitted keyword and preserves other sources', () async {
+    final other = _SearchSource(2);
+    await loadSources(other);
+    final firstPage = Completer<void>();
+    source.pendingFirstPage = firstPage.future;
+    final searching = search('example');
+    await pumpEventQueue(times: 1);
+    firstPage.completeError(StateError('first page'));
+    await searching;
+    expect(current().errors.keys, [source.id]);
+
+    await controller.onNext(other.id, current().results[other.id]);
+    final otherResult = current().results[other.id]!;
+    await edit('draft');
+    source.pendingFirstPage = null;
+    await controller.onRetry(source.id);
+
+    expect(source.requests.map((query) => (query.keyword, query.page)), [('example', 1), ('example', 1)]);
+    expect(current().results[source.id]!.mangas.map((manga) => manga.url), ['1']);
+    expect(current().errors, isEmpty);
+    expect(current().editingText, 'draft');
+    expect(other.requests.map((query) => query.page), [1, 7]);
+    expect(current().results[other.id], same(otherResult));
+  });
+
   test('Failed pagination preserves results until a manual retry reloads the same page', () async {
     final container = await loadSources();
     await search('example');
