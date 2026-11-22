@@ -21,7 +21,7 @@ void main() {
 
   SearchState current() => subscription.read().requireValue;
 
-  Future<void> loadSources([_SearchSource? other]) async {
+  Future<ProviderContainer> loadSources([_SearchSource? other]) async {
     source = _SearchSource(installed.id);
     errors = _Errors();
     final sources = [installed, if (other != null) installed.copyWith(id: other.id)];
@@ -39,6 +39,7 @@ void main() {
     addTearDown(subscription.close);
     await container.read(searchControllerProvider.future);
     controller = container.read(searchControllerProvider.notifier);
+    return container;
   }
 
   Future<void> edit(String keyword) {
@@ -143,11 +144,14 @@ void main() {
 
   for (final fails in [false, true]) {
     test('Repeating a search ignores the previous pagination ${fails ? 'error' : 'result'}', () async {
-      await loadSources();
+      final container = await loadSources();
       await search('example');
       final oldPage = Completer<void>();
       source.pendingPage = oldPage.future;
       final oldPagination = controller.onNext(source, current().results[installed.id]);
+      // 保留旧分页请求，验证新一轮搜索会独立请求同一页
+      final oldProvider = searchMangasProvider(current().searchId, source, source.continuation);
+      addTearDown(container.listen(oldProvider, (_, _) {}).close);
       await pumpEventQueue(times: 1);
 
       await search('example');
