@@ -32,11 +32,10 @@ class DownloadQueue extends _$DownloadQueue {
   }
 
   bool remove(DownloadTask downloadTask) {
-    final removed = state.remove(downloadTask);
-    if (removed) {
-      state = [...state];
-    }
-    return removed;
+    final tasks = [...state];
+    if (!tasks.remove(downloadTask)) return false;
+    state = tasks;
+    return true;
   }
 }
 
