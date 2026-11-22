@@ -61,7 +61,20 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     return controller;
   }
 
-  /// 搜索指定的漫画源
+  /// 请求单个漫画源第一页
+  Future<void> _searchFirstPage(int searchId, int sourceId, SourceQuery query) async {
+    try {
+      final cachedSource = data?.cachedSources[sourceId];
+      final Source source = cachedSource ?? await ref.read(sourceByIdProvider(sourceId).future);
+      if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(sourceId, source)));
+      final page = await ref.read(searchMangasProvider(searchId, source, query).future);
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), results: state.addResult(sourceId, page)));
+    } catch (e) {
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), errors: state.addError(sourceId, e)));
+    }
+  }
+
+  /// 请求搜索指定的漫画源
   Future<void> _search(List<DatabaseSource>? sources, String? keyword) async {
     if (sources == null || sources.isEmpty) return;
     if (keyword == null || keyword.isEmpty) return;
@@ -69,16 +82,8 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     final query = HttpSourceQuery(keyword: keyword);
     final ids = sources.map((source) => source.id).toSet();
     state = state.whenData((state) => state.copyWith(searchId: searchId, loadings: ids, errors: {}, results: {}, searchingText: keyword));
-    for (final id in ids) {
-      try {
-        final cachedSource = data?.cachedSources[id];
-        final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
-        if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
-        final page = await ref.read(searchMangasProvider(searchId, source, query).future);
-        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
-      } catch (e) {
-        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
-      }
+    for (final sourceId in ids) {
+      await _searchFirstPage(searchId, sourceId, query);
     }
     state = state.whenData((state) => state.copyWith(searchingText: ''));
   }
@@ -110,7 +115,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
       state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries)));
     } catch (error, stackTrace) {
       if (_isStaleSearch(current)) return;
-      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, error.toString())));
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, error)));
       handlerError(error, stackTrace);
     }
   }
@@ -182,7 +187,7 @@ extension on SearchState {
 
   Set<int> removeLoading(int sourceId) => {...loadings}..remove(sourceId);
 
-  Map<int, String> addError(int sourceId, String error) => {...errors}..addAll({sourceId: error});
+  Map<int, String> addError(int sourceId, Object error) => {...errors}..addAll({sourceId: error.toString()});
 
   Map<int, String> removeError(int sourceId) => {...errors}..remove(sourceId);
 
