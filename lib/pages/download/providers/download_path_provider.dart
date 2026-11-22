@@ -19,7 +19,7 @@ class DownloadMangaPath extends _$DownloadMangaPath {
     // 应用下载文件夹路径
     final downloads = join(documents.path, App.name, App.downloadsPath);
     // 漫画下载文件夹路径
-    return resolveDownloadDirectory(join(downloads, source.name), manga.title);
+    return Directory(join(downloads, source.name, downloadDirectoryName(manga.title)));
   }
 }
 
@@ -30,7 +30,7 @@ class DownloadChapterPath extends _$DownloadChapterPath {
     // 获取漫画下载文件夹路径
     final directory = await ref.watch(downloadMangaPathProvider(source, manga).future);
     // 漫画章节下载文件夹路径
-    return resolveDownloadDirectory(directory.path, chapter.title);
+    return Directory(join(directory.path, downloadDirectoryName(chapter.title)));
   }
 }
 
@@ -41,6 +41,6 @@ class DownloadChapterTempPath extends _$DownloadChapterTempPath {
     // 获取漫画下载文件夹路径
     final directory = await ref.watch(downloadMangaPathProvider(source, manga).future);
     // 漫画章节下载文件夹路径
-    return resolveDownloadDirectory(directory.path, chapter.title, prefix: App.prefixTemp);
+    return Directory(join(directory.path, '${App.prefixTemp}${downloadDirectoryName(chapter.title)}'));
   }
 }

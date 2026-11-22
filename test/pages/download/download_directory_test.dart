@@ -32,14 +32,13 @@ void main() {
   });
 
   group('Download directories', () {
-    late Directory documents;
     late ProviderContainer container;
     final source = NoInstalledSource(1);
     final manga = mangaFixture(1);
     final firstChapter = chaptersFixture(manga.id).first;
 
     setUp(() async {
-      documents = await Directory.systemTemp.createTemp('tsukuyomi-download-');
+      final documents = await Directory.systemTemp.createTemp('tsukuyomi-download-');
       final paths = PathProviderPlatform.instance;
       PathProviderPlatform.instance = _DownloadPaths(documents.path);
       container = ProviderContainer();
@@ -82,33 +81,11 @@ void main() {
       final images = await container.read(chapterImagesProvider(source, manga, chapter).future);
       expect(images.single.url, p.join(chapterDir.path, '001.jpg'));
       expect(await File(images.single.url).readAsBytes(), [1, 2, 3]);
-    });
 
-    test('Find existing full-title downloads and resume existing full-title temporary directories', () async {
-      final chapter = firstChapter.copyWith(title: '話' * 81);
-      final oldManga = manga.copyWith(title: '本' * 81);
-      final oldDir = Directory(p.join(documents.path, App.name, App.downloadsPath, source.name, oldManga.title));
-      await oldDir.create(recursive: true);
-      final service = container.read(downloadServiceProvider);
-      expect((await service.getMangaDir(source, oldManga)).path, oldDir.path);
-
-      final mangaDir = await service.getMangaDir(source, manga);
-      final oldTemp = Directory(p.join(mangaDir.path, '${App.prefixTemp}${chapter.title}'));
-      await oldTemp.create(recursive: true);
-      await File(p.join(oldTemp.path, '001.jpg')).writeAsBytes([1]);
-
-      final resumed = await service.createTempChapterDir(source, manga, chapter);
-      expect(resumed.path, oldTemp.path);
-      expect(await File(p.join(resumed.path, '001.jpg')).readAsBytes(), [1]);
-      final oldChapter = await resumed.rename(p.join(mangaDir.path, chapter.title));
-      final chapterDir = await service.getChapterDir(source, manga, chapter);
-      expect(chapterDir.path, oldChapter.path);
-      final downloaded = downloadedChaptersProvider(mangaDir.path);
-      final subscription = container.listen(downloaded, (_, _) {});
       final beforeRemoval = subscription.read();
-      await oldChapter.delete(recursive: true);
+      await chapterDir.delete(recursive: true);
       await service.refreshDownloadedByChapter(source, manga, chapter);
-      expect(beforeRemoval, {downloadDirectoryName(chapter.title)});
+      expect(beforeRemoval, {chapterName});
       expect(subscription.read(), isEmpty);
     });
   });

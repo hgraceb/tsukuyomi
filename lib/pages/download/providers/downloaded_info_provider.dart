@@ -25,7 +25,7 @@ class DownloadedChapters extends _$DownloadedChapters {
       // 获取文件夹名称
       final name = basename(entity.path).trim();
       // 排除临时文件夹
-      if (name.isNotEmpty && !name.startsWith(App.prefixTemp)) chapters.add(downloadDirectoryName(name));
+      if (name.isNotEmpty && !name.startsWith(App.prefixTemp)) chapters.add(name);
     }
     return chapters;
   }
@@ -33,7 +33,7 @@ class DownloadedChapters extends _$DownloadedChapters {
   void update(String title) {
     if (title.isEmpty) return;
     final chapter = downloadDirectoryName(title);
-    final exists = resolveDownloadDirectory(path, title).existsSync();
+    final exists = Directory(join(path, chapter)).existsSync();
     if (exists && !state.contains(chapter)) {
       state = {...state, chapter};
     } else if (!exists && state.contains(chapter)) {

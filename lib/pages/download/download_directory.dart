@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:path/path.dart';
 
+/// 生成不超过 240 个 UTF-8 字节的下载目录名
 String downloadDirectoryName(String title) {
   const maxBytes = 240;
   // 每个 UTF-16 码元最多占 3 个 UTF-8 字节，短标题可以直接返回
@@ -18,14 +17,4 @@ String downloadDirectoryName(String title) {
     end--;
   }
   return '${utf8.decoder.convert(bytes, 0, end)}$suffix';
-}
-
-Directory resolveDownloadDirectory(String parent, String title, {String prefix = ''}) {
-  final name = downloadDirectoryName(title);
-  if (name != title) {
-    // 继续使用旧版本已经创建的下载目录或临时目录
-    final original = Directory(join(parent, '$prefix$title'));
-    if (original.existsSync()) return original;
-  }
-  return Directory(join(parent, '$prefix$name'));
 }
