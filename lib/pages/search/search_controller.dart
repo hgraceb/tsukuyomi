@@ -42,6 +42,11 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     );
   }
 
+  /// 判断分页请求是否仍属于当前搜索
+  bool _isCurrentSearch(SearchState current) {
+    return mounted && current.searchId == _searchId && current.searchId == data?.searchId;
+  }
+
   /// 创建搜索框焦点控制器
   FocusNode _createFocusNode() {
     final focusNode = FocusNode();
@@ -93,18 +98,17 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   /// 搜索下一页的数据
   Future<void> onNext(Source? source, SourceMangaEntries? page) async {
     final current = data;
-    if (source == null || page == null || page.nextQuery == null || current == null || current.loadings.contains(source.id)) return;
-    bool isCurrentSearch() => mounted && current.searchId == _searchId && current.searchId == data?.searchId;
-    if (!isCurrentSearch() || current.results[source.id] != page) return;
+    final id = source?.id;
+    if (source == null || page == null || page.nextQuery == null || current == null || id == null) return;
+    if (current.loadings.contains(id) || current.results[id] != page || !_isCurrentSearch(current)) return;
     try {
-      await update((state) => state.copyWith(loadings: state.addLoading(source.id)));
+      await update((state) => state.copyWith(loadings: state.addLoading(id)));
       final result = await ref.read(searchMangasProvider(current.searchId, source, page.nextQuery!).future);
-      if (!isCurrentSearch()) return;
-      state = state.whenData((state) => state.copyWith(results: state.addResult(source.id, result.prepend(page))));
+      if (_isCurrentSearch(current)) state = state.whenData((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
     } catch (error, stackTrace) {
-      if (isCurrentSearch()) handlerError(error, stackTrace);
+      if (_isCurrentSearch(current)) handlerError(error, stackTrace);
     } finally {
-      if (isCurrentSearch()) state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(source.id)));
+      if (_isCurrentSearch(current)) state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(source.id)));
     }
   }
 
