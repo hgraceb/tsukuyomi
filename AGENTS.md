@@ -115,9 +115,9 @@ class DownloadEnqueueResult with _$DownloadEnqueueResult {
 }
 ```
 
-### 页面控制器
+### 页面控制
 
-- Controller 内部使用的计数器和缓存可以放在私有实例字段中，页面需要展示的数据通过 `state` 发布和订阅
+- Controller 内部使用的计数器和缓存可以放在私有实例字段中，页面需要展示的数据优先通过 `state` 发布和订阅，如：
 
 ```dart
 // Bad
@@ -129,7 +129,7 @@ List<DatabaseChapter> _chapters = []; // MangaController
 final visibleChapters = ref.watch(provider.select((state) => state.valueOrNull?.chapters)); // MangaPage
 ```
 
-- Controller 按轮次分配从 1 开始的编号时，私有字段保存当前编号，先递增再取本次的值
+- Controller 按轮次分配从 1 开始的编号时，私有字段保存当前编号，优先递增再取本次的值，如：
 
 ```dart
 // Bad
@@ -143,7 +143,7 @@ int _searchId = 0;
 final searchId = ++_searchId;
 ```
 
-- 页面状态由 Controller 的 `build()` 统一初始化时，沿用相邻字段的 `required` 写法，在构造状态时显式传入初始值
+- 页面状态由 Controller 的 `build()` 统一初始化时，沿用相邻字段的 `required` 写法，在构造状态时显式传入初始值，如：
 
 ```dart
 // Bad
@@ -198,7 +198,7 @@ final List<String>? languages;
 final List<String>? languages;
 ```
 
-- 为同组字段添加注释时，沿用相邻注释的句式和长度，意思同样清楚时优先对齐字数
+- 为同组字段添加注释时，沿用相邻注释的句式和长度，意思同样清楚时优先对齐字数，如：
 
 ```dart
 // Bad
