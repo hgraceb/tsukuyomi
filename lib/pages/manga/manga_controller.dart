@@ -6,6 +6,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/extension/extension.dart';
+import 'package:tsukuyomi/pages/download/download_directory.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
@@ -79,7 +80,7 @@ class MangaController extends _$MangaController with AsyncNotifierMixin {
       // 正在下载的章节
       final downloading = _downloading.firstWhereOrNull((task) => task.download.chapter == chapter.id)?.download;
       // 章节是否已下载
-      final downloaded = _downloaded.contains(chapter.title);
+      final downloaded = _downloaded.contains(downloadDirectoryName(chapter.title));
       // 章节是否可观看
       final enabled = downloaded || chapter.public;
       // 章节下载的进度

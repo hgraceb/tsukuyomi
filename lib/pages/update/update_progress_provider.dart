@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:tsukuyomi/pages/download/download_directory.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/manga/manga_service.dart';
 import 'package:tsukuyomi/pages/source/source_service.dart';
@@ -71,9 +72,10 @@ UpdateProgress updateProgress(UpdateProgressRef ref, UpdateProgressCache cache, 
   final chapters = ref.watch(chaptersStreamByMangaProvider(mangaId));
   final downloaded = ref.watch(updateDownloadedChaptersProvider(mangaId));
   final chapterList = chapters.unwrapPrevious().valueOrNull;
-  final downloadedTitles = downloaded.unwrapPrevious().valueOrNull;
+  final directoryNames = downloaded.unwrapPrevious().valueOrNull;
   final publicChapters = chapterList?.where((chapter) => chapter.public);
-  final completed = downloadedTitles == null ? null : publicChapters?.where((chapter) => downloadedTitles.contains(chapter.title)).length;
+  final publicNames = publicChapters?.map((chapter) => downloadDirectoryName(chapter.title));
+  final completed = directoryNames == null ? null : publicNames?.where(directoryNames.contains).length;
   final hasError = chapters.hasError || downloaded.hasError;
   final progress = UpdateProgress(downloaded: completed, public: publicChapters?.length, total: chapterList?.length, hasError: hasError);
   return cache.update(mangaId, progress);

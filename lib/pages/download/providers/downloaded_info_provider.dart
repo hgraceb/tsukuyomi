@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/constants/constants.dart';
+import 'package:tsukuyomi/pages/download/download_directory.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 part 'downloaded_info_provider.g.dart';
@@ -24,18 +25,19 @@ class DownloadedChapters extends _$DownloadedChapters {
       // 获取文件夹名称
       final name = basename(entity.path).trim();
       // 排除临时文件夹
-      if (name.isNotEmpty && !name.startsWith(App.prefixTemp)) chapters.add(name);
+      if (name.isNotEmpty && !name.startsWith(App.prefixTemp)) chapters.add(downloadDirectoryName(name));
     }
     return chapters;
   }
 
-  void update(String chapter) {
-    if (chapter.isEmpty) return;
-    final exists = Directory(join(path, chapter)).existsSync();
+  void update(String title) {
+    if (title.isEmpty) return;
+    final chapter = downloadDirectoryName(title);
+    final exists = resolveDownloadDirectory(path, title).existsSync();
     if (exists && !state.contains(chapter)) {
-      state = {...state..add(chapter)};
+      state = {...state, chapter};
     } else if (!exists && state.contains(chapter)) {
-      state = {...state..remove(chapter)};
+      state = {...state}..remove(chapter);
     }
   }
 }

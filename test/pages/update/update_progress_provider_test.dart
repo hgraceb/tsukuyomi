@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsukuyomi/constants/constants.dart';
 import 'package:tsukuyomi/database/database.dart' show DatabaseChapter, DatabaseManga;
+import 'package:tsukuyomi/pages/download/download_directory.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
 import 'package:tsukuyomi/pages/download/providers/downloaded_info_provider.dart';
@@ -38,6 +39,9 @@ void main() {
   test('Completed local chapter notifications reach the manga progress and cached counts', () async {
     final directory = _createDirectory();
     Directory('${directory.path}/chapter-title-1').createSync();
+    final chapters = chaptersFixture(_manga.id);
+    chapters[1] = chapters[1].copyWith(title: '話' * 81);
+    final secondDirectory = downloadDirectoryName(chapters[1].title);
     final report = updateReportFixture(items: [updateReportItemFixture(1)]);
     late Completer<void> chapterDisposal;
     SharedPreferences.setMockInitialValues({Keys.updateReportLatest: jsonEncode(report.toJson())});
@@ -45,7 +49,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(await SharedPreferences.getInstance()),
         mangaStreamByIdProvider(_manga.id).overrideWith((ref) => Stream.value(_manga)),
-        chaptersStreamByMangaProvider(_manga.id).overrideWith((ref) => Stream.value(chaptersFixture(_manga.id))),
+        chaptersStreamByMangaProvider(_manga.id).overrideWith((ref) => Stream.value(chapters)),
         sourceByIdProvider(_manga.source).overrideWith((ref) async => _source),
         downloadMangaPathProvider(_source, _manga).overrideWith(() => _MangaPath(directory)),
         downloadedChaptersProvider(directory.path).overrideWith(() {
@@ -63,10 +67,10 @@ void main() {
     await container.read(chaptersStreamByMangaProvider(_manga.id).future);
     await container.pump();
     expect(row.read(), const UpdateProgress(downloaded: 1, public: 5, total: 7));
-    Directory('${directory.path}/chapter-title-2').createSync();
-    container.read(downloadedChaptersProvider(directory.path).notifier).update('chapter-title-2');
+    Directory(p.join(directory.path, secondDirectory)).createSync();
+    container.read(downloadedChaptersProvider(directory.path).notifier).update(chapters[1].title);
     await container.pump();
-    expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'chapter-title-1', 'chapter-title-2'});
+    expect(await container.read(updateDownloadedChaptersProvider(_manga.id).future), {'chapter-title-1', secondDirectory});
     await container.pump();
     expect(row.read(), const UpdateProgress(downloaded: 2, public: 5, total: 7));
 
