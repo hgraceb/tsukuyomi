@@ -94,14 +94,17 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   Future<void> onNext(Source? source, SourceMangaEntries? page) async {
     final current = data;
     if (source == null || page == null || page.nextQuery == null || current == null || current.loadings.contains(source.id)) return;
+    bool isCurrentSearch() => mounted && current.searchId == _searchId && current.searchId == data?.searchId;
+    if (!isCurrentSearch() || current.results[source.id] != page) return;
     try {
       await update((state) => state.copyWith(loadings: state.addLoading(source.id)));
       final result = await ref.read(searchMangasProvider(current.searchId, source, page.nextQuery!).future);
-      await update((state) => state.copyWith(results: state.addResult(source.id, result.prepend(page))));
+      if (!isCurrentSearch()) return;
+      state = state.whenData((state) => state.copyWith(results: state.addResult(source.id, result.prepend(page))));
     } catch (error, stackTrace) {
-      handlerError(error, stackTrace);
+      if (isCurrentSearch()) handlerError(error, stackTrace);
     } finally {
-      await update((state) => state.copyWith(loadings: state.removeLoading(source.id)));
+      if (isCurrentSearch()) state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(source.id)));
     }
   }
 
