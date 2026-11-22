@@ -115,6 +115,48 @@ class DownloadEnqueueResult with _$DownloadEnqueueResult {
 }
 ```
 
+### 页面控制
+
+- Controller 内部使用的计数器和缓存可以放在私有实例字段中，页面需要展示的数据优先通过 `state` 发布和订阅，如：
+
+```dart
+// Bad
+List<DatabaseChapter> chapters = []; // MangaController
+final visibleChapters = ref.watch(provider.notifier).chapters; // MangaPage
+
+// Good
+List<DatabaseChapter> _chapters = []; // MangaController
+final visibleChapters = ref.watch(provider.select((state) => state.valueOrNull?.chapters)); // MangaPage
+```
+
+- Controller 按轮次分配从 1 开始的编号时，私有字段保存当前编号，优先递增再取本次的值，如：
+
+```dart
+// Bad
+int _nextSearchId = 1;
+// 开始搜索时
+final searchId = _nextSearchId++;
+
+// Good
+int _searchId = 0;
+// 开始搜索时
+final searchId = ++_searchId;
+```
+
+- 页面状态由 Controller 的 `build()` 统一初始化时，沿用相邻字段的 `required` 写法，在构造状态时显式传入初始值，如：
+
+```dart
+// Bad
+@Default(0) int customCount, // DebugScaffoldState
+// build() 中构造状态时
+return DebugScaffoldState(buildCount: buildCount, serviceCount: serviceCount);
+
+// Good
+required int customCount, // DebugScaffoldState
+// build() 中构造状态时
+return DebugScaffoldState(buildCount: buildCount, customCount: 0, serviceCount: serviceCount);
+```
+
 ### 桥接声明
 
 - 函数签名使用三引号字符串单独成行，与 `DartClass` 保持一致，如：
@@ -154,6 +196,24 @@ final List<String>? languages;
 // Good
 /// 内容语言
 final List<String>? languages;
+```
+
+- 为同组字段添加注释时，沿用相邻注释的句式和长度，意思同样清楚时优先对齐字数，如：
+
+```dart
+// Bad
+/// 当前这次搜索的编号
+required int searchId,
+
+/// 正在搜索的漫画源
+required Set<int> loadings,
+
+// Good
+/// 当前搜索轮次编号
+required int searchId,
+
+/// 正在搜索的漫画源
+required Set<int> loadings,
 ```
 
 ### 数字格式

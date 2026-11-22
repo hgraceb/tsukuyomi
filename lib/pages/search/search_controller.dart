@@ -15,6 +15,8 @@ part 'search_controller.g.dart';
 /// 搜索页面控制器
 @riverpod
 class SearchController extends _$SearchController with AsyncNotifierMixin {
+  int _searchId = 0;
+
   @override
   Future<SearchState> build() async {
     final keyboardVisible = listenSync(
@@ -28,6 +30,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     return SearchState(
       sources: sources,
       cachedSources: {},
+      searchId: 0,
       loadings: {},
       errors: {},
       results: {},
@@ -37,6 +40,11 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
       editingText: '',
       searchingText: '',
     );
+  }
+
+  /// 判断分页请求是否仍属于当前搜索
+  bool _isCurrentSearch(SearchState current) {
+    return mounted && current.searchId == _searchId && current.searchId == data?.searchId;
   }
 
   /// 创建搜索框焦点控制器
@@ -57,20 +65,22 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   Future<void> _search(List<DatabaseSource>? sources, String? keyword) async {
     if (sources == null || sources.isEmpty) return;
     if (keyword == null || keyword.isEmpty) return;
+    final searchId = ++_searchId;
+    final query = HttpSourceQuery(keyword: keyword);
     final ids = sources.map((source) => source.id).toSet();
-    await update((state) => state.copyWith(loadings: ids, errors: {}, results: {}, searchingText: keyword));
+    state = state.whenData((state) => state.copyWith(searchId: searchId, loadings: ids, errors: {}, results: {}, searchingText: keyword));
     for (final id in ids) {
       try {
         final cachedSource = data?.cachedSources[id];
         final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
-        if (cachedSource != source) await update((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
-        final page = await ref.read(searchMangasProvider(source, HttpSourceQuery(keyword: keyword)).future);
-        await update((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
+        if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
+        final page = await ref.read(searchMangasProvider(searchId, source, query).future);
+        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
       } catch (e) {
-        await update((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
+        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
       }
     }
-    await update((state) => state.copyWith(searchingText: ''));
+    state = state.whenData((state) => state.copyWith(searchingText: ''));
   }
 
   /// 搜索所有的漫画源
@@ -87,24 +97,25 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
 
   /// 搜索下一页的数据
   Future<void> onNext(Source? source, SourceMangaEntries? page) async {
-    if (source == null || page == null || page.nextQuery == null) return;
-    if (data?.loadings.contains(source.id) == true) return;
-    final id = source.id;
+    final current = data;
+    final id = source?.id;
+    if (source == null || page == null || page.nextQuery == null || current == null || id == null) return;
+    if (current.loadings.contains(id) || current.results[id] != page || !_isCurrentSearch(current)) return;
     try {
-      await update((state) => state.copyWith(loadings: state.addLoading(id)));
-      final result = await ref.read(searchMangasProvider(source, page.nextQuery!).future);
-      await update((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
+      state = state.whenData((state) => state.copyWith(loadings: state.addLoading(id)));
+      final result = await ref.read(searchMangasProvider(current.searchId, source, page.nextQuery!).future);
+      if (_isCurrentSearch(current)) state = state.whenData((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
     } catch (error, stackTrace) {
-      handlerError(error, stackTrace);
+      if (_isCurrentSearch(current)) handlerError(error, stackTrace);
     } finally {
-      await update((state) => state.copyWith(loadings: state.removeLoading(id)));
+      if (_isCurrentSearch(current)) state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(source.id)));
     }
   }
 
   /// 处理文本更新事件
   Future<void> onTextChanged(String text) async {
     try {
-      await update((state) => state.copyWith(editingText: text.trim()));
+      state = state.whenData((state) => state.copyWith(editingText: text.trim()));
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);
     }
@@ -130,6 +141,9 @@ class SearchState with _$SearchState {
 
     /// 当前缓存的漫画源
     required Map<int, Source> cachedSources,
+
+    /// 当前搜索轮次编号
+    required int searchId,
 
     /// 正在搜索的漫画源
     required Set<int> loadings,
