@@ -53,6 +53,28 @@
 ​```
 ```
 
+## 代码评审
+
+### 数据迁移
+
+- 当前开发阶段由维护者整体替换数据库，除非遇到以下命令无法覆盖的情况，否则不必考虑数据库迁移，如：
+
+```dart
+final migrator = createMigrator();
+for (final table in allTables) {
+  await migrator.deleteTable(table.actualTableName);
+  await migrator.createTable(table);
+}
+```
+
+```markdown
+// Bad
+内置作品改用首话 URL 时，要求编写迁移来合并旧库里的搜索记录并转移阅读进度
+
+// Good
+检查新库导入书目后，从搜索打开同一作品会命中已有记录；若此时仍产生重复记录，应当处理
+```
+
 ## 代码风格
 
 ### 核心规则
