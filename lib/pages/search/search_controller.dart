@@ -71,12 +71,10 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
       if (_isStaleSearch(searchId)) return;
       if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(sourceId, source)));
       final provider = searchMangasProvider(searchId, source, query);
-      final page = retry ? await ref.refresh(provider.future) : await ref.read(provider.future);
+      final entries = retry ? await ref.refresh(provider.future) : await ref.read(provider.future);
       if (_isStaleSearch(searchId)) return;
-      final entries = previous == null ? page : page.prepend(previous);
-      state = state.whenData(
-        (state) => state.copyWith(loadings: state.removeLoading(sourceId), results: state.addResult(sourceId, entries)),
-      );
+      final next = previous == null ? entries : entries.prepend(previous);
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), results: state.addResult(sourceId, next)));
     } catch (error, stackTrace) {
       if (_isStaleSearch(searchId)) return;
       state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), errors: state.addError(sourceId, error)));
@@ -203,7 +201,7 @@ extension on SearchState {
 
   Map<int, String> removeError(int sourceId) => {...errors}..remove(sourceId);
 
-  Map<int, SourceMangaEntries> addResult(int sourceId, SourceMangaEntries page) => {...results}..addAll({sourceId: page});
+  Map<int, SourceMangaEntries> addResult(int sourceId, SourceMangaEntries entries) => {...results}..addAll({sourceId: entries});
 }
 
 /// 搜索页面扩展配置
