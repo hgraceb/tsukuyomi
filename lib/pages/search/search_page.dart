@@ -120,7 +120,7 @@ class _SearchPageResult extends StatelessWidget {
     if (hasError) {
       return _buildRetryButton(context);
     } else if (hasNextPage) {
-      return const SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 3.0));
+      return const SizedBox.square(dimension: 20.0, child: CircularProgressIndicator(strokeWidth: 3.0));
     } else {
       return const IconButton(onPressed: null, icon: Icon(Icons.done_all_outlined));
     }
@@ -214,7 +214,7 @@ class _SearchPageResult extends StatelessWidget {
                 child: const Center(
                   key: ValueKey('loading'),
                   child: SizedBox.square(
-                    dimension: 24.0,
+                    dimension: 20.0,
                     child: CircularProgressIndicator(
                       strokeWidth: 3.0,
                     ),
