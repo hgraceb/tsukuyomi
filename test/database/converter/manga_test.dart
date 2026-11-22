@@ -5,14 +5,15 @@ import 'package:tsukuyomi/database/converter/manga.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
 
 void main() {
-  test('Authors are trimmed and deduplicated by name, role and URL in source order on read and write', () {
+  test('Authors are trimmed and deduplicated by name, role, ID and URL in source order on read and write', () {
     const converter = MangaAuthorsConverter();
     const writer = SourceMangaAuthor(name: 'Alice', role: 'Writer', url: '/authors/1');
     const other = SourceMangaAuthor(name: 'Bob');
     const artist = SourceMangaAuthor(name: 'Alice', role: 'Artist', url: '/authors/1');
     const linked = SourceMangaAuthor(name: 'Alice', role: 'Writer', url: '/authors/2');
-    final input = [writer.copyWith(name: ' Alice '), other, writer, artist, linked];
-    const expected = [writer, other, artist, linked];
+    final identified = other.copyWith(id: 'author-2');
+    final input = [writer.copyWith(name: ' Alice '), other, writer, artist, linked, identified, identified];
+    final expected = [writer, other, artist, linked, identified];
     expect(converter.fromSql(jsonEncode(input)), expected);
     expect(converter.toSql(input), jsonEncode(expected));
 

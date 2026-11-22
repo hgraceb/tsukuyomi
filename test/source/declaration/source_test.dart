@@ -133,7 +133,7 @@ main() {
     url: '/manga', name: 'Title', cover: '/cover',
     status: SourceMangaStatus.ongoing, description: 'First paragraph\\nSecond paragraph',
     authors: <SourceMangaAuthor>[
-      SourceMangaAuthor(name: ' Author ', role: 'Writer', url: 'https://example.com/authors/1'),
+      SourceMangaAuthor(name: ' Author ', role: 'Writer', id: 'author-1', url: 'https://example.com/authors/1'),
       SourceMangaAuthor.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
     ],
     tags: <SourceMangaTag>[
@@ -145,7 +145,7 @@ main() {
   final dynamic author = manga.authors!.first;
   return <dynamic>[
     manga.status!.toJson(), manga.description,
-    manga.authors!.first.name, manga.authors!.first.role, author.role, manga.authors!.first.url, manga.authors!.last.toJson(),
+    manga.authors!.first.name, manga.authors!.first.role, author.role, manga.authors!.first.id, manga.authors!.first.url, manga.authors!.last.toJson(),
     manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.id, manga.tags!.first.url,
     manga.tags!.last.toJson(), manga.tags!.last.url,
     manga.authors!.first is SourceMangaAuthor, manga.tags!.first is SourceMangaTag,
@@ -159,8 +159,9 @@ main() {
       ' Author ',
       'Writer',
       'Writer',
+      'author-1',
       'https://example.com/authors/1',
-      {'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
+      {'name': 'Author', 'role': 'Writer', 'id': null, 'url': 'https://example.com/authors/1'},
       'Adventure',
       'category',
       '1',
