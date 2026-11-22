@@ -30,10 +30,10 @@ void main() {
       SourceMangaTagType.other: 'other',
     };
     for (final entry in values.entries) {
-      final tag = SourceMangaTag(type: entry.key, name: 'Tag');
+      final tag = SourceMangaTag(type: entry.key, name: 'Tag', id: '3269754496379892707');
       final json = jsonDecode(jsonEncode(tag)) as Map<String, dynamic>;
-      expect(json, {'type': entry.value, 'name': 'Tag', 'url': null});
-      expect(json.keys, ['type', 'name', 'url']);
+      expect(json, {'type': entry.value, 'name': 'Tag', 'id': '3269754496379892707', 'url': null});
+      expect(json.keys, ['type', 'name', 'id', 'url']);
       expect(SourceMangaTag.fromJson(json), tag);
       expect(SourceMangaTagType.fromJson(entry.value), same(entry.key));
       expect(entry.key.toJson(), entry.value);
@@ -44,7 +44,8 @@ void main() {
     expect(SourceMangaAuthor.fromJson(json), author);
     expect(SourceMangaAuthor.fromJson({'name': 'Alice'}), author);
     expect(SourceMangaAuthor.fromJson({'name': 'Alice', 'role': null, 'url': null}), author);
-    expect(SourceMangaTag.fromJson({'type': 'tag', 'name': 'Tag', 'url': null}).url, isNull);
+    const tag = SourceMangaTag(type: SourceMangaTagType.tag, name: 'Tag');
+    expect(SourceMangaTag.fromJson({'type': 'tag', 'name': 'Tag', 'url': null}), tag);
   });
 
   test('Generated decoding rejects missing required fields and incorrectly typed values', () {
@@ -54,6 +55,7 @@ void main() {
     expect(() => SourceMangaAuthor.fromJson({'name': 'Alice', 'url': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaTag.fromJson({'name': 'Adventure'}), throwsArgumentError);
     expect(() => SourceMangaTag.fromJson({'type': 0, 'name': 'Adventure'}), throwsArgumentError);
+    expect(() => SourceMangaTag.fromJson({'type': 'tag', 'name': 'Adventure', 'id': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaTag.fromJson({'type': 'tag', 'name': 'Adventure', 'url': 1}), throwsA(isA<TypeError>()));
     for (final type in ['genre', 'theme', 'format', 'demographic', 'content', 'site-category']) {
       expect(() => SourceMangaTag.fromJson({'type': type, 'name': 'Adventure'}), throwsArgumentError, reason: type);

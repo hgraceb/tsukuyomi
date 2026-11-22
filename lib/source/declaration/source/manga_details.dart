@@ -101,7 +101,7 @@ class SourceMangaAuthor {
 DartClass get _$SourceMangaTag => DartClass<SourceMangaTag>(($) => '''
 class SourceMangaTag {
   // ${$.empty('SourceMangaTag.new', () => SourceMangaTag.new)}
-  const SourceMangaTag({required this.type, required this.name, this.url});
+  const SourceMangaTag({required this.type, required this.name, this.id, this.url});
 
   // ${$.empty('SourceMangaTag.fromJson', () => SourceMangaTag.fromJson)}
   external factory SourceMangaTag.fromJson(Map<String, dynamic> json);
@@ -111,6 +111,9 @@ class SourceMangaTag {
 
   // ${$.debug('name', ($, $$) => $.name)}
   final String name;
+
+  // ${$.debug('id', ($, $$) => $.id)}
+  final String? id;
 
   // ${$.debug('url', ($, $$) => $.url)}
   final String? url;

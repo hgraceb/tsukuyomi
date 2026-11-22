@@ -4,6 +4,7 @@
 
 - 修改应用的核心逻辑和页面布局前，若存在 `packages/tsukuyomi_sources/AGENTS.md`，先读取其中的参考项目说明并按需请求
 - 修改 `packages/tsukuyomi_sources/` 前先完整读取并遵守其中的 `AGENTS.md`，通过 `assets/sources` 关联目录修改时同样适用
+- 需要读取或者更新待办事项时，优先根据 `packages/tsukuyomi_sources/AGENTS.md` 指定的文件路径处理，未指定时再单独确认
 
 ## 文档格式
 
@@ -51,6 +52,40 @@
 // Good
 // 第二条示例规则的正确示例
 ​```
+```
+
+## 代码评审
+
+### 问题分类
+
+- 先对代码评审问题进行分类，区分当前改动导致的问题以及旧实现已有问题，如：
+
+```markdown
+// Bad
+无差别处理所有代码评审问题
+
+// Good
+根据优先级评估哪些问题需要在当前分支处理、哪些问题可以立马接着开分支处理、哪些问题建议先记录到待办事项等后续处理
+```
+
+### 数据迁移
+
+- 当前开发阶段由维护者整体替换数据库，除非遇到以下命令无法覆盖的情况，否则不必考虑数据库迁移，如：
+
+```dart
+final migrator = createMigrator();
+for (final table in allTables) {
+  await migrator.deleteTable(table.actualTableName);
+  await migrator.createTable(table);
+}
+```
+
+```markdown
+// Bad
+内置作品改用首话 URL 时，要求编写迁移来合并旧库里的搜索记录并转移阅读进度
+
+// Good
+检查新库导入书目后，从搜索打开同一作品会命中已有记录；若此时仍产生重复记录，应当处理
 ```
 
 ## 代码风格
