@@ -167,7 +167,7 @@ class SearchState with _$SearchState {
     required Set<int> loadings,
 
     /// 搜索出错的漫画源
-    required Map<int, String> errors,
+    required Map<int, Object> errors,
 
     /// 搜索完成的漫画源
     required Map<int, SourceMangaEntries> results,
@@ -197,9 +197,9 @@ extension on SearchState {
 
   Set<int> removeLoading(int sourceId) => {...loadings}..remove(sourceId);
 
-  Map<int, String> addError(int sourceId, Object error) => {...errors}..addAll({sourceId: error.toString()});
+  Map<int, Object> addError(int sourceId, Object error) => {...errors}..addAll({sourceId: error});
 
-  Map<int, String> removeError(int sourceId) => {...errors}..remove(sourceId);
+  Map<int, Object> removeError(int sourceId) => {...errors}..remove(sourceId);
 
   Map<int, SourceMangaEntries> addResult(int sourceId, SourceMangaEntries entries) => {...results}..addAll({sourceId: entries});
 }

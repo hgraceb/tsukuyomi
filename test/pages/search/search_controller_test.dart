@@ -107,7 +107,7 @@ void main() {
     await paging;
     await controller.onNext(source.id, first);
     expect(current().results[installed.id], same(first));
-    expect(current().errors[installed.id], error.toString());
+    expect(current().errors[installed.id], same(error));
     expect(current().loadings, isEmpty);
     expect(errors.shown, [error]);
     expect(source.requests.map((query) => query.page), [1, 7]);
@@ -191,7 +191,7 @@ void main() {
       expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
       expect(current().loadings, isEmpty);
       if (fails) {
-        expect(current().errors[other.id], error.toString());
+        expect(current().errors[other.id], same(error));
       } else {
         expect(current().results[other.id]!.mangas.map((manga) => manga.url), ['1']);
       }

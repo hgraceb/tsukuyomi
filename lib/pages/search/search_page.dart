@@ -105,12 +105,12 @@ class _SearchPageResult extends StatelessWidget {
     });
   }
 
-  /// 搜索失败的重试按钮
-  Widget _buildRetryButton(BuildContext context) {
+  /// 搜索重试按钮
+  Widget _buildRetryButton(BuildContext context, {bool noResults = false}) {
     return IconButton(
       tooltip: TsukuyomiLocalizations.of(context)!.retry,
-      color: Theme.of(context).colorScheme.error,
-      icon: const Icon(Icons.refresh_outlined),
+      color: noResults ? null : Theme.of(context).colorScheme.error,
+      icon: Icon(noResults ? Icons.search_off_outlined : Icons.refresh_outlined),
       onPressed: () => controller.onRetry(source.id),
     );
   }
@@ -189,7 +189,9 @@ class _SearchPageResult extends StatelessWidget {
                 ),
               );
             }
-            if (state.error case String error) {
+            if (state.error case final error?) {
+              final noResults = error is SourceMangasNotFound;
+              final message = noResults ? TsukuyomiLocalizations.of(context)!.searchNoResults : error.toString();
               return TsukuyomiAnimatedSwitcher(
                 child: Container(
                   key: const ValueKey('error'),
@@ -198,9 +200,9 @@ class _SearchPageResult extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildRetryButton(context),
+                      _buildRetryButton(context, noResults: noResults),
                       Text(
-                        '$error\n\n',
+                        '$message\n\n',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
