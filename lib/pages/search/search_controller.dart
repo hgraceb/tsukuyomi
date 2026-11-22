@@ -42,9 +42,9 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     );
   }
 
-  /// 判断分页请求是否仍属于当前搜索
-  bool _isCurrentSearch(SearchState current) {
-    return mounted && current.searchId == _searchId && current.searchId == data?.searchId;
+  /// 判断分页请求是否已过期
+  bool _isStaleSearch(SearchState current) {
+    return !mounted || current.searchId != _searchId || current.searchId != data?.searchId;
   }
 
   /// 创建搜索框焦点控制器
@@ -96,19 +96,22 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   }
 
   /// 搜索下一页的数据
-  Future<void> onNext(Source? source, SourceMangaEntries? page) async {
+  Future<void> onNext(Source? source, SourceMangaEntries? page, {bool retry = false}) async {
     final current = data;
     final id = source?.id;
-    if (source == null || page == null || page.nextQuery == null || current == null || id == null) return;
-    if (current.loadings.contains(id) || current.results[id] != page || !_isCurrentSearch(current)) return;
+    if (source == null || page == null || page.nextQuery == null || current == null || id == null || _isStaleSearch(current)) return;
+    if (current.loadings.contains(id) || current.results[id] != page || current.errors.containsKey(id) != retry) return;
     try {
-      state = state.whenData((state) => state.copyWith(loadings: state.addLoading(id)));
-      final result = await ref.read(searchMangasProvider(current.searchId, source, page.nextQuery!).future);
-      if (_isCurrentSearch(current)) state = state.whenData((state) => state.copyWith(results: state.addResult(id, result.prepend(page))));
+      state = state.whenData((state) => state.copyWith(loadings: state.addLoading(id), errors: state.removeError(id)));
+      final provider = searchMangasProvider(current.searchId, source, page.nextQuery!);
+      final result = retry ? await ref.refresh(provider.future) : await ref.read(provider.future);
+      if (_isStaleSearch(current)) return;
+      final entries = result.prepend(page);
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries)));
     } catch (error, stackTrace) {
-      if (_isCurrentSearch(current)) handlerError(error, stackTrace);
-    } finally {
-      if (_isCurrentSearch(current)) state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(source.id)));
+      if (_isStaleSearch(current)) return;
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, error.toString())));
+      handlerError(error, stackTrace);
     }
   }
 
@@ -180,6 +183,8 @@ extension on SearchState {
   Set<int> removeLoading(int sourceId) => {...loadings}..remove(sourceId);
 
   Map<int, String> addError(int sourceId, String error) => {...errors}..addAll({sourceId: error});
+
+  Map<int, String> removeError(int sourceId) => {...errors}..remove(sourceId);
 
   Map<int, SourceMangaEntries> addResult(int sourceId, SourceMangaEntries page) => {...results}..addAll({sourceId: page});
 }

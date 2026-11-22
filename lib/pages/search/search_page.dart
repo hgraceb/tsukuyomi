@@ -105,6 +105,22 @@ class _SearchPageResult extends StatelessWidget {
     });
   }
 
+  /// 搜索结果列表的末尾图标
+  Widget _buildTrailing(BuildContext context, bool hasNextPage, VoidCallback? onRetry) {
+    if (onRetry != null) {
+      return IconButton(
+        tooltip: TsukuyomiLocalizations.of(context)!.retry,
+        color: Theme.of(context).colorScheme.error,
+        icon: const Icon(Icons.refresh_outlined),
+        onPressed: onRetry,
+      );
+    } else if (hasNextPage) {
+      return const SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 3.0));
+    } else {
+      return const IconButton(onPressed: null, icon: Icon(Icons.done_all_outlined));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return builder(
@@ -123,6 +139,7 @@ class _SearchPageResult extends StatelessWidget {
           shape: state.result == null ? null : const RoundedRectangleBorder(),
           child: Builder(builder: (context) {
             if (state.result?.mangas case List<SourceManga> mangas) {
+              final hasNextPage = state.result?.nextQuery != null;
               return TsukuyomiAnimatedSwitcher(
                 child: ListView.separated(
                   key: const ValueKey('results'),
@@ -130,7 +147,7 @@ class _SearchPageResult extends StatelessWidget {
                   itemCount: mangas.length + 1,
                   separatorBuilder: (context, index) => const SizedBox(width: 12.0),
                   // 还有下一页内容时禁用列表末尾越界滚动，避免在快速滚动时到末尾时触发滚动回弹导致滚动行为异常
-                  physics: state.result?.nextQuery != null ? const CustomBouncingScrollPhysics(end: false) : null,
+                  physics: hasNextPage ? const CustomBouncingScrollPhysics(end: false) : null,
                   itemBuilder: (context, index) => Padding(
                     padding: EdgeInsets.only(
                       left: index == 0 ? padding : 0.0,
@@ -154,28 +171,14 @@ class _SearchPageResult extends StatelessWidget {
                               ),
                             ),
                           );
-                        } else if (state.result?.nextQuery != null) {
-                          _loadNextPage(context, state.source, state.result);
-                          return const Center(
-                            child: SizedBox.square(
-                              dimension: 24.0,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3.0,
-                              ),
-                            ),
-                          );
-                        } else {
-                          return const Card(
-                            margin: EdgeInsets.zero,
-                            color: Colors.transparent,
-                            child: Center(
-                              child: IconButton(
-                                onPressed: null,
-                                icon: Icon(Icons.done_all_outlined),
-                              ),
-                            ),
-                          );
                         }
+                        final onRetry = state.error == null ? null : () => controller.onNext(state.source, state.result, retry: true);
+                        if (hasNextPage && !state.isLoading && onRetry == null) _loadNextPage(context, state.source, state.result);
+                        return Card(
+                          margin: EdgeInsets.zero,
+                          color: Colors.transparent,
+                          child: Center(child: _buildTrailing(context, hasNextPage, onRetry)),
+                        );
                       }),
                     ),
                   ),

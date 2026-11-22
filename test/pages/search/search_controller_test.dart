@@ -69,6 +69,37 @@ void main() {
     expect(source.requests.map((query) => query.page), [1, 7]);
   });
 
+  test('Failed pagination preserves results until a manual retry reloads the same page', () async {
+    final container = await loadSources();
+    await search('example');
+    final first = current().results[installed.id]!;
+    final error = StateError('next page');
+    source.pendingPage = Future.error(error);
+    final paging = controller.onNext(source, first);
+    // 保留失败的请求，验证手动重试会重新请求这一页
+    final provider = searchMangasProvider(current().searchId, source, source.continuation);
+    addTearDown(container.listen(provider, (_, _) {}).close);
+    await paging;
+    await controller.onNext(source, first);
+    expect(current().results[installed.id], same(first));
+    expect(current().errors[installed.id], error.toString());
+    expect(current().loadings, isEmpty);
+    expect(errors.shown, [error]);
+    expect(source.requests.map((query) => query.page), [1, 7]);
+
+    final pending = Completer<void>();
+    source.pendingPage = pending.future;
+    final retry = controller.onNext(source, first, retry: true);
+    final duplicate = controller.onNext(source, first, retry: true);
+    expect(current().loadings, contains(installed.id));
+    expect(current().errors, isEmpty);
+    pending.complete();
+    await Future.wait([retry, duplicate]);
+    expect(source.requests.map((query) => query.page), [1, 7, 7]);
+    expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
+    expect(current().loadings, isEmpty);
+  });
+
   test('Editing immediately after submitting keeps the submitted search pageable', () async {
     await loadSources();
     await edit('example');
