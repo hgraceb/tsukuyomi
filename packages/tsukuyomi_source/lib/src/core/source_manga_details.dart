@@ -121,6 +121,9 @@ class SourceMangaTag with _$SourceMangaTag {
     /// 标签名称
     required String name,
 
+    /// 标签标识
+    String? id,
+
     /// 标签链接
     String? url,
   }) = _SourceMangaTag;

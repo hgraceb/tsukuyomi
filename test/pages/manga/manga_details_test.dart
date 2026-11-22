@@ -107,7 +107,7 @@ void main() {
       const SourceMangaAuthor(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/1'),
       const SourceMangaAuthor(name: 'Bob'),
     ]);
-    const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Fantasy', url: 'https://example.com/categories/1');
+    const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Fantasy', id: '1', url: 'https://example.com/categories/1');
     expect(manga.tags.first, tag);
     expect(manga.languages, ['ja', 'zh-Hans']);
     expect(manga.favorite, isTrue);
@@ -122,8 +122,8 @@ void main() {
       {'name': 'Bob', 'role': null, 'url': null},
     ]);
     expect(jsonDecode(row.read<String>('tags')), [
-      {'type': 'category', 'name': 'Fantasy', 'url': 'https://example.com/categories/1'},
-      {'type': 'tag', 'name': 'Adventure', 'url': null},
+      {'type': 'category', 'name': 'Fantasy', 'id': '1', 'url': 'https://example.com/categories/1'},
+      {'type': 'tag', 'name': 'Adventure', 'id': null, 'url': null},
     ]);
     expect(jsonDecode(row.read<String>('languages')), ['ja', 'zh-Hans']);
   });

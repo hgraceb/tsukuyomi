@@ -21,13 +21,14 @@ void main() {
     expect(() => converter.toSql(invalid), throwsFormatException);
   });
 
-  test('Tags are trimmed and deduplicated by name, type and URL in source order on read and write', () {
+  test('Tags are trimmed and deduplicated by name, type, ID and URL in source order on read and write', () {
     const converter = MangaTagsConverter();
     const category = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: '/categories/1');
     const tag = SourceMangaTag(type: SourceMangaTagType.tag, name: 'Adventure');
     const linked = SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: '/categories/2');
-    final input = [category.copyWith(name: ' Adventure '), category, tag, linked];
-    const expected = [category, tag, linked];
+    final identified = tag.copyWith(id: '2');
+    final input = [category.copyWith(name: ' Adventure '), category, tag, linked, identified, identified];
+    final expected = [category, tag, linked, identified];
     expect(converter.fromSql(jsonEncode(input)), expected);
     expect(converter.toSql(input), jsonEncode(expected));
 

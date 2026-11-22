@@ -137,7 +137,7 @@ main() {
       SourceMangaAuthor.fromJson({'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'}),
     ],
     tags: <SourceMangaTag>[
-      SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', url: 'https://example.com/categories/1'),
+      SourceMangaTag(type: SourceMangaTagType.category, name: 'Adventure', id: '1', url: 'https://example.com/categories/1'),
       SourceMangaTag.fromJson({'type': 'tag', 'name': 'Space'}),
     ],
     languages: <String>['zh-Hans', 'ja'], chapters: [],
@@ -146,7 +146,8 @@ main() {
   return <dynamic>[
     manga.status!.toJson(), manga.description,
     manga.authors!.first.name, manga.authors!.first.role, author.role, manga.authors!.first.url, manga.authors!.last.toJson(),
-    manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.url, manga.tags!.last.toJson(), manga.tags!.last.url,
+    manga.tags!.first.name, manga.tags!.first.type.toJson(), manga.tags!.first.id, manga.tags!.first.url,
+    manga.tags!.last.toJson(), manga.tags!.last.url,
     manga.authors!.first is SourceMangaAuthor, manga.tags!.first is SourceMangaTag,
     manga.languages,
   ];
@@ -162,8 +163,9 @@ main() {
       {'name': 'Author', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
       'Adventure',
       'category',
+      '1',
       'https://example.com/categories/1',
-      {'type': 'tag', 'name': 'Space', 'url': null},
+      {'type': 'tag', 'name': 'Space', 'id': null, 'url': null},
       null,
       true,
       true,
