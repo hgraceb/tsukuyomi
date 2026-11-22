@@ -99,21 +99,26 @@ class _SearchPageResult extends StatelessWidget {
   final double padding;
 
   /// 等列表构建完成后再加载下一页
-  void _loadNextPage(BuildContext context, Source? source, SourceMangaEntries? page) {
+  void _loadNextPage(BuildContext context, SourceMangaEntries? page) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (context.mounted) controller.onNext(source, page);
+      if (context.mounted) controller.onNext(source.id, page);
     });
   }
 
+  /// 搜索失败的重试按钮
+  Widget _buildRetryButton(BuildContext context) {
+    return IconButton(
+      tooltip: TsukuyomiLocalizations.of(context)!.retry,
+      color: Theme.of(context).colorScheme.error,
+      icon: const Icon(Icons.refresh_outlined),
+      onPressed: () => controller.onRetry(source.id),
+    );
+  }
+
   /// 搜索结果列表的末尾图标
-  Widget _buildTrailing(BuildContext context, bool hasNextPage, VoidCallback? onRetry) {
-    if (onRetry != null) {
-      return IconButton(
-        tooltip: TsukuyomiLocalizations.of(context)!.retry,
-        color: Theme.of(context).colorScheme.error,
-        icon: const Icon(Icons.refresh_outlined),
-        onPressed: onRetry,
-      );
+  Widget _buildTrailing(BuildContext context, bool hasNextPage, {required bool hasError}) {
+    if (hasError) {
+      return _buildRetryButton(context);
     } else if (hasNextPage) {
       return const SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 3.0));
     } else {
@@ -128,7 +133,6 @@ class _SearchPageResult extends StatelessWidget {
         error: state.errors[source.id],
         result: state.results[source.id],
         isLoading: state.loadings.contains(source.id),
-        source: state.cachedSources[source.id],
         headers: state.cachedSources[source.id]?.headers,
       ),
       data: (state) => TsukuyomiAnimatedSwitcher(
@@ -172,12 +176,12 @@ class _SearchPageResult extends StatelessWidget {
                             ),
                           );
                         }
-                        final onRetry = state.error == null ? null : () => controller.onNext(state.source, state.result, retry: true);
-                        if (hasNextPage && !state.isLoading && onRetry == null) _loadNextPage(context, state.source, state.result);
+                        final hasError = state.error != null;
+                        if (hasNextPage && !state.isLoading && !hasError) _loadNextPage(context, state.result);
                         return Card(
                           margin: EdgeInsets.zero,
                           color: Colors.transparent,
-                          child: Center(child: _buildTrailing(context, hasNextPage, onRetry)),
+                          child: Center(child: _buildTrailing(context, hasNextPage, hasError: hasError)),
                         );
                       }),
                     ),
@@ -194,10 +198,7 @@ class _SearchPageResult extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const IconButton(
-                        onPressed: null,
-                        icon: Icon(Icons.search_off_outlined),
-                      ),
+                      _buildRetryButton(context),
                       Text(
                         '$error\n\n',
                         maxLines: 2,

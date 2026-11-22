@@ -62,8 +62,8 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     return controller;
   }
 
-  /// 请求单个漫画源第一页
-  Future<void> _searchFirstPage(int searchId, int sourceId, SourceQuery query, {bool retry = false}) async {
+  /// 请求单个漫画源的一页数据
+  Future<void> _searchPage(int searchId, int sourceId, SourceQuery query, {SourceMangaEntries? previous, bool retry = false}) async {
     try {
       final cachedSource = data?.cachedSources[sourceId];
       if (retry && cachedSource == null) ref.invalidate(sourceByIdProvider(sourceId));
@@ -73,10 +73,14 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
       final provider = searchMangasProvider(searchId, source, query);
       final page = retry ? await ref.refresh(provider.future) : await ref.read(provider.future);
       if (_isStaleSearch(searchId)) return;
-      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), results: state.addResult(sourceId, page)));
-    } catch (e) {
+      final entries = previous == null ? page : page.prepend(previous);
+      state = state.whenData(
+        (state) => state.copyWith(loadings: state.removeLoading(sourceId), results: state.addResult(sourceId, entries)),
+      );
+    } catch (error, stackTrace) {
       if (_isStaleSearch(searchId)) return;
-      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), errors: state.addError(sourceId, e)));
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), errors: state.addError(sourceId, error)));
+      if (previous != null) handlerError(error, stackTrace);
     }
   }
 
@@ -89,7 +93,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     final ids = sources.map((source) => source.id).toSet();
     state = state.whenData((state) => state.copyWith(searchId: searchId, loadings: ids, errors: {}, results: {}, searchingText: keyword));
     for (final sourceId in ids) {
-      await _searchFirstPage(searchId, sourceId, query);
+      await _searchPage(searchId, sourceId, query);
       if (_isStaleSearch(searchId)) return;
     }
     state = state.whenData((state) => state.copyWith(searchingText: ''));
@@ -107,35 +111,25 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     }
   }
 
-  /// 重试单个漫画源第一页
-  Future<void> onRetryFirstPage(int sourceId) async {
+  /// 重试漫画源失败的请求
+  Future<void> onRetry(int sourceId) async {
     final current = data;
-    final query = _firstPageQuery;
-    if (current == null || query == null || _isStaleSearch(current.searchId)) return;
-    if (!current.errors.containsKey(sourceId) || current.results.containsKey(sourceId)) return;
+    if (current == null || _isStaleSearch(current.searchId) || !current.errors.containsKey(sourceId)) return;
+    final previous = current.results[sourceId];
+    final query = previous == null ? _firstPageQuery : previous.nextQuery;
+    if (query == null) return;
     state = state.whenData((state) => state.copyWith(loadings: state.addLoading(sourceId), errors: state.removeError(sourceId)));
-    await _searchFirstPage(current.searchId, sourceId, query, retry: true);
+    await _searchPage(current.searchId, sourceId, query, previous: previous, retry: true);
   }
 
   /// 搜索下一页的数据
-  Future<void> onNext(Source? source, SourceMangaEntries? page, {bool retry = false}) async {
+  Future<void> onNext(int sourceId, SourceMangaEntries? page) async {
     final current = data;
-    final id = source?.id;
-    if (source == null || page == null || page.nextQuery == null) return;
-    if (current == null || id == null || _isStaleSearch(current.searchId)) return;
-    if (current.loadings.contains(id) || current.results[id] != page || current.errors.containsKey(id) != retry) return;
-    try {
-      state = state.whenData((state) => state.copyWith(loadings: state.addLoading(id), errors: state.removeError(id)));
-      final provider = searchMangasProvider(current.searchId, source, page.nextQuery!);
-      final result = retry ? await ref.refresh(provider.future) : await ref.read(provider.future);
-      if (_isStaleSearch(current.searchId)) return;
-      final entries = result.prepend(page);
-      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries)));
-    } catch (error, stackTrace) {
-      if (_isStaleSearch(current.searchId)) return;
-      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, error)));
-      handlerError(error, stackTrace);
-    }
+    final query = page?.nextQuery;
+    if (current == null || query == null || _isStaleSearch(current.searchId)) return;
+    if (current.loadings.contains(sourceId) || current.errors.containsKey(sourceId) || current.results[sourceId] != page) return;
+    state = state.whenData((state) => state.copyWith(loadings: state.addLoading(sourceId)));
+    await _searchPage(current.searchId, sourceId, query, previous: page);
   }
 
   /// 处理文本更新事件
