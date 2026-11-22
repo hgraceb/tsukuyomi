@@ -21,7 +21,7 @@ void main() {
 
   SearchState current() => subscription.read().requireValue;
 
-  Future<ProviderContainer> loadSources([_SearchSource? other]) async {
+  Future<ProviderContainer> loadSources({_SearchSource? other, Future<Source> Function()? loadSource}) async {
     source = _SearchSource(installed.id);
     errors = _Errors();
     final sources = [installed, if (other != null) installed.copyWith(id: other.id)];
@@ -30,7 +30,7 @@ void main() {
         errorHandlerProvider.overrideWithValue(errors),
         keyboardVisibleProvider.overrideWithValue(false),
         sourcesStreamProvider.overrideWith((ref) => Stream.value(sources)),
-        sourceByIdProvider(installed.id).overrideWith((ref) async => source),
+        sourceByIdProvider(installed.id).overrideWith((ref) => loadSource?.call() ?? Future.value(source)),
         if (other != null) sourceByIdProvider(other.id).overrideWith((ref) async => other),
       ],
     );
@@ -71,7 +71,7 @@ void main() {
 
   test('Retrying a failed first page uses the submitted keyword and preserves other sources', () async {
     final other = _SearchSource(2);
-    await loadSources(other);
+    await loadSources(other: other);
     final firstPage = Completer<void>();
     source.pendingFirstPage = firstPage.future;
     final searching = search('example');
@@ -93,6 +93,38 @@ void main() {
     expect(other.requests.map((query) => query.page), [1, 7]);
     expect(current().results[other.id], same(otherResult));
   });
+
+  for (final ready in [false, true]) {
+    test('Retrying source initialization reuses a ${ready ? 'completed' : 'pending'} reload', () async {
+      var loads = 0;
+      final pending = Completer<Source>();
+      final container = await loadSources(
+        loadSource: () async {
+          loads++;
+          if (loads <= 2) throw StateError('source unavailable');
+          return pending.future;
+        },
+      );
+      final provider = sourceByIdProvider(installed.id);
+      addTearDown(container.listen(provider, (_, _) {}).close);
+      await search('example');
+      await controller.onRetry(installed.id);
+      expect(loads, 2);
+      expect(current().errors.keys, [installed.id]);
+
+      final background = container.refresh(provider.future);
+      if (ready) {
+        pending.complete(source);
+        await background;
+      }
+      final retry = controller.onRetry(installed.id);
+      if (!ready) pending.complete(source);
+      await retry;
+      expect(loads, 3);
+      expect(current().errors, isEmpty);
+      expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1']);
+    });
+  }
 
   test('Failed pagination preserves results until a manual retry reloads the same page', () async {
     final container = await loadSources();
@@ -149,7 +181,7 @@ void main() {
 
   test('Starting pagination preserves another source finishing its first page', () async {
     final other = _SearchSource(2);
-    await loadSources(other);
+    await loadSources(other: other);
     final firstPage = Completer<void>();
     other.pendingFirstPage = firstPage.future;
     final searching = search('example');
@@ -168,7 +200,7 @@ void main() {
   for (final fails in [false, true]) {
     test('Pagination keeps its results when another source ${fails ? 'fails' : 'finishes'} loading its first page', () async {
       final other = _SearchSource(2);
-      await loadSources(other);
+      await loadSources(other: other);
       final firstPage = Completer<void>();
       other.pendingFirstPage = firstPage.future;
       final searching = search('example');

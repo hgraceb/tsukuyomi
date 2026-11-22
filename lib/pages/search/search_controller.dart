@@ -66,8 +66,9 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   Future<void> _searchPage(int searchId, int sourceId, SourceQuery query, {SourceMangaEntries? previous, bool retry = false}) async {
     try {
       final cachedSource = data?.cachedSources[sourceId];
-      if (retry && cachedSource == null) ref.invalidate(sourceByIdProvider(sourceId));
-      final Source source = cachedSource ?? await ref.read(sourceByIdProvider(sourceId).future);
+      final sourceProvider = sourceByIdProvider(sourceId);
+      if (retry && cachedSource == null && ref.read(sourceProvider).unwrapPrevious().hasError) ref.invalidate(sourceProvider);
+      final Source source = cachedSource ?? await ref.read(sourceProvider.future);
       if (_isStaleSearch(searchId)) return;
       if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(sourceId, source)));
       final provider = searchMangasProvider(searchId, source, query);
