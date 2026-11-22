@@ -39,9 +39,13 @@ void main() {
     controller = container.read(searchControllerProvider.notifier);
   });
 
-  Future<void> search(String keyword) async {
+  Future<void> edit(String keyword) {
     current().textController.text = keyword;
-    await controller.onTextChanged(keyword);
+    return controller.onTextChanged(keyword);
+  }
+
+  Future<void> search(String keyword) async {
+    await edit(keyword);
     await controller.onSearch();
   }
 
@@ -59,6 +63,26 @@ void main() {
 
     await controller.onNext(source, last);
     expect(source.requests.map((query) => query.page), [1, 7]);
+  });
+
+  test('Editing immediately after submitting keeps the submitted search pageable', () async {
+    await edit('example');
+    await Future.wait([controller.onSearch(), edit('draft')]);
+
+    await controller.onNext(source, current().results[installed.id]);
+    expect(source.requests.first.keyword, 'example');
+    expect(current().editingText, 'draft');
+    expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
+  });
+
+  test('Submitting immediately after editing searches and paginates the latest text', () async {
+    await edit('draft');
+    await Future.wait([edit('example'), controller.onSearch()]);
+
+    await controller.onNext(source, current().results[installed.id]);
+    expect(source.requests.first.keyword, 'example');
+    expect(current().editingText, 'example');
+    expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
   });
 
   for (final fails in [false, true]) {

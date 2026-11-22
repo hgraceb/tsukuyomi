@@ -68,7 +68,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     final searchId = ++_searchId;
     final query = HttpSourceQuery(keyword: keyword);
     final ids = sources.map((source) => source.id).toSet();
-    await update((state) => state.copyWith(searchId: searchId, loadings: ids, errors: {}, results: {}, searchingText: keyword));
+    state = state.whenData((state) => state.copyWith(searchId: searchId, loadings: ids, errors: {}, results: {}, searchingText: keyword));
     for (final id in ids) {
       try {
         final cachedSource = data?.cachedSources[id];
@@ -115,7 +115,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   /// 处理文本更新事件
   Future<void> onTextChanged(String text) async {
     try {
-      await update((state) => state.copyWith(editingText: text.trim()));
+      state = state.whenData((state) => state.copyWith(editingText: text.trim()));
     } catch (error, stackTrace) {
       handlerError(error, stackTrace);
     }
