@@ -15,7 +15,7 @@ part 'search_controller.g.dart';
 /// 搜索页面控制器
 @riverpod
 class SearchController extends _$SearchController with AsyncNotifierMixin {
-  int _nextSearchId = 1;
+  int _searchId = 0;
 
   @override
   Future<SearchState> build() async {
@@ -30,6 +30,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     return SearchState(
       sources: sources,
       cachedSources: {},
+      searchId: 0,
       loadings: {},
       errors: {},
       results: {},
@@ -59,7 +60,7 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
   Future<void> _search(List<DatabaseSource>? sources, String? keyword) async {
     if (sources == null || sources.isEmpty) return;
     if (keyword == null || keyword.isEmpty) return;
-    final searchId = _nextSearchId++;
+    final searchId = ++_searchId;
     final query = HttpSourceQuery(keyword: keyword);
     final ids = sources.map((source) => source.id).toSet();
     await update((state) => state.copyWith(searchId: searchId, loadings: ids, errors: {}, results: {}, searchingText: keyword));
@@ -135,8 +136,8 @@ class SearchState with _$SearchState {
     /// 当前缓存的漫画源
     required Map<int, Source> cachedSources,
 
-    /// 当前这次搜索的编号
-    @Default(0) int searchId,
+    /// 当前搜索轮次编号
+    required int searchId,
 
     /// 正在搜索的漫画源
     required Set<int> loadings,
