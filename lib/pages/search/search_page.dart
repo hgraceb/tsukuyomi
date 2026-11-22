@@ -106,8 +106,15 @@ class _SearchPageResult extends StatelessWidget {
   }
 
   /// 搜索结果列表的末尾图标
-  Widget _buildTrailing(bool hasNextPage) {
-    if (hasNextPage) {
+  Widget _buildTrailing(BuildContext context, bool hasNextPage, VoidCallback? onRetry) {
+    if (onRetry != null) {
+      return IconButton(
+        tooltip: TsukuyomiLocalizations.of(context)!.retry,
+        color: Theme.of(context).colorScheme.error,
+        icon: const Icon(Icons.refresh_outlined),
+        onPressed: onRetry,
+      );
+    } else if (hasNextPage) {
       return const SizedBox.square(dimension: 24.0, child: CircularProgressIndicator(strokeWidth: 3.0));
     } else {
       return const IconButton(onPressed: null, icon: Icon(Icons.done_all_outlined));
@@ -165,11 +172,12 @@ class _SearchPageResult extends StatelessWidget {
                             ),
                           );
                         }
-                        if (hasNextPage) _loadNextPage(context, state.source, state.result);
+                        final onRetry = state.error == null ? null : () => controller.onNext(state.source, state.result, retry: true);
+                        if (hasNextPage && !state.isLoading && onRetry == null) _loadNextPage(context, state.source, state.result);
                         return Card(
                           margin: EdgeInsets.zero,
                           color: Colors.transparent,
-                          child: Center(child: _buildTrailing(hasNextPage)),
+                          child: Center(child: _buildTrailing(context, hasNextPage, onRetry)),
                         );
                       }),
                     ),
