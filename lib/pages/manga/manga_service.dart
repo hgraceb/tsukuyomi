@@ -14,14 +14,8 @@ class MangaService {
     return ref.read(mangaRepositoryProvider).updateManga(MangaTableCompanion(id: Value(mangaId), favorite: Value(favorite)));
   }
 
-  Future<int> insertSourceManga(int source, SourceManga manga) async {
-    final repository = ref.read(mangaRepositoryProvider);
-    final result = await repository.queryMangaOrNull(source, manga.url);
-    if (result == null) {
-      return repository.insertManga(manga.toInsertable(source));
-    } else {
-      return repository.updateManga(manga.toUpdatable(result.id));
-    }
+  Future<int> insertSourceManga(int source, SourceManga manga) {
+    return ref.read(mangaRepositoryProvider).upsertManga(manga.toInsertable(source));
   }
 }
 
