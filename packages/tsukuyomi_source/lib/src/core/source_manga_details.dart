@@ -104,6 +104,9 @@ class SourceMangaAuthor with _$SourceMangaAuthor {
     /// 作者角色
     String? role,
 
+    /// 作者标识
+    String? id,
+
     /// 作者链接
     String? url,
   }) = _SourceMangaAuthor;

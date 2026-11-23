@@ -12,9 +12,9 @@
         "status": "ongoing",
         "description": "Two couriers deliver letters across distant worlds.\n\nAn unaddressed letter sends them on a new journey.",
         "authors": [
-          {"name": " Alice ", "role": "Writer", "url": "https://example.com/authors/1"},
+          {"name": " Alice ", "role": "Writer", "id": "author-1", "url": "https://example.com/authors/1"},
           {"name": "Bob"},
-          {"name": "Alice", "role": "Writer", "url": "https://example.com/authors/1"}
+          {"name": "Alice", "role": "Writer", "id": "author-1", "url": "https://example.com/authors/1"}
         ],
         "tags": [
           {"type": "category", "name": "Fantasy", "id": "1", "url": "https://example.com/categories/1"},

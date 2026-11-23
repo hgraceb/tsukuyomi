@@ -43,7 +43,7 @@ void main() {
             cover: 'updated-cover',
             status: SourceMangaStatus.completed,
             description: 'Updated synopsis',
-            authors: [const SourceMangaAuthor(name: 'Carol', role: 'Writer', url: 'https://example.com/authors/3')],
+            authors: [const SourceMangaAuthor(name: 'Carol', role: 'Writer', id: 'author-3', url: 'https://example.com/authors/3')],
             tags: [],
             chapters: empty ? [] : [chapter],
           ),
@@ -66,6 +66,7 @@ void main() {
         expect(updated.description, 'Updated synopsis');
         expect(updated.authors.single.name, 'Carol');
         expect(updated.authors.single.role, 'Writer');
+        expect(updated.authors.single.id, 'author-3');
         expect(updated.authors.single.url, 'https://example.com/authors/3');
         expect(updated.tags, isEmpty);
         expect(updated.languages, original.languages);
@@ -104,7 +105,7 @@ void main() {
     expect(manga.status, SourceMangaStatus.ongoing);
     expect(manga.description, contains('\n\n'));
     expect(manga.authors, [
-      const SourceMangaAuthor(name: 'Alice', role: 'Writer', url: 'https://example.com/authors/1'),
+      const SourceMangaAuthor(name: 'Alice', role: 'Writer', id: 'author-1', url: 'https://example.com/authors/1'),
       const SourceMangaAuthor(name: 'Bob'),
     ]);
     const tag = SourceMangaTag(type: SourceMangaTagType.category, name: 'Fantasy', id: '1', url: 'https://example.com/categories/1');
@@ -118,8 +119,8 @@ void main() {
     expect(row.data.containsKey('metadata'), isFalse);
     expect(row.read<String>('status'), 'ongoing');
     expect(jsonDecode(row.read<String>('authors')), [
-      {'name': 'Alice', 'role': 'Writer', 'url': 'https://example.com/authors/1'},
-      {'name': 'Bob', 'role': null, 'url': null},
+      {'name': 'Alice', 'role': 'Writer', 'id': 'author-1', 'url': 'https://example.com/authors/1'},
+      {'name': 'Bob', 'role': null, 'id': null, 'url': null},
     ]);
     expect(jsonDecode(row.read<String>('tags')), [
       {'type': 'category', 'name': 'Fantasy', 'id': '1', 'url': 'https://example.com/categories/1'},

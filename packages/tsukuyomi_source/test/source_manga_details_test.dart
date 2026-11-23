@@ -38,12 +38,13 @@ void main() {
       expect(SourceMangaTagType.fromJson(entry.value), same(entry.key));
       expect(entry.key.toJson(), entry.value);
     }
-    const author = SourceMangaAuthor(name: 'Alice');
+    const author = SourceMangaAuthor(name: 'Alice', id: 'author-1');
     final json = jsonDecode(jsonEncode(author)) as Map<String, dynamic>;
-    expect(json, {'name': 'Alice', 'role': null, 'url': null});
+    expect(json, {'name': 'Alice', 'role': null, 'id': 'author-1', 'url': null});
     expect(SourceMangaAuthor.fromJson(json), author);
-    expect(SourceMangaAuthor.fromJson({'name': 'Alice'}), author);
-    expect(SourceMangaAuthor.fromJson({'name': 'Alice', 'role': null, 'url': null}), author);
+    const unidentified = SourceMangaAuthor(name: 'Alice');
+    expect(SourceMangaAuthor.fromJson({'name': 'Alice'}), unidentified);
+    expect(SourceMangaAuthor.fromJson({'name': 'Alice', 'role': null, 'id': null, 'url': null}), unidentified);
     const tag = SourceMangaTag(type: SourceMangaTagType.tag, name: 'Tag');
     expect(SourceMangaTag.fromJson({'type': 'tag', 'name': 'Tag', 'url': null}), tag);
   });
@@ -52,6 +53,7 @@ void main() {
     expect(() => SourceMangaAuthor.fromJson({}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaAuthor.fromJson({'name': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaAuthor.fromJson({'name': 'Alice', 'role': 1}), throwsA(isA<TypeError>()));
+    expect(() => SourceMangaAuthor.fromJson({'name': 'Alice', 'id': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaAuthor.fromJson({'name': 'Alice', 'url': 1}), throwsA(isA<TypeError>()));
     expect(() => SourceMangaTag.fromJson({'name': 'Adventure'}), throwsArgumentError);
     expect(() => SourceMangaTag.fromJson({'type': 0, 'name': 'Adventure'}), throwsArgumentError);
