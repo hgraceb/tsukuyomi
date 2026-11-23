@@ -41,14 +41,13 @@ extension SourceMangaExtension on SourceManga {
   }
 
   MangaTableCompanion toInsertable(int source) {
-    return _toCompanion().copyWith(source: Value(source));
+    return _toCompanion().copyWith(source: Value(source), url: Value(url));
   }
 
   MangaTableCompanion _toCompanion() {
     final manga = this;
     final details = manga is SourceMangaDetails ? manga : null;
     return MangaTableCompanion(
-      url: Value(url),
       title: Value(name.toValidDirectoryName),
       cover: Value(cover),
       status: Value.absentIfNull(details?.status),

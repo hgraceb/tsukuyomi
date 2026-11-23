@@ -59,7 +59,7 @@ void main() {
 
         final updated = await _read(container);
         expect(source.calls, 1);
-        expect(updated.url, 'canonical-url');
+        expect(updated.url, original.url);
         expect(updated.title, 'Updated title');
         expect(updated.cover, 'updated-cover');
         expect(updated.status, SourceMangaStatus.completed);
@@ -229,6 +229,37 @@ void main() {
     await expectLater(database.into(database.mangaTable).insert(manga.toInsertable(source)), throwsA(isA<SqliteException>()));
     final rows = await (database.select(database.mangaTable)..where((row) => row.url.equals(manga.url))).get();
     expect(rows.map((row) => row.id), unorderedEquals([ids.first, otherId]));
+  });
+
+  test('Reopening a favorite search result after a detail URL change keeps its ID and chapters', () async {
+    final container = await _seed();
+    const entry = HttpSourceManga(url: 'search-url', name: 'Title', cover: 'cover');
+    final source = UpdateSourceFixture(
+      details: const HttpSourceMangaDetails(
+        url: 'detail-url',
+        name: 'Title',
+        cover: 'cover',
+        chapters: [HttpSourceChapter(url: 'chapter-url', name: 'Chapter')],
+      ),
+    );
+    final service = container.read(mangaServiceProvider);
+    final repository = container.read(mangaRepositoryProvider);
+    final updates = container.read(updateServiceProvider);
+    final id = await service.insertSourceManga(source.id, entry);
+    await service.updateFavorite(id, true);
+    final first = await updates.updateManga(source, await repository.queryManga(id));
+    expect(first.outcome, UpdateOutcome.updated);
+    final chapters = await repository.watchChapters(id).first;
+    expect(chapters.single.url, 'chapter-url');
+
+    final reopenedId = await service.insertSourceManga(source.id, entry);
+    expect(reopenedId, id);
+    final reopened = await repository.queryManga(reopenedId);
+    expect(reopened.favorite, isTrue);
+    expect(reopened.toHttpSourceManga().url, entry.url);
+    final second = await updates.updateManga(source, reopened);
+    expect(second.outcome, UpdateOutcome.noUpdate);
+    expect(await repository.watchChapters(reopenedId).first, chapters);
   });
 
   test('Source entries carrying details persist their metadata on insert and update', () async {
