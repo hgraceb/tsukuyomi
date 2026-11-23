@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:tsukuyomi/database/converter/manga.dart';
 import 'package:tsukuyomi/database/database.dart';
 
@@ -6,6 +7,11 @@ import 'package:tsukuyomi/database/database.dart';
 class MangaTable extends Table {
   @override
   String get tableName => 'manga';
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {source, url},
+  ];
 
   /// 自增主键
   IntColumn get id => integer().autoIncrement()();

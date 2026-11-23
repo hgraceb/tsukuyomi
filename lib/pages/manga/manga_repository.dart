@@ -8,8 +8,10 @@ class MangaRepository {
 
   final TsukuyomiDatabase database;
 
-  Future<int> insertManga(MangaTableCompanion manga) async {
-    return await database.into(database.mangaTable).insert(manga);
+  Future<int> upsertManga(MangaTableCompanion manga) async {
+    final table = database.mangaTable;
+    final row = await database.into(table).insertReturning(manga, onConflict: DoUpdate((_) => manga, target: [table.source, table.url]));
+    return row.id;
   }
 
   Future<int> updateManga(MangaTableCompanion manga) async {
@@ -23,13 +25,6 @@ class MangaRepository {
     final query = database.update(database.mangaTable);
     query.where((row) => row.id.equals(mangaId));
     return query.write(MangaTableCompanion(lastCheckAt: Value(checkedAt)));
-  }
-
-  Future<DatabaseManga?> queryMangaOrNull(int source, String url) {
-    final query = database.select(database.mangaTable);
-    query.where((row) => row.source.equals(source));
-    query.where((row) => row.url.equals(url));
-    return query.getSingleOrNull();
   }
 
   Future<DatabaseManga> queryManga(int mangaId) {

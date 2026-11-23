@@ -217,14 +217,18 @@ void main() {
   test('Concurrent first opens and a later reopen share one manga record', () async {
     final container = await _seed();
     final service = container.read(mangaServiceProvider);
-    final repository = container.read(mangaRepositoryProvider);
+    final database = container.read(databaseProvider);
     final source = (await _read(container)).source;
     const manga = HttpSourceManga(url: 'new-url', name: 'New title', cover: 'new-cover');
 
     final ids = await Future.wait([service.insertSourceManga(source, manga), service.insertSourceManga(source, manga)]);
     expect(ids.last, ids.first);
+    final otherId = await service.insertSourceManga(source + 1, manga);
+    expect(otherId, isNot(ids.first));
     expect(await service.insertSourceManga(source, manga), ids.first);
-    expect((await repository.queryMangaOrNull(source, manga.url))?.id, ids.first);
+    await expectLater(database.into(database.mangaTable).insert(manga.toInsertable(source)), throwsA(isA<SqliteException>()));
+    final rows = await (database.select(database.mangaTable)..where((row) => row.url.equals(manga.url))).get();
+    expect(rows.map((row) => row.id), unorderedEquals([ids.first, otherId]));
   });
 
   test('Source entries carrying details persist their metadata on insert and update', () async {
@@ -301,7 +305,6 @@ void main() {
     const entry = HttpSourceMangaDetails(url: 'new-url', name: 'New title', cover: 'cover', languages: ['zh_hans'], chapters: []);
     final service = container.read(mangaServiceProvider);
     await expectLater(service.insertSourceManga(original.source, entry), throwsFormatException);
-    expect(await repository.queryMangaOrNull(original.source, entry.url), null);
     final database = container.read(databaseProvider);
     expect(await database.select(database.mangaTable).get(), hasLength(1));
   });
