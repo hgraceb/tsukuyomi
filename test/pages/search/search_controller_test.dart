@@ -21,7 +21,7 @@ void main() {
 
   SearchState current() => subscription.read().requireValue;
 
-  Future<ProviderContainer> loadSources([_SearchSource? other]) async {
+  Future<ProviderContainer> loadSources({_SearchSource? other, Future<Source> Function()? loadSource}) async {
     source = _SearchSource(installed.id);
     errors = _Errors();
     final sources = [installed, if (other != null) installed.copyWith(id: other.id)];
@@ -30,7 +30,7 @@ void main() {
         errorHandlerProvider.overrideWithValue(errors),
         keyboardVisibleProvider.overrideWithValue(false),
         sourcesStreamProvider.overrideWith((ref) => Stream.value(sources)),
-        sourceByIdProvider(installed.id).overrideWith((ref) async => source),
+        sourceByIdProvider(installed.id).overrideWith((ref) => loadSource?.call() ?? Future.value(source)),
         if (other != null) sourceByIdProvider(other.id).overrideWith((ref) async => other),
       ],
     );
@@ -59,15 +59,72 @@ void main() {
     expect(first.mangas.map((manga) => manga.url), ['1']);
     expect(first.nextQuery, same(source.continuation));
 
-    await controller.onNext(source, first);
+    await controller.onNext(source.id, first);
     final last = current().results[installed.id]!;
     expect(source.requests.last, same(source.continuation));
     expect(last.mangas.map((manga) => manga.url), ['1', '7']);
     expect(last.nextQuery, isNull);
 
-    await controller.onNext(source, last);
+    await controller.onNext(source.id, last);
     expect(source.requests.map((query) => query.page), [1, 7]);
   });
+
+  test('Retrying a failed first page uses the submitted keyword and preserves other sources', () async {
+    final other = _SearchSource(2);
+    await loadSources(other: other);
+    final firstPage = Completer<void>();
+    source.pendingFirstPage = firstPage.future;
+    final searching = search('example');
+    await pumpEventQueue(times: 1);
+    firstPage.completeError(StateError('first page'));
+    await searching;
+    expect(current().errors.keys, [source.id]);
+
+    await controller.onNext(other.id, current().results[other.id]);
+    final otherResult = current().results[other.id]!;
+    await edit('draft');
+    source.pendingFirstPage = null;
+    await controller.onRetry(source.id);
+
+    expect(source.requests.map((query) => (query.keyword, query.page)), [('example', 1), ('example', 1)]);
+    expect(current().results[source.id]!.mangas.map((manga) => manga.url), ['1']);
+    expect(current().errors, isEmpty);
+    expect(current().editingText, 'draft');
+    expect(other.requests.map((query) => query.page), [1, 7]);
+    expect(current().results[other.id], same(otherResult));
+  });
+
+  for (final ready in [false, true]) {
+    test('Retrying source initialization reuses a ${ready ? 'completed' : 'pending'} reload', () async {
+      var loads = 0;
+      final pending = Completer<Source>();
+      final container = await loadSources(
+        loadSource: () async {
+          loads++;
+          if (loads <= 2) throw StateError('source unavailable');
+          return pending.future;
+        },
+      );
+      final provider = sourceByIdProvider(installed.id);
+      addTearDown(container.listen(provider, (_, _) {}).close);
+      await search('example');
+      await controller.onRetry(installed.id);
+      expect(loads, 2);
+      expect(current().errors.keys, [installed.id]);
+
+      final background = container.refresh(provider.future);
+      if (ready) {
+        pending.complete(source);
+        await background;
+      }
+      final retry = controller.onRetry(installed.id);
+      if (!ready) pending.complete(source);
+      await retry;
+      expect(loads, 3);
+      expect(current().errors, isEmpty);
+      expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1']);
+    });
+  }
 
   test('Failed pagination preserves results until a manual retry reloads the same page', () async {
     final container = await loadSources();
@@ -75,22 +132,22 @@ void main() {
     final first = current().results[installed.id]!;
     final error = StateError('next page');
     source.pendingPage = Future.error(error);
-    final paging = controller.onNext(source, first);
+    final paging = controller.onNext(source.id, first);
     // 保留失败的请求，验证手动重试会重新请求这一页
     final provider = searchMangasProvider(current().searchId, source, source.continuation);
     addTearDown(container.listen(provider, (_, _) {}).close);
     await paging;
-    await controller.onNext(source, first);
+    await controller.onNext(source.id, first);
     expect(current().results[installed.id], same(first));
-    expect(current().errors[installed.id], error.toString());
+    expect(current().errors[installed.id], same(error));
     expect(current().loadings, isEmpty);
     expect(errors.shown, [error]);
     expect(source.requests.map((query) => query.page), [1, 7]);
 
     final pending = Completer<void>();
     source.pendingPage = pending.future;
-    final retry = controller.onNext(source, first, retry: true);
-    final duplicate = controller.onNext(source, first, retry: true);
+    final retry = controller.onRetry(source.id);
+    final duplicate = controller.onRetry(source.id);
     expect(current().loadings, contains(installed.id));
     expect(current().errors, isEmpty);
     pending.complete();
@@ -105,7 +162,7 @@ void main() {
     await edit('example');
     await Future.wait([controller.onSearch(), edit('draft')]);
 
-    await controller.onNext(source, current().results[installed.id]);
+    await controller.onNext(source.id, current().results[installed.id]);
     expect(source.requests.first.keyword, 'example');
     expect(current().editingText, 'draft');
     expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
@@ -116,7 +173,7 @@ void main() {
     await edit('draft');
     await Future.wait([edit('example'), controller.onSearch()]);
 
-    await controller.onNext(source, current().results[installed.id]);
+    await controller.onNext(source.id, current().results[installed.id]);
     expect(source.requests.first.keyword, 'example');
     expect(current().editingText, 'example');
     expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
@@ -124,7 +181,7 @@ void main() {
 
   test('Starting pagination preserves another source finishing its first page', () async {
     final other = _SearchSource(2);
-    await loadSources(other);
+    await loadSources(other: other);
     final firstPage = Completer<void>();
     other.pendingFirstPage = firstPage.future;
     final searching = search('example');
@@ -132,7 +189,7 @@ void main() {
 
     final first = current().results[installed.id]!;
     firstPage.complete();
-    final paging = Future.microtask(() => controller.onNext(source, first));
+    final paging = Future.microtask(() => controller.onNext(source.id, first));
     await Future.wait([searching, paging]);
     expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
     expect(current().results[other.id]?.mangas.map((manga) => manga.url), ['1']);
@@ -143,7 +200,7 @@ void main() {
   for (final fails in [false, true]) {
     test('Pagination keeps its results when another source ${fails ? 'fails' : 'finishes'} loading its first page', () async {
       final other = _SearchSource(2);
-      await loadSources(other);
+      await loadSources(other: other);
       final firstPage = Completer<void>();
       other.pendingFirstPage = firstPage.future;
       final searching = search('example');
@@ -151,7 +208,7 @@ void main() {
 
       final nextPage = Completer<void>();
       source.pendingPage = nextPage.future;
-      final paging = controller.onNext(source, current().results[installed.id]!);
+      final paging = controller.onNext(source.id, current().results[installed.id]!);
       await pumpEventQueue(times: 1);
       expect(current().loadings, {source.id, other.id});
 
@@ -166,7 +223,7 @@ void main() {
       expect(current().results[installed.id]!.mangas.map((manga) => manga.url), ['1', '7']);
       expect(current().loadings, isEmpty);
       if (fails) {
-        expect(current().errors[other.id], error.toString());
+        expect(current().errors[other.id], same(error));
       } else {
         expect(current().results[other.id]!.mangas.map((manga) => manga.url), ['1']);
       }
@@ -179,7 +236,7 @@ void main() {
       await search('example');
       final oldPage = Completer<void>();
       source.pendingPage = oldPage.future;
-      final oldPagination = controller.onNext(source, current().results[installed.id]);
+      final oldPagination = controller.onNext(source.id, current().results[installed.id]);
       // 保留旧分页请求，验证新一轮搜索会独立请求同一页
       final oldProvider = searchMangasProvider(current().searchId, source, source.continuation);
       addTearDown(container.listen(oldProvider, (_, _) {}).close);
@@ -189,7 +246,7 @@ void main() {
       final first = current().results[installed.id]!;
       final newPage = Completer<void>();
       source.pendingPage = newPage.future;
-      final newPagination = controller.onNext(source, first);
+      final newPagination = controller.onNext(source.id, first);
       await pumpEventQueue(times: 1);
       expect(source.requests.map((query) => query.page), [1, 7, 1, 7]);
 

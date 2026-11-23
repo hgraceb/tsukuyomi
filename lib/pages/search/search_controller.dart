@@ -16,6 +16,7 @@ part 'search_controller.g.dart';
 @riverpod
 class SearchController extends _$SearchController with AsyncNotifierMixin {
   int _searchId = 0;
+  SourceQuery? _firstPageQuery;
 
   @override
   Future<SearchState> build() async {
@@ -42,9 +43,9 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     );
   }
 
-  /// 判断分页请求是否已过期
-  bool _isStaleSearch(SearchState current) {
-    return !mounted || current.searchId != _searchId || current.searchId != data?.searchId;
+  /// 判断搜索请求是否已过期
+  bool _isStaleSearch(int searchId) {
+    return !mounted || searchId != _searchId || searchId != data?.searchId;
   }
 
   /// 创建搜索框焦点控制器
@@ -61,24 +62,38 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     return controller;
   }
 
-  /// 搜索指定的漫画源
+  /// 请求单个漫画源的一页数据
+  Future<void> _searchPage(int searchId, int sourceId, SourceQuery query, {SourceMangaEntries? previous, bool retry = false}) async {
+    try {
+      final cachedSource = data?.cachedSources[sourceId];
+      final sourceProvider = sourceByIdProvider(sourceId);
+      if (retry && cachedSource == null && ref.read(sourceProvider).unwrapPrevious().hasError) ref.invalidate(sourceProvider);
+      final Source source = cachedSource ?? await ref.read(sourceProvider.future);
+      if (_isStaleSearch(searchId)) return;
+      if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(sourceId, source)));
+      final provider = searchMangasProvider(searchId, source, query);
+      final entries = retry ? await ref.refresh(provider.future) : await ref.read(provider.future);
+      if (_isStaleSearch(searchId)) return;
+      final next = previous == null ? entries : entries.prepend(previous);
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), results: state.addResult(sourceId, next)));
+    } catch (error, stackTrace) {
+      if (_isStaleSearch(searchId)) return;
+      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(sourceId), errors: state.addError(sourceId, error)));
+      if (previous != null) handlerError(error, stackTrace);
+    }
+  }
+
+  /// 请求搜索指定的漫画源
   Future<void> _search(List<DatabaseSource>? sources, String? keyword) async {
     if (sources == null || sources.isEmpty) return;
     if (keyword == null || keyword.isEmpty) return;
     final searchId = ++_searchId;
-    final query = HttpSourceQuery(keyword: keyword);
+    final query = _firstPageQuery = HttpSourceQuery(keyword: keyword);
     final ids = sources.map((source) => source.id).toSet();
     state = state.whenData((state) => state.copyWith(searchId: searchId, loadings: ids, errors: {}, results: {}, searchingText: keyword));
-    for (final id in ids) {
-      try {
-        final cachedSource = data?.cachedSources[id];
-        final Source source = cachedSource ?? await ref.read(sourceByIdProvider(id).future);
-        if (cachedSource != source) state = state.whenData((state) => state.copyWith(cachedSources: state.addCachedSource(id, source)));
-        final page = await ref.read(searchMangasProvider(searchId, source, query).future);
-        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, page)));
-      } catch (e) {
-        state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, e.toString())));
-      }
+    for (final sourceId in ids) {
+      await _searchPage(searchId, sourceId, query);
+      if (_isStaleSearch(searchId)) return;
     }
     state = state.whenData((state) => state.copyWith(searchingText: ''));
   }
@@ -95,24 +110,25 @@ class SearchController extends _$SearchController with AsyncNotifierMixin {
     }
   }
 
-  /// 搜索下一页的数据
-  Future<void> onNext(Source? source, SourceMangaEntries? page, {bool retry = false}) async {
+  /// 重试漫画源失败的请求
+  Future<void> onRetry(int sourceId) async {
     final current = data;
-    final id = source?.id;
-    if (source == null || page == null || page.nextQuery == null || current == null || id == null || _isStaleSearch(current)) return;
-    if (current.loadings.contains(id) || current.results[id] != page || current.errors.containsKey(id) != retry) return;
-    try {
-      state = state.whenData((state) => state.copyWith(loadings: state.addLoading(id), errors: state.removeError(id)));
-      final provider = searchMangasProvider(current.searchId, source, page.nextQuery!);
-      final result = retry ? await ref.refresh(provider.future) : await ref.read(provider.future);
-      if (_isStaleSearch(current)) return;
-      final entries = result.prepend(page);
-      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), results: state.addResult(id, entries)));
-    } catch (error, stackTrace) {
-      if (_isStaleSearch(current)) return;
-      state = state.whenData((state) => state.copyWith(loadings: state.removeLoading(id), errors: state.addError(id, error.toString())));
-      handlerError(error, stackTrace);
-    }
+    if (current == null || _isStaleSearch(current.searchId) || !current.errors.containsKey(sourceId)) return;
+    final previous = current.results[sourceId];
+    final query = previous == null ? _firstPageQuery : previous.nextQuery;
+    if (query == null) return;
+    state = state.whenData((state) => state.copyWith(loadings: state.addLoading(sourceId), errors: state.removeError(sourceId)));
+    await _searchPage(current.searchId, sourceId, query, previous: previous, retry: true);
+  }
+
+  /// 搜索下一页的数据
+  Future<void> onNext(int sourceId, SourceMangaEntries? page) async {
+    final current = data;
+    final query = page?.nextQuery;
+    if (current == null || query == null || _isStaleSearch(current.searchId)) return;
+    if (current.loadings.contains(sourceId) || current.errors.containsKey(sourceId) || current.results[sourceId] != page) return;
+    state = state.whenData((state) => state.copyWith(loadings: state.addLoading(sourceId)));
+    await _searchPage(current.searchId, sourceId, query, previous: page);
   }
 
   /// 处理文本更新事件
@@ -152,7 +168,7 @@ class SearchState with _$SearchState {
     required Set<int> loadings,
 
     /// 搜索出错的漫画源
-    required Map<int, String> errors,
+    required Map<int, Object> errors,
 
     /// 搜索完成的漫画源
     required Map<int, SourceMangaEntries> results,
@@ -182,11 +198,11 @@ extension on SearchState {
 
   Set<int> removeLoading(int sourceId) => {...loadings}..remove(sourceId);
 
-  Map<int, String> addError(int sourceId, String error) => {...errors}..addAll({sourceId: error});
+  Map<int, Object> addError(int sourceId, Object error) => {...errors}..addAll({sourceId: error});
 
-  Map<int, String> removeError(int sourceId) => {...errors}..remove(sourceId);
+  Map<int, Object> removeError(int sourceId) => {...errors}..remove(sourceId);
 
-  Map<int, SourceMangaEntries> addResult(int sourceId, SourceMangaEntries page) => {...results}..addAll({sourceId: page});
+  Map<int, SourceMangaEntries> addResult(int sourceId, SourceMangaEntries entries) => {...results}..addAll({sourceId: entries});
 }
 
 /// 搜索页面扩展配置
