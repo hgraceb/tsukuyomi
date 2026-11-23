@@ -14,14 +14,16 @@ class MangaService {
     return ref.read(mangaRepositoryProvider).updateManga(MangaTableCompanion(id: Value(mangaId), favorite: Value(favorite)));
   }
 
-  Future<int> insertSourceManga(int source, SourceManga manga) async {
+  Future<int> insertSourceManga(int source, SourceManga manga) {
     final repository = ref.read(mangaRepositoryProvider);
-    final result = await repository.queryMangaOrNull(source, manga.url);
-    if (result == null) {
-      return repository.insertManga(manga.toInsertable(source));
-    } else {
-      return repository.updateManga(manga.toUpdatable(result.id));
-    }
+    return repository.database.transaction(() async {
+      final result = await repository.queryMangaOrNull(source, manga.url);
+      if (result == null) {
+        return repository.insertManga(manga.toInsertable(source));
+      } else {
+        return repository.updateManga(manga.toUpdatable(result.id));
+      }
+    });
   }
 }
 

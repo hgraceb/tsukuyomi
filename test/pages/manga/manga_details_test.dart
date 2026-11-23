@@ -214,6 +214,19 @@ void main() {
     expect(await database.select(database.mangaTable).get(), hasLength(2));
   });
 
+  test('Concurrent first opens and a later reopen share one manga record', () async {
+    final container = await _seed();
+    final service = container.read(mangaServiceProvider);
+    final repository = container.read(mangaRepositoryProvider);
+    final source = (await _read(container)).source;
+    const manga = HttpSourceManga(url: 'new-url', name: 'New title', cover: 'new-cover');
+
+    final ids = await Future.wait([service.insertSourceManga(source, manga), service.insertSourceManga(source, manga)]);
+    expect(ids.last, ids.first);
+    expect(await service.insertSourceManga(source, manga), ids.first);
+    expect((await repository.queryMangaOrNull(source, manga.url))?.id, ids.first);
+  });
+
   test('Source entries carrying details persist their metadata on insert and update', () async {
     final container = await _seed();
     final service = container.read(mangaServiceProvider);
