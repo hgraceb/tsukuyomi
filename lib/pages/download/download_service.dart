@@ -83,7 +83,15 @@ class DownloadService {
           } else if (await directory.exists()) {
             skippedDownloaded++;
           } else if (download == null) {
-            await downloadRepository.insertDownload(chapter.toDownloadable(source.id)) ? enqueuedCount++ : skippedQueued++;
+            final result = await downloadRepository.insertMissingDownload(chapter.toDownloadable(source.id), directory.exists);
+            switch (result) {
+              case DownloadInsertResult.enqueued:
+                enqueuedCount++;
+              case DownloadInsertResult.skippedQueued:
+                skippedQueued++;
+              case DownloadInsertResult.skippedDownloaded:
+                skippedDownloaded++;
+            }
           } else if (download.error == null) {
             skippedQueued++;
           } else if (await downloadRepository.clearDownloadError(download)) {

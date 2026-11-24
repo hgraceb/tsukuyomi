@@ -98,33 +98,24 @@ void main() {
     expect(manager.wakes, 0);
   });
 
-  for (final failed in [null, _download(1, error: 'failed')]) {
-    final action = failed == null ? 'queued' : 'resumed';
-    test('Auto enqueue skips a chapter $action manually during the scan and preserves its progress', () async {
+  group('Auto enqueue with SQLite', () {
+    final chapter = _chapter(1);
+    late ProviderContainer container;
+    late _Database database;
+    late DownloadService service;
+    late Future<bool> Function() directoryExists;
+
+    setUpAll(() {
       if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
-      final database = _Database();
-      final chapter = _chapter(1);
-      final queued = _download(1).copyWith(progress: 7);
-      late final DownloadService service;
-      DatabaseDownload? afterManualAction;
+    });
 
-      Future<bool> enqueueDuringDirectoryCheck() async {
-        if (failed == null) {
-          await service.insertDownload(_source.id, chapter);
-          await service.updateDownload(queued);
-        } else {
-          await service.updateDownload(queued.copyWith(error: failed.error));
-          await service.resumeDownload(failed);
-        }
-        afterManualAction = await database.select(database.downloadTable).getSingle();
-        return false;
-      }
-
-      final container = ProviderContainer(
+    setUp(() async {
+      database = _Database();
+      container = ProviderContainer(
         overrides: [
           databaseProvider.overrideWithValue(database),
           downloadManagerProvider.overrideWithValue(_Manager()),
-          downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(enqueueDuringDirectoryCheck)),
+          downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(() => directoryExists())),
         ],
       );
       addTearDown(() async {
@@ -133,16 +124,82 @@ void main() {
       });
       await database.into(database.mangaTable).insert(_manga);
       await database.into(database.chapterTable).insert(chapter);
-      if (failed != null) await database.into(database.downloadTable).insert(failed);
-      service = container.read(downloadServiceProvider);
+      service = container.listen(downloadServiceProvider, (_, _) {}).read();
+    });
+
+    for (final failed in [null, _download(1, error: 'failed')]) {
+      final action = failed == null ? 'queued' : 'resumed';
+      test('Skips a chapter $action manually during the scan and preserves its progress', () async {
+        final queued = _download(1).copyWith(progress: 7);
+        if (failed != null) await database.into(database.downloadTable).insert(failed);
+        DatabaseDownload? afterManualAction;
+        directoryExists = () async {
+          directoryExists = () async => false;
+          if (failed == null) {
+            await service.insertDownload(_source.id, chapter);
+            await service.updateDownload(queued);
+          } else {
+            await service.updateDownload(queued.copyWith(error: failed.error));
+            await service.resumeDownload(failed);
+          }
+          afterManualAction = await database.select(database.downloadTable).getSingle();
+          return false;
+        };
+
+        final result = await service.enqueueAutoDownloads(_source, _manga);
+
+        expect(afterManualAction, queued, reason: 'Progress after the manual download action');
+        expect(await database.select(database.downloadTable).getSingle(), queued, reason: 'Progress after the automatic scan');
+        expect(result, const DownloadEnqueueResult(skippedQueued: 1));
+      });
+    }
+
+    test('A chapter completed after the directory check stays out of the queue', () async {
+      final root = await Directory.systemTemp.createTemp('tsukuyomi-enqueue-');
+      addTearDown(() => root.delete(recursive: true));
+      final temp = await Directory('${root.path}/temp').create();
+      final directory = Directory('${root.path}/chapter');
+      await File('${temp.path}/001.jpg').writeAsBytes([1, 2, 3]);
+
+      directoryExists = () async {
+        await service.insertDownload(_source.id, chapter);
+        final existed = await directory.exists();
+        await temp.rename(directory.path);
+        await database.delete(database.downloadTable).delete(_download(1));
+        directoryExists = directory.exists;
+        return existed;
+      };
 
       final result = await service.enqueueAutoDownloads(_source, _manga);
 
-      expect(afterManualAction, queued, reason: 'Progress after the manual download action');
-      expect(await database.select(database.downloadTable).getSingle(), queued, reason: 'Progress after the automatic scan');
-      expect(result, const DownloadEnqueueResult(skippedQueued: 1));
+      expect(await database.select(database.downloadTable).get(), isEmpty);
+      expect(await File('${directory.path}/001.jpg').readAsBytes(), [1, 2, 3]);
+      expect(result, const DownloadEnqueueResult(skippedDownloaded: 1));
     });
-  }
+
+    test('A dequeue started during the final directory check leaves the queue empty', () async {
+      final download = _download(1);
+      await database.into(database.downloadTable).insert(download);
+      final checkingDirectory = Completer<void>();
+      final deletingDownload = Completer<void>();
+      final deletion = checkingDirectory.future.then((_) {
+        final pending = database.delete(database.downloadTable).delete(download);
+        deletingDownload.complete();
+        return pending;
+      });
+
+      final repository = container.read(downloadRepositoryProvider);
+      final result = await repository.insertMissingDownload(chapter.toDownloadable(_source.id), () async {
+        checkingDirectory.complete();
+        await deletingDownload.future;
+        return false;
+      });
+
+      expect(await deletion, 1);
+      expect(await database.select(database.downloadTable).get(), isEmpty);
+      expect(result, DownloadInsertResult.skippedQueued);
+    });
+  });
 
   test('Auto enqueue skips a resumed download and reports a removed download', () async {
     final rows = [_download(1, error: 'failed'), _download(2, error: 'failed')];
@@ -300,6 +357,12 @@ class _Downloads implements DownloadRepository {
     rows[index] = row;
     updated.add(row);
     return true;
+  }
+
+  @override
+  Future<DownloadInsertResult> insertMissingDownload(DownloadTableCompanion value, Future<bool> Function() isDownloaded) async {
+    if (await isDownloaded()) return DownloadInsertResult.skippedDownloaded;
+    return await insertDownload(value) ? DownloadInsertResult.enqueued : DownloadInsertResult.skippedQueued;
   }
 
   @override
