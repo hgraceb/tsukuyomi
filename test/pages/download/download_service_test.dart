@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/download/download_repository.dart';
@@ -94,6 +98,40 @@ void main() {
     expect(manager.wakes, 0);
   });
 
+  test('Auto enqueue skips a chapter queued manually during the scan and preserves its progress', () async {
+    if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
+    final database = _Database();
+    final chapter = _chapter(1);
+    final queued = _download(1).copyWith(progress: 7);
+    late final DownloadService service;
+
+    Future<bool> enqueueDuringDirectoryCheck() async {
+      await service.insertDownload(_source.id, chapter);
+      await service.updateDownload(queued);
+      return false;
+    }
+
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+        downloadManagerProvider.overrideWithValue(_Manager()),
+        downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(enqueueDuringDirectoryCheck)),
+      ],
+    );
+    addTearDown(() async {
+      container.dispose();
+      await database.close();
+    });
+    await database.into(database.mangaTable).insert(_manga);
+    await database.into(database.chapterTable).insert(chapter);
+    service = container.read(downloadServiceProvider);
+
+    final result = await service.enqueueAutoDownloads(_source, _manga);
+
+    expect(result, const DownloadEnqueueResult(skippedQueued: 1));
+    expect(await database.select(database.downloadTable).getSingle(), queued);
+  });
+
   test('Auto enqueue skips a resumed download and reports a removed download', () async {
     final rows = [_download(1, error: 'failed'), _download(2, error: 'failed')];
     final resumed = _download(1).copyWith(progress: 7);
@@ -183,6 +221,13 @@ ProviderContainer _createContainer(_Chapters chapters, _Downloads downloads, _Ma
   return container;
 }
 
+class _Database extends TsukuyomiDatabase {
+  _Database() : super.forTesting(NativeDatabase.memory());
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'));
+}
+
 class _Chapters implements ChapterRepository {
   _Chapters(this.chapters);
   final List<DatabaseChapter> chapters;
@@ -269,7 +314,7 @@ class _Manager implements DownloadManager {
 
 class _ChapterPath extends DownloadChapterPath {
   _ChapterPath(this.completed);
-  final bool Function() completed;
+  final FutureOr<bool> Function() completed;
 
   @override
   Future<Directory> build(Source source, DatabaseManga manga, DatabaseChapter chapter) async => _Directory(completed);
@@ -277,7 +322,7 @@ class _ChapterPath extends DownloadChapterPath {
 
 class _Directory implements Directory {
   _Directory(this.completed);
-  final bool Function() completed;
+  final FutureOr<bool> Function() completed;
 
   @override
   Future<bool> exists() async => completed();
