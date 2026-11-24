@@ -68,7 +68,8 @@ class DownloadService {
       final downloadRepository = ref.read(downloadRepositoryProvider);
       final chapters = await chapterRepository.queryChaptersByMangaId(manga.id);
       chapters.sort((a, b) => a.id.compareTo(b.id));
-      final downloads = {for (final download in await downloadRepository.queryDownloadsByManga(manga.id)) download.chapter: download};
+      final downloads = await downloadRepository.queryDownloadsByManga(manga.id);
+      final downloadsByChapter = {for (final download in downloads) download.chapter: download};
       var enqueuedCount = 0;
       var skippedDownloaded = 0;
       var skippedQueued = 0;
@@ -85,28 +86,25 @@ class DownloadService {
             skippedDownloaded++;
             continue;
           }
-          final download = downloads[chapter.id];
-          if (download != null && download.error == null) {
-            skippedQueued++;
-            continue;
-          }
+          final download = downloadsByChapter[chapter.id];
           if (download == null) {
             final enqueued = await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
-            if (!enqueued) {
-              skippedQueued++;
-              continue;
-            }
-          } else if (!await downloadRepository.clearDownloadError(download)) {
-            if (await downloadRepository.hasDownload(download)) {
-              skippedQueued++;
-            } else if (await directory.exists()) {
-              skippedDownloaded++;
+            if (enqueued) {
+              enqueuedCount++;
             } else {
-              throw StateError('Download no longer exists: ${chapter.url}');
+              skippedQueued++;
             }
-            continue;
+          } else if (download.error == null) {
+            skippedQueued++;
+          } else if (await downloadRepository.clearDownloadError(download)) {
+            enqueuedCount++;
+          } else if (await downloadRepository.hasDownload(download)) {
+            skippedQueued++;
+          } else if (await directory.exists()) {
+            skippedDownloaded++;
+          } else {
+            throw StateError('Download no longer exists: ${chapter.url}');
           }
-          enqueuedCount++;
         } catch (error) {
           failedChapters[chapter.url] = error.toString();
         }
