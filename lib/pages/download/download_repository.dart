@@ -3,7 +3,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 
 part 'download_repository.freezed.dart';
-
 part 'download_repository.g.dart';
 
 @freezed
@@ -13,6 +12,12 @@ class DownloadWithExtra with _$DownloadWithExtra {
     required DatabaseChapter chapter,
     required DatabaseManga manga,
   }) = _DownloadWithExtra;
+
+  factory DownloadWithExtra.read(TypedResult row, TsukuyomiDatabase database) => DownloadWithExtra(
+    download: row.readTable(database.downloadTable),
+    chapter: row.readTable(database.chapterTable),
+    manga: row.readTable(database.mangaTable),
+  );
 }
 
 class DownloadRepository {
@@ -48,21 +53,18 @@ class DownloadRepository {
   }
 
   Future<List<DownloadWithExtra>> queryDownloadsPartitionBySource(int limit) {
-    return database
-        .downloadsPartitionBySource(limit)
-        .map((row) => DownloadWithExtra(download: row.download.toDatabaseDownload(), chapter: row.chapter, manga: row.manga))
-        .get();
+    final query = database.downloadsPartitionBySource(limit);
+    return query.map((row) => DownloadWithExtra(download: row.download.toDatabaseDownload(), chapter: row.chapter, manga: row.manga)).get();
   }
 
   Stream<List<DownloadWithExtra>> watchDownloads() {
     final download = database.downloadTable;
     final chapter = database.chapterTable;
     final manga = database.mangaTable;
-    return database
-        .select(download)
-        .join([innerJoin(chapter, chapter.id.equalsExp(download.chapter)), innerJoin(manga, manga.id.equalsExp(download.manga))])
-        .map((row) => DownloadWithExtra(download: row.readTable(download), chapter: row.readTable(chapter), manga: row.readTable(manga)))
-        .watch();
+    final chapterJoin = innerJoin(chapter, chapter.id.equalsExp(download.chapter));
+    final mangaJoin = innerJoin(manga, manga.id.equalsExp(download.manga));
+    final query = database.select(download).join([chapterJoin, mangaJoin]);
+    return query.map((row) => DownloadWithExtra.read(row, database)).watch();
   }
 
   Stream<List<DatabaseDownload>> watchDownloadsByManga(int mangaId) {
