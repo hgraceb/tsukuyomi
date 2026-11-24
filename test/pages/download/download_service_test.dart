@@ -197,7 +197,7 @@ void main() {
 
       expect(await deletion, 1);
       expect(await database.select(database.downloadTable).get(), isEmpty);
-      expect(result, DownloadInsertResult.skippedQueued);
+      expect(result, DownloadEnqueueOutcome.skippedQueued);
     });
   });
 
@@ -360,9 +360,9 @@ class _Downloads implements DownloadRepository {
   }
 
   @override
-  Future<DownloadInsertResult> insertMissingDownload(DownloadTableCompanion value, Future<bool> Function() isDownloaded) async {
-    if (await isDownloaded()) return DownloadInsertResult.skippedDownloaded;
-    return await insertDownload(value) ? DownloadInsertResult.enqueued : DownloadInsertResult.skippedQueued;
+  Future<DownloadEnqueueOutcome> insertMissingDownload(DownloadTableCompanion value, Future<bool> Function() isDownloaded) async {
+    if (await isDownloaded()) return DownloadEnqueueOutcome.skippedDownloaded;
+    return await insertDownload(value) ? DownloadEnqueueOutcome.enqueued : DownloadEnqueueOutcome.skippedQueued;
   }
 
   @override

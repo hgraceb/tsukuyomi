@@ -5,7 +5,7 @@ import 'package:tsukuyomi/database/database.dart';
 part 'download_repository.freezed.dart';
 part 'download_repository.g.dart';
 
-enum DownloadInsertResult { enqueued, skippedQueued, skippedDownloaded }
+enum DownloadEnqueueOutcome { enqueued, skippedDownloaded, skippedQueued, skippedUnavailable }
 
 @freezed
 class DownloadWithExtra with _$DownloadWithExtra {
@@ -54,11 +54,11 @@ class DownloadRepository {
     return await query.insertReturningOrNull(download, onConflict: DoUpdate((_) => update, where: (row) => row.error.isNotNull())) != null;
   }
 
-  Future<DownloadInsertResult> insertMissingDownload(DownloadTableCompanion download, Future<bool> Function() isDownloaded) {
+  Future<DownloadEnqueueOutcome> insertMissingDownload(DownloadTableCompanion download, Future<bool> Function() isDownloaded) {
     // 下载完成时先保存章节目录再出队，事务保证出队不会插在目录检查和写入之间
     return database.transaction(() async {
-      if (await isDownloaded()) return DownloadInsertResult.skippedDownloaded;
-      return await insertDownload(download) ? DownloadInsertResult.enqueued : DownloadInsertResult.skippedQueued;
+      if (await isDownloaded()) return DownloadEnqueueOutcome.skippedDownloaded;
+      return await insertDownload(download) ? DownloadEnqueueOutcome.enqueued : DownloadEnqueueOutcome.skippedQueued;
     });
   }
 
