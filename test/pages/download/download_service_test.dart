@@ -189,9 +189,12 @@ class _Downloads implements DownloadRepository {
   }
 
   @override
-  Future<bool> updateDownload(DatabaseDownload row) async {
+  Future<bool> clearDownloadError(DatabaseDownload download) async {
+    final index = rows.indexWhere((row) => row.chapter == download.chapter);
+    if (index == -1) return false;
+    final row = rows[index].copyWith(error: null);
+    rows[index] = row;
     updated.add(row);
-    rows[rows.indexWhere((it) => it.chapter == row.chapter)] = row;
     return true;
   }
 

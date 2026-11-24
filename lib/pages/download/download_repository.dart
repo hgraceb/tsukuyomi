@@ -28,6 +28,12 @@ class DownloadRepository {
     return database.update(database.downloadTable).replace(download);
   }
 
+  Future<bool> clearDownloadError(DatabaseDownload download) async {
+    final query = database.update(database.downloadTable);
+    query.whereSamePrimaryKey(download);
+    return await query.write(const DownloadTableCompanion(error: Value(null))) > 0;
+  }
+
   Future<void> insertDownload(Insertable<DatabaseDownload> download) async {
     await insertDownloads([download]);
   }

@@ -43,7 +43,7 @@ class DownloadService {
 
   /// 继续下载章节数据
   Future<void> resumeDownload(DatabaseDownload download) async {
-    await updateDownload(download.copyWith(error: null));
+    await ref.read(downloadRepositoryProvider).clearDownloadError(download);
     await ref.read(downloadManagerProvider).next();
   }
 
@@ -91,7 +91,7 @@ class DownloadService {
           }
           if (download == null) {
             await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
-          } else if (!await downloadRepository.updateDownload(download.copyWith(error: null))) {
+          } else if (!await downloadRepository.clearDownloadError(download)) {
             throw StateError('Download no longer exists: ${chapter.url}');
           }
           enqueuedCount++;
