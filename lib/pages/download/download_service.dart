@@ -96,7 +96,9 @@ class DownloadService {
               continue;
             }
           } else if (!await downloadRepository.clearDownloadError(download)) {
-            throw StateError('Download no longer exists: ${chapter.url}');
+            if (!await downloadRepository.hasDownload(download)) throw StateError('Download no longer exists: ${chapter.url}');
+            skippedQueued++;
+            continue;
           }
           enqueuedCount++;
         } catch (error) {

@@ -94,6 +94,28 @@ void main() {
     expect(manager.wakes, 0);
   });
 
+  test('Auto enqueue skips a resumed download and reports a removed download', () async {
+    final rows = [_download(1, error: 'failed'), _download(2, error: 'failed')];
+    final resumed = _download(1).copyWith(progress: 7);
+    final downloads = _Downloads(
+      rows,
+      afterQuery: () {
+        rows[0] = resumed;
+        rows.removeLast();
+      },
+    );
+    final container = _createContainer(_Chapters([_chapter(1), _chapter(2)]), downloads, _Manager());
+
+    final result = await container.read(downloadServiceProvider).enqueueAutoDownloads(_source, _manga);
+
+    expect(result.enqueuedCount, 0);
+    expect(result.skippedQueued, 1);
+    expect(result.failedChapters.keys, ['chapter-url-2']);
+    expect(result.failedChapters['chapter-url-2'], contains('Download no longer exists'));
+    expect(rows, [resumed]);
+    expect(downloads.updated, isEmpty);
+  });
+
   test('Enqueue returns complete counts and chapter errors without starting downloads', () async {
     for (final failedChapter in <int?>[null, 6]) {
       final chapters = _Chapters([_chapter(1), _chapter(2), _chapter(3), _chapter(4), _chapter(5, public: false), _chapter(6)]);
@@ -158,17 +180,20 @@ class _Chapters implements ChapterRepository {
 }
 
 class _Downloads implements DownloadRepository {
-  _Downloads(this.rows, {this.failChapter, this.queryError});
+  _Downloads(this.rows, {this.failChapter, this.queryError, this.afterQuery});
   final List<DatabaseDownload> rows;
   final int? failChapter;
   final Object? queryError;
+  final void Function()? afterQuery;
   final List<int> inserted = [];
   final List<DatabaseDownload> updated = [];
 
   @override
   Future<List<DatabaseDownload>> queryDownloadsByManga(int mangaId) async {
     if (queryError != null) throw queryError!;
-    return rows.toList();
+    final snapshot = rows.toList();
+    afterQuery?.call();
+    return snapshot;
   }
 
   @override
@@ -193,12 +218,15 @@ class _Downloads implements DownloadRepository {
   @override
   Future<bool> clearDownloadError(DatabaseDownload download) async {
     final index = rows.indexWhere((row) => row.chapter == download.chapter);
-    if (index == -1) return false;
+    if (index == -1 || rows[index].error == null) return false;
     final row = rows[index].copyWith(error: null);
     rows[index] = row;
     updated.add(row);
     return true;
   }
+
+  @override
+  Future<bool> hasDownload(DatabaseDownload download) async => rows.any((row) => row.chapter == download.chapter);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

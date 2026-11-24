@@ -31,7 +31,14 @@ class DownloadRepository {
   Future<bool> clearDownloadError(DatabaseDownload download) async {
     final query = database.update(database.downloadTable);
     query.whereSamePrimaryKey(download);
+    query.where((row) => row.error.isNotNull());
     return await query.write(const DownloadTableCompanion(error: Value(null))) > 0;
+  }
+
+  Future<bool> hasDownload(DatabaseDownload download) async {
+    final query = database.select(database.downloadTable);
+    query.whereSamePrimaryKey(download);
+    return await query.getSingleOrNull() != null;
   }
 
   Future<bool> insertDownload(DownloadTableCompanion download) async {
