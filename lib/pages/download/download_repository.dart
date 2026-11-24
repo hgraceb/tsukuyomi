@@ -28,28 +28,23 @@ class DownloadRepository {
     return database.update(database.downloadTable).replace(download);
   }
 
-  Future<void> insertDownload(Insertable<DatabaseDownload> download) async {
-    await insertDownloads([download]);
+  Future<bool> clearDownloadError(DatabaseDownload download) async {
+    final query = database.update(database.downloadTable);
+    query.whereSamePrimaryKey(download);
+    query.where((row) => row.error.isNotNull());
+    return await query.write(const DownloadTableCompanion(error: Value(null))) > 0;
   }
 
-  Future<void> insertDownloads(Iterable<Insertable<DatabaseDownload>> downloads) async {
-    if (downloads.isEmpty) return;
-    await database.batch((batch) {
-      batch.insertAll<DownloadTable, DatabaseDownload>(
-        database.downloadTable,
-        downloads,
-        onConflict: DoUpdate.withExcluded(
-          // 更新下载信息 TODO 判断下载错误时是否需要重置下载进度
-          (old, excluded) => DownloadTableCompanion.custom(
-            error: excluded.error,
-            total: excluded.total,
-            progress: excluded.progress,
-          ),
-          // 只更新下载失败的数据
-          where: (old, excluded) => old.error.isNotNull(),
-        ),
-      );
-    });
+  Future<bool> hasDownload(DatabaseDownload download) async {
+    final query = database.select(database.downloadTable);
+    query.whereSamePrimaryKey(download);
+    return await query.getSingleOrNull() != null;
+  }
+
+  Future<bool> insertDownload(DownloadTableCompanion download) async {
+    final query = database.into(database.downloadTable);
+    final update = const DownloadTableCompanion(error: Value(null));
+    return await query.insertReturningOrNull(download, onConflict: DoUpdate((_) => update, where: (row) => row.error.isNotNull())) != null;
   }
 
   Future<List<DownloadWithExtra>> queryDownloadsPartitionBySource(int limit) {

@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/download/download_repository.dart';
@@ -94,6 +98,93 @@ void main() {
     expect(manager.wakes, 0);
   });
 
+  for (final failed in [null, _download(1, error: 'failed')]) {
+    final action = failed == null ? 'queued' : 'resumed';
+    test('Auto enqueue skips a chapter $action manually during the scan and preserves its progress', () async {
+      if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
+      final database = _Database();
+      final chapter = _chapter(1);
+      final queued = _download(1).copyWith(progress: 7);
+      late final DownloadService service;
+      DatabaseDownload? afterManualAction;
+
+      Future<bool> enqueueDuringDirectoryCheck() async {
+        if (failed == null) {
+          await service.insertDownload(_source.id, chapter);
+          await service.updateDownload(queued);
+        } else {
+          await service.updateDownload(queued.copyWith(error: failed.error));
+          await service.resumeDownload(failed);
+        }
+        afterManualAction = await database.select(database.downloadTable).getSingle();
+        return false;
+      }
+
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(database),
+          downloadManagerProvider.overrideWithValue(_Manager()),
+          downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(enqueueDuringDirectoryCheck)),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await database.close();
+      });
+      await database.into(database.mangaTable).insert(_manga);
+      await database.into(database.chapterTable).insert(chapter);
+      if (failed != null) await database.into(database.downloadTable).insert(failed);
+      service = container.read(downloadServiceProvider);
+
+      final result = await service.enqueueAutoDownloads(_source, _manga);
+
+      expect(afterManualAction, queued, reason: 'Progress after the manual download action');
+      expect(await database.select(database.downloadTable).getSingle(), queued, reason: 'Progress after the automatic scan');
+      expect(result, const DownloadEnqueueResult(skippedQueued: 1));
+    });
+  }
+
+  test('Auto enqueue skips a resumed download and reports a removed download', () async {
+    final rows = [_download(1, error: 'failed'), _download(2, error: 'failed')];
+    final resumed = _download(1).copyWith(progress: 7);
+    final downloads = _Downloads(
+      rows,
+      afterQuery: () {
+        rows[0] = resumed;
+        rows.removeLast();
+      },
+    );
+    final container = _createContainer(_Chapters([_chapter(1), _chapter(2)]), downloads, _Manager());
+
+    final result = await container.read(downloadServiceProvider).enqueueAutoDownloads(_source, _manga);
+
+    expect(result.enqueuedCount, 0);
+    expect(result.skippedQueued, 1);
+    expect(result.failedChapters.keys, ['chapter-url-2']);
+    expect(result.failedChapters['chapter-url-2'], contains('Download no longer exists'));
+    expect(rows, [resumed]);
+    expect(downloads.updated, isEmpty);
+  });
+
+  test('Auto enqueue counts a resumed download that finishes during the queue check as downloaded', () async {
+    final rows = [_download(1, error: 'failed')];
+    final completed = <int>{};
+    final downloads = _Downloads(
+      rows,
+      afterQuery: () => rows[0] = _download(1),
+      beforeHasDownload: () {
+        completed.add(1);
+        rows.clear();
+      },
+    );
+    final container = _createContainer(_Chapters([_chapter(1)]), downloads, _Manager(), completed: completed);
+
+    final result = await container.read(downloadServiceProvider).enqueueAutoDownloads(_source, _manga);
+
+    expect(result, const DownloadEnqueueResult(skippedDownloaded: 1));
+    expect(rows, isEmpty);
+  });
+
   test('Enqueue returns complete counts and chapter errors without starting downloads', () async {
     for (final failedChapter in <int?>[null, 6]) {
       final chapters = _Chapters([_chapter(1), _chapter(2), _chapter(3), _chapter(4), _chapter(5, public: false), _chapter(6)]);
@@ -135,11 +226,18 @@ ProviderContainer _createContainer(_Chapters chapters, _Downloads downloads, _Ma
       downloadRepositoryProvider.overrideWithValue(downloads),
       downloadManagerProvider.overrideWithValue(manager),
       for (final chapter in chapters.chapters)
-        downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(completed.contains(chapter.id))),
+        downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(() => completed.contains(chapter.id))),
     ],
   );
   addTearDown(container.dispose);
   return container;
+}
+
+class _Database extends TsukuyomiDatabase {
+  _Database() : super.forTesting(NativeDatabase.memory());
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'));
 }
 
 class _Chapters implements ChapterRepository {
@@ -158,23 +256,28 @@ class _Chapters implements ChapterRepository {
 }
 
 class _Downloads implements DownloadRepository {
-  _Downloads(this.rows, {this.failChapter, this.queryError});
+  _Downloads(this.rows, {this.failChapter, this.queryError, this.afterQuery, this.beforeHasDownload});
   final List<DatabaseDownload> rows;
   final int? failChapter;
   final Object? queryError;
+  final void Function()? afterQuery;
+  final void Function()? beforeHasDownload;
   final List<int> inserted = [];
   final List<DatabaseDownload> updated = [];
 
   @override
   Future<List<DatabaseDownload>> queryDownloadsByManga(int mangaId) async {
     if (queryError != null) throw queryError!;
-    return rows.toList();
+    final snapshot = rows.toList();
+    afterQuery?.call();
+    return snapshot;
   }
 
   @override
-  Future<void> insertDownload(Insertable<DatabaseDownload> row) async {
-    final value = row as DownloadTableCompanion;
+  Future<bool> insertDownload(DownloadTableCompanion value) async {
     if (value.chapter.value == failChapter) throw StateError('insert-error');
+    final existing = rows.where((row) => row.chapter == value.chapter.value).firstOrNull;
+    if (existing != null) return existing.error != null && await clearDownloadError(existing);
     inserted.add(value.chapter.value);
     rows.add(
       DatabaseDownload(
@@ -186,13 +289,23 @@ class _Downloads implements DownloadRepository {
         error: null,
       ),
     );
+    return true;
   }
 
   @override
-  Future<bool> updateDownload(DatabaseDownload row) async {
+  Future<bool> clearDownloadError(DatabaseDownload download) async {
+    final index = rows.indexWhere((row) => row.chapter == download.chapter);
+    if (index == -1 || rows[index].error == null) return false;
+    final row = rows[index].copyWith(error: null);
+    rows[index] = row;
     updated.add(row);
-    rows[rows.indexWhere((it) => it.chapter == row.chapter)] = row;
     return true;
+  }
+
+  @override
+  Future<bool> hasDownload(DatabaseDownload download) async {
+    beforeHasDownload?.call();
+    return rows.any((row) => row.chapter == download.chapter);
   }
 
   @override
@@ -213,7 +326,7 @@ class _Manager implements DownloadManager {
 
 class _ChapterPath extends DownloadChapterPath {
   _ChapterPath(this.completed);
-  final bool completed;
+  final FutureOr<bool> Function() completed;
 
   @override
   Future<Directory> build(Source source, DatabaseManga manga, DatabaseChapter chapter) async => _Directory(completed);
@@ -221,10 +334,10 @@ class _ChapterPath extends DownloadChapterPath {
 
 class _Directory implements Directory {
   _Directory(this.completed);
-  final bool completed;
+  final FutureOr<bool> Function() completed;
 
   @override
-  Future<bool> exists() async => completed;
+  Future<bool> exists() async => completed();
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

@@ -43,7 +43,7 @@ class DownloadService {
 
   /// 继续下载章节数据
   Future<void> resumeDownload(DatabaseDownload download) async {
-    await updateDownload(download.copyWith(error: null));
+    await ref.read(downloadRepositoryProvider).clearDownloadError(download);
     await ref.read(downloadManagerProvider).next();
   }
 
@@ -80,7 +80,8 @@ class DownloadService {
           continue;
         }
         try {
-          if (await (await getChapterDir(source, manga, chapter)).exists()) {
+          final directory = await getChapterDir(source, manga, chapter);
+          if (await directory.exists()) {
             skippedDownloaded++;
             continue;
           }
@@ -90,9 +91,20 @@ class DownloadService {
             continue;
           }
           if (download == null) {
-            await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
-          } else if (!await downloadRepository.updateDownload(download.copyWith(error: null))) {
-            throw StateError('Download no longer exists: ${chapter.url}');
+            final enqueued = await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
+            if (!enqueued) {
+              skippedQueued++;
+              continue;
+            }
+          } else if (!await downloadRepository.clearDownloadError(download)) {
+            if (await downloadRepository.hasDownload(download)) {
+              skippedQueued++;
+            } else if (await directory.exists()) {
+              skippedDownloaded++;
+            } else {
+              throw StateError('Download no longer exists: ${chapter.url}');
+            }
+            continue;
           }
           enqueuedCount++;
         } catch (error) {
