@@ -98,39 +98,47 @@ void main() {
     expect(manager.wakes, 0);
   });
 
-  test('Auto enqueue skips a chapter queued manually during the scan and preserves its progress', () async {
-    if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
-    final database = _Database();
-    final chapter = _chapter(1);
-    final queued = _download(1).copyWith(progress: 7);
-    late final DownloadService service;
+  for (final failed in [null, _download(1, error: 'failed')]) {
+    final action = failed == null ? 'queued' : 'resumed';
+    test('Auto enqueue skips a chapter $action manually during the scan and preserves its progress', () async {
+      if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
+      final database = _Database();
+      final chapter = _chapter(1);
+      final queued = _download(1).copyWith(progress: 7);
+      late final DownloadService service;
 
-    Future<bool> enqueueDuringDirectoryCheck() async {
-      await service.insertDownload(_source.id, chapter);
-      await service.updateDownload(queued);
-      return false;
-    }
+      Future<bool> enqueueDuringDirectoryCheck() async {
+        if (failed == null) {
+          await service.insertDownload(_source.id, chapter);
+        } else {
+          await service.resumeDownload(failed);
+        }
+        await service.updateDownload(queued);
+        return false;
+      }
 
-    final container = ProviderContainer(
-      overrides: [
-        databaseProvider.overrideWithValue(database),
-        downloadManagerProvider.overrideWithValue(_Manager()),
-        downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(enqueueDuringDirectoryCheck)),
-      ],
-    );
-    addTearDown(() async {
-      container.dispose();
-      await database.close();
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(database),
+          downloadManagerProvider.overrideWithValue(_Manager()),
+          downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(enqueueDuringDirectoryCheck)),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await database.close();
+      });
+      await database.into(database.mangaTable).insert(_manga);
+      await database.into(database.chapterTable).insert(chapter);
+      if (failed != null) await database.into(database.downloadTable).insert(failed);
+      service = container.read(downloadServiceProvider);
+
+      final result = await service.enqueueAutoDownloads(_source, _manga);
+
+      expect(await database.select(database.downloadTable).getSingle(), queued);
+      expect(result, const DownloadEnqueueResult(skippedQueued: 1));
     });
-    await database.into(database.mangaTable).insert(_manga);
-    await database.into(database.chapterTable).insert(chapter);
-    service = container.read(downloadServiceProvider);
-
-    final result = await service.enqueueAutoDownloads(_source, _manga);
-
-    expect(result, const DownloadEnqueueResult(skippedQueued: 1));
-    expect(await database.select(database.downloadTable).getSingle(), queued);
-  });
+  }
 
   test('Auto enqueue skips a resumed download and reports a removed download', () async {
     final rows = [_download(1, error: 'failed'), _download(2, error: 'failed')];
