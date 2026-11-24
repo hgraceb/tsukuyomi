@@ -64,29 +64,25 @@ class DownloadService {
     if (!manga.favorite || !manga.auto) return const DownloadEnqueueResult();
     final keepAlive = ref.keepAlive();
     try {
+      var enqueuedCount = 0;
+      var skippedDownloaded = 0;
+      var skippedQueued = 0;
+      var skippedUnavailable = 0;
       final chapterRepository = ref.read(chapterRepositoryProvider);
       final downloadRepository = ref.read(downloadRepositoryProvider);
       final chapters = await chapterRepository.queryChaptersByMangaId(manga.id);
       final downloads = await downloadRepository.queryDownloadsByManga(manga.id);
       final downloadsByChapter = {for (final download in downloads) download.chapter: download};
-      var enqueuedCount = 0;
-      var skippedDownloaded = 0;
-      var skippedQueued = 0;
-      var skippedUnavailable = 0;
       final failedChapters = <String, String>{};
       for (final chapter in chapters..sort((a, b) => a.id.compareTo(b.id))) {
-        if (!chapter.public) {
-          skippedUnavailable++;
-          continue;
-        }
         try {
-          final directory = await getChapterDir(source, manga, chapter);
-          if (await directory.exists()) {
-            skippedDownloaded++;
-            continue;
-          }
           final download = downloadsByChapter[chapter.id];
-          if (download == null) {
+          final directory = chapter.public ? await getChapterDir(source, manga, chapter) : null;
+          if (directory == null) {
+            skippedUnavailable++;
+          } else if (await directory.exists()) {
+            skippedDownloaded++;
+          } else if (download == null) {
             await downloadRepository.insertDownload(chapter.toDownloadable(source.id)) ? enqueuedCount++ : skippedQueued++;
           } else if (download.error == null) {
             skippedQueued++;
