@@ -67,7 +67,6 @@ class DownloadService {
       final chapterRepository = ref.read(chapterRepositoryProvider);
       final downloadRepository = ref.read(downloadRepositoryProvider);
       final chapters = await chapterRepository.queryChaptersByMangaId(manga.id);
-      chapters.sort((a, b) => a.id.compareTo(b.id));
       final downloads = await downloadRepository.queryDownloadsByManga(manga.id);
       final downloadsByChapter = {for (final download in downloads) download.chapter: download};
       var enqueuedCount = 0;
@@ -75,7 +74,7 @@ class DownloadService {
       var skippedQueued = 0;
       var skippedUnavailable = 0;
       final failedChapters = <String, String>{};
-      for (final chapter in chapters) {
+      for (final chapter in chapters..sort((a, b) => a.id.compareTo(b.id))) {
         if (!chapter.public) {
           skippedUnavailable++;
           continue;
@@ -88,12 +87,7 @@ class DownloadService {
           }
           final download = downloadsByChapter[chapter.id];
           if (download == null) {
-            final enqueued = await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
-            if (enqueued) {
-              enqueuedCount++;
-            } else {
-              skippedQueued++;
-            }
+            await downloadRepository.insertDownload(chapter.toDownloadable(source.id)) ? enqueuedCount++ : skippedQueued++;
           } else if (download.error == null) {
             skippedQueued++;
           } else if (await downloadRepository.clearDownloadError(download)) {
