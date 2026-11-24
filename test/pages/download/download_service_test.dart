@@ -172,9 +172,10 @@ class _Downloads implements DownloadRepository {
   }
 
   @override
-  Future<void> insertDownload(Insertable<DatabaseDownload> row) async {
-    final value = row as DownloadTableCompanion;
+  Future<bool> insertDownload(DownloadTableCompanion value) async {
     if (value.chapter.value == failChapter) throw StateError('insert-error');
+    final existing = rows.where((row) => row.chapter == value.chapter.value).firstOrNull;
+    if (existing != null) return existing.error != null && await clearDownloadError(existing);
     inserted.add(value.chapter.value);
     rows.add(
       DatabaseDownload(
@@ -186,6 +187,7 @@ class _Downloads implements DownloadRepository {
         error: null,
       ),
     );
+    return true;
   }
 
   @override

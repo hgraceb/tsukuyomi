@@ -34,28 +34,10 @@ class DownloadRepository {
     return await query.write(const DownloadTableCompanion(error: Value(null))) > 0;
   }
 
-  Future<void> insertDownload(Insertable<DatabaseDownload> download) async {
-    await insertDownloads([download]);
-  }
-
-  Future<void> insertDownloads(Iterable<Insertable<DatabaseDownload>> downloads) async {
-    if (downloads.isEmpty) return;
-    await database.batch((batch) {
-      batch.insertAll<DownloadTable, DatabaseDownload>(
-        database.downloadTable,
-        downloads,
-        onConflict: DoUpdate.withExcluded(
-          // 更新下载信息 TODO 判断下载错误时是否需要重置下载进度
-          (old, excluded) => DownloadTableCompanion.custom(
-            error: excluded.error,
-            total: excluded.total,
-            progress: excluded.progress,
-          ),
-          // 只更新下载失败的数据
-          where: (old, excluded) => old.error.isNotNull(),
-        ),
-      );
-    });
+  Future<bool> insertDownload(DownloadTableCompanion download) async {
+    final query = database.into(database.downloadTable);
+    final update = const DownloadTableCompanion(error: Value(null));
+    return await query.insertReturningOrNull(download, onConflict: DoUpdate((_) => update, where: (row) => row.error.isNotNull())) != null;
   }
 
   Future<List<DownloadWithExtra>> queryDownloadsPartitionBySource(int limit) {

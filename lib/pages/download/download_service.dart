@@ -90,7 +90,11 @@ class DownloadService {
             continue;
           }
           if (download == null) {
-            await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
+            final enqueued = await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
+            if (!enqueued) {
+              skippedQueued++;
+              continue;
+            }
           } else if (!await downloadRepository.clearDownloadError(download)) {
             throw StateError('Download no longer exists: ${chapter.url}');
           }
