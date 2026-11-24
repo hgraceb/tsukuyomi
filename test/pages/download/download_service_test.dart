@@ -106,14 +106,17 @@ void main() {
       final chapter = _chapter(1);
       final queued = _download(1).copyWith(progress: 7);
       late final DownloadService service;
+      DatabaseDownload? afterManualAction;
 
       Future<bool> enqueueDuringDirectoryCheck() async {
         if (failed == null) {
           await service.insertDownload(_source.id, chapter);
+          await service.updateDownload(queued);
         } else {
+          await service.updateDownload(queued.copyWith(error: failed.error));
           await service.resumeDownload(failed);
         }
-        await service.updateDownload(queued);
+        afterManualAction = await database.select(database.downloadTable).getSingle();
         return false;
       }
 
@@ -135,7 +138,8 @@ void main() {
 
       final result = await service.enqueueAutoDownloads(_source, _manga);
 
-      expect(await database.select(database.downloadTable).getSingle(), queued);
+      expect(afterManualAction, queued, reason: 'Progress after the manual download action');
+      expect(await database.select(database.downloadTable).getSingle(), queued, reason: 'Progress after the automatic scan');
       expect(result, const DownloadEnqueueResult(skippedQueued: 1));
     });
   }
