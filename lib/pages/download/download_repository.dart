@@ -3,7 +3,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/database/database.dart';
 
 part 'download_repository.freezed.dart';
-
 part 'download_repository.g.dart';
 
 @freezed
@@ -13,6 +12,14 @@ class DownloadWithExtra with _$DownloadWithExtra {
     required DatabaseChapter chapter,
     required DatabaseManga manga,
   }) = _DownloadWithExtra;
+
+  factory DownloadWithExtra.read(TypedResult row, TsukuyomiDatabase database) {
+    return DownloadWithExtra(
+      download: row.readTable(database.downloadTable),
+      chapter: row.readTable(database.chapterTable),
+      manga: row.readTable(database.mangaTable),
+    );
+  }
 }
 
 class DownloadRepository {
@@ -59,13 +66,10 @@ class DownloadRepository {
     final download = database.downloadTable;
     final chapter = database.chapterTable;
     final manga = database.mangaTable;
-    final query = database.select(download).join([
-      innerJoin(chapter, chapter.id.equalsExp(download.chapter)),
-      innerJoin(manga, manga.id.equalsExp(download.manga)),
-    ]);
-    final mappedQuery = query.map(
-      (row) => DownloadWithExtra(download: row.readTable(download), chapter: row.readTable(chapter), manga: row.readTable(manga)),
-    );
+    final chapterJoin = innerJoin(chapter, chapter.id.equalsExp(download.chapter));
+    final mangaJoin = innerJoin(manga, manga.id.equalsExp(download.manga));
+    final query = database.select(download).join([chapterJoin, mangaJoin]);
+    final mappedQuery = query.map((row) => DownloadWithExtra.read(row, database));
     return mappedQuery.watch();
   }
 
