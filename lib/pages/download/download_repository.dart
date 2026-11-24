@@ -13,13 +13,11 @@ class DownloadWithExtra with _$DownloadWithExtra {
     required DatabaseManga manga,
   }) = _DownloadWithExtra;
 
-  factory DownloadWithExtra.read(TypedResult row, TsukuyomiDatabase database) {
-    return DownloadWithExtra(
-      download: row.readTable(database.downloadTable),
-      chapter: row.readTable(database.chapterTable),
-      manga: row.readTable(database.mangaTable),
-    );
-  }
+  factory DownloadWithExtra.read(TypedResult row, TsukuyomiDatabase database) => DownloadWithExtra(
+    download: row.readTable(database.downloadTable),
+    chapter: row.readTable(database.chapterTable),
+    manga: row.readTable(database.mangaTable),
+  );
 }
 
 class DownloadRepository {
@@ -56,10 +54,7 @@ class DownloadRepository {
 
   Future<List<DownloadWithExtra>> queryDownloadsPartitionBySource(int limit) {
     final query = database.downloadsPartitionBySource(limit);
-    final mappedQuery = query.map(
-      (row) => DownloadWithExtra(download: row.download.toDatabaseDownload(), chapter: row.chapter, manga: row.manga),
-    );
-    return mappedQuery.get();
+    return query.map((row) => DownloadWithExtra(download: row.download.toDatabaseDownload(), chapter: row.chapter, manga: row.manga)).get();
   }
 
   Stream<List<DownloadWithExtra>> watchDownloads() {
@@ -69,8 +64,7 @@ class DownloadRepository {
     final chapterJoin = innerJoin(chapter, chapter.id.equalsExp(download.chapter));
     final mangaJoin = innerJoin(manga, manga.id.equalsExp(download.manga));
     final query = database.select(download).join([chapterJoin, mangaJoin]);
-    final mappedQuery = query.map((row) => DownloadWithExtra.read(row, database));
-    return mappedQuery.watch();
+    return query.map((row) => DownloadWithExtra.read(row, database)).watch();
   }
 
   Stream<List<DatabaseDownload>> watchDownloadsByManga(int mangaId) {
