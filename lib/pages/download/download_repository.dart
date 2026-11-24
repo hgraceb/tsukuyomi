@@ -48,10 +48,11 @@ class DownloadRepository {
   }
 
   Future<List<DownloadWithExtra>> queryDownloadsPartitionBySource(int limit) {
-    return database
-        .downloadsPartitionBySource(limit)
-        .map((row) => DownloadWithExtra(download: row.download.toDatabaseDownload(), chapter: row.chapter, manga: row.manga))
-        .get();
+    final query = database.downloadsPartitionBySource(limit);
+    final mappedQuery = query.map(
+      (row) => DownloadWithExtra(download: row.download.toDatabaseDownload(), chapter: row.chapter, manga: row.manga),
+    );
+    return mappedQuery.get();
   }
 
   Stream<List<DownloadWithExtra>> watchDownloads() {
