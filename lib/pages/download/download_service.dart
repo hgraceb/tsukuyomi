@@ -68,12 +68,12 @@ class DownloadService {
       var skippedDownloaded = 0;
       var skippedQueued = 0;
       var skippedUnavailable = 0;
+      final failedChapters = <String, String>{};
       final chapterRepository = ref.read(chapterRepositoryProvider);
       final downloadRepository = ref.read(downloadRepositoryProvider);
       final chapters = await chapterRepository.queryChaptersByMangaId(manga.id);
       final downloads = await downloadRepository.queryDownloadsByManga(manga.id);
       final downloadsByChapter = {for (final download in downloads) download.chapter: download};
-      final failedChapters = <String, String>{};
       for (final chapter in chapters..sort((a, b) => a.id.compareTo(b.id))) {
         try {
           final download = downloadsByChapter[chapter.id];
