@@ -116,6 +116,25 @@ void main() {
     expect(downloads.updated, isEmpty);
   });
 
+  test('Auto enqueue counts a resumed download that finishes during the queue check as downloaded', () async {
+    final rows = [_download(1, error: 'failed')];
+    final completed = <int>{};
+    final downloads = _Downloads(
+      rows,
+      afterQuery: () => rows[0] = _download(1),
+      beforeHasDownload: () {
+        completed.add(1);
+        rows.clear();
+      },
+    );
+    final container = _createContainer(_Chapters([_chapter(1)]), downloads, _Manager(), completed: completed);
+
+    final result = await container.read(downloadServiceProvider).enqueueAutoDownloads(_source, _manga);
+
+    expect(result, const DownloadEnqueueResult(skippedDownloaded: 1));
+    expect(rows, isEmpty);
+  });
+
   test('Enqueue returns complete counts and chapter errors without starting downloads', () async {
     for (final failedChapter in <int?>[null, 6]) {
       final chapters = _Chapters([_chapter(1), _chapter(2), _chapter(3), _chapter(4), _chapter(5, public: false), _chapter(6)]);
@@ -157,7 +176,7 @@ ProviderContainer _createContainer(_Chapters chapters, _Downloads downloads, _Ma
       downloadRepositoryProvider.overrideWithValue(downloads),
       downloadManagerProvider.overrideWithValue(manager),
       for (final chapter in chapters.chapters)
-        downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(completed.contains(chapter.id))),
+        downloadChapterPathProvider(_source, _manga, chapter).overrideWith(() => _ChapterPath(() => completed.contains(chapter.id))),
     ],
   );
   addTearDown(container.dispose);
@@ -180,11 +199,12 @@ class _Chapters implements ChapterRepository {
 }
 
 class _Downloads implements DownloadRepository {
-  _Downloads(this.rows, {this.failChapter, this.queryError, this.afterQuery});
+  _Downloads(this.rows, {this.failChapter, this.queryError, this.afterQuery, this.beforeHasDownload});
   final List<DatabaseDownload> rows;
   final int? failChapter;
   final Object? queryError;
   final void Function()? afterQuery;
+  final void Function()? beforeHasDownload;
   final List<int> inserted = [];
   final List<DatabaseDownload> updated = [];
 
@@ -226,7 +246,10 @@ class _Downloads implements DownloadRepository {
   }
 
   @override
-  Future<bool> hasDownload(DatabaseDownload download) async => rows.any((row) => row.chapter == download.chapter);
+  Future<bool> hasDownload(DatabaseDownload download) async {
+    beforeHasDownload?.call();
+    return rows.any((row) => row.chapter == download.chapter);
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -246,7 +269,7 @@ class _Manager implements DownloadManager {
 
 class _ChapterPath extends DownloadChapterPath {
   _ChapterPath(this.completed);
-  final bool completed;
+  final bool Function() completed;
 
   @override
   Future<Directory> build(Source source, DatabaseManga manga, DatabaseChapter chapter) async => _Directory(completed);
@@ -254,10 +277,10 @@ class _ChapterPath extends DownloadChapterPath {
 
 class _Directory implements Directory {
   _Directory(this.completed);
-  final bool completed;
+  final bool Function() completed;
 
   @override
-  Future<bool> exists() async => completed;
+  Future<bool> exists() async => completed();
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

@@ -80,7 +80,8 @@ class DownloadService {
           continue;
         }
         try {
-          if (await (await getChapterDir(source, manga, chapter)).exists()) {
+          final directory = await getChapterDir(source, manga, chapter);
+          if (await directory.exists()) {
             skippedDownloaded++;
             continue;
           }
@@ -96,8 +97,13 @@ class DownloadService {
               continue;
             }
           } else if (!await downloadRepository.clearDownloadError(download)) {
-            if (!await downloadRepository.hasDownload(download)) throw StateError('Download no longer exists: ${chapter.url}');
-            skippedQueued++;
+            if (await downloadRepository.hasDownload(download)) {
+              skippedQueued++;
+            } else if (await directory.exists()) {
+              skippedDownloaded++;
+            } else {
+              throw StateError('Download no longer exists: ${chapter.url}');
+            }
             continue;
           }
           enqueuedCount++;
