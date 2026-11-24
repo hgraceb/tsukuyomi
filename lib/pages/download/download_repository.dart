@@ -59,11 +59,14 @@ class DownloadRepository {
     final download = database.downloadTable;
     final chapter = database.chapterTable;
     final manga = database.mangaTable;
-    return database
-        .select(download)
-        .join([innerJoin(chapter, chapter.id.equalsExp(download.chapter)), innerJoin(manga, manga.id.equalsExp(download.manga))])
-        .map((row) => DownloadWithExtra(download: row.readTable(download), chapter: row.readTable(chapter), manga: row.readTable(manga)))
-        .watch();
+    final query = database.select(download).join([
+      innerJoin(chapter, chapter.id.equalsExp(download.chapter)),
+      innerJoin(manga, manga.id.equalsExp(download.manga)),
+    ]);
+    final mappedQuery = query.map(
+      (row) => DownloadWithExtra(download: row.readTable(download), chapter: row.readTable(chapter), manga: row.readTable(manga)),
+    );
+    return mappedQuery.watch();
   }
 
   Stream<List<DatabaseDownload>> watchDownloadsByManga(int mangaId) {
