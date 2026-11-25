@@ -50,9 +50,7 @@ DatabaseDownload _download(int id, {String? error}) => DatabaseDownload(
 );
 
 void main() {
-  setUpAll(() {
-    if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
-  });
+  setUpAll(_useSystemSqlite);
 
   test('Only favorite auto manga can enqueue automatically', () async {
     final chapters = _Chapters([_chapter(1)]);
@@ -209,8 +207,8 @@ void main() {
       final previous = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
       driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
       addTearDown(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = previous);
-      final scan = _Database(NativeDatabase(file));
-      final worker = _Database(NativeDatabase(file));
+      final scan = _Database(NativeDatabase.createInBackground(file, isolateSetup: _useSystemSqlite));
+      final worker = _Database(NativeDatabase.createInBackground(file, isolateSetup: _useSystemSqlite));
       final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(scan)]);
       addTearDown(() async {
         container.dispose();
@@ -338,6 +336,10 @@ ProviderContainer _createContainer(_Chapters chapters, _Downloads downloads, _Ma
   );
   addTearDown(container.dispose);
   return container;
+}
+
+void _useSystemSqlite() {
+  if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
 }
 
 class _Database extends TsukuyomiDatabase {
