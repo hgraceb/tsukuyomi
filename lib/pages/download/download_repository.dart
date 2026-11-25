@@ -54,13 +54,19 @@ class DownloadRepository {
     return await query.insertReturningOrNull(download, onConflict: DoUpdate((_) => update, where: (row) => row.error.isNotNull())) != null;
   }
 
-  Future<DownloadEnqueueOutcome> insertMissingDownload(DownloadTableCompanion download, Future<bool> Function() isDownloaded) {
-    return database.transaction(() async {
-      // 通过空更新取得 SQLite 写锁，使其他连接在目录复查和入队结束后再出队
-      await database.customStatement('UPDATE download SET progress = progress WHERE FALSE');
-      if (await isDownloaded()) return DownloadEnqueueOutcome.skippedDownloaded;
-      return await insertDownload(download) ? DownloadEnqueueOutcome.enqueued : DownloadEnqueueOutcome.skippedQueued;
-    });
+  Future<DownloadEnqueueOutcome> insertMissingDownload(DownloadTableCompanion download, Future<bool> Function() isDownloaded) async {
+    final versions = database.customSelect('PRAGMA data_version').map((row) => row.read<int>('data_version'));
+    while (true) {
+      final version = await versions.getSingle();
+      final outcome = await database.transaction(() async {
+        if (await isDownloaded()) return DownloadEnqueueOutcome.skippedDownloaded;
+        // 取得写锁后核对目录检查期间是否有其他连接提交过更改
+        await database.customStatement('UPDATE download SET progress = progress WHERE FALSE');
+        if (await versions.getSingle() != version) return null;
+        return await insertDownload(download) ? DownloadEnqueueOutcome.enqueued : DownloadEnqueueOutcome.skippedQueued;
+      });
+      if (outcome != null) return outcome;
+    }
   }
 
   Future<List<DownloadWithExtra>> queryDownloadsPartitionBySource(int limit) {

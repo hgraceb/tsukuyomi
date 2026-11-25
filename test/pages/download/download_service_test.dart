@@ -6,7 +6,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
-import 'package:tsukuyomi/database/connection/native.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/download/download_repository.dart';
@@ -51,7 +50,9 @@ DatabaseDownload _download(int id, {String? error}) => DatabaseDownload(
 );
 
 void main() {
-  setUpAll(_useSystemSqlite);
+  setUpAll(() {
+    if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
+  });
 
   test('Only favorite auto manga can enqueue automatically', () async {
     final chapters = _Chapters([_chapter(1)]);
@@ -200,46 +201,55 @@ void main() {
     });
   });
 
-  test('Another connection can finish a download during the final directory check', () async {
-    final root = await Directory.systemTemp.createTemp('tsukuyomi-enqueue-');
-    addTearDown(() => root.delete(recursive: true));
-    final file = File('${root.path}/queue.db');
-    final previous = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
-    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-    addTearDown(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = previous);
-    final scan = _Database(openNativeDatabase(file, isolateSetup: _useSystemSqlite));
-    final worker = _Database(openNativeDatabase(file, isolateSetup: _useSystemSqlite));
-    final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(scan)]);
-    addTearDown(() async {
-      container.dispose();
-      await worker.close();
-      await scan.close();
+  for (final completedId in [1, 2]) {
+    test('Scanning chapter 1 while another connection completes chapter $completedId', () async {
+      final root = await Directory.systemTemp.createTemp('tsukuyomi-enqueue-');
+      addTearDown(() => root.delete(recursive: true));
+      final file = File('${root.path}/queue.db');
+      final previous = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      addTearDown(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = previous);
+      final scan = _Database(NativeDatabase(file));
+      final worker = _Database(NativeDatabase(file));
+      final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(scan)]);
+      addTearDown(() async {
+        container.dispose();
+        await worker.close();
+        await scan.close();
+      });
+
+      final chapter = _chapter(1);
+      final download = _download(completedId);
+      await scan.into(scan.mangaTable).insert(_manga);
+      await scan.into(scan.chapterTable).insert(chapter);
+      if (completedId != chapter.id) await scan.into(scan.chapterTable).insert(_chapter(completedId));
+      await worker.into(worker.downloadTable).insert(download);
+      final temp = await Directory('${root.path}/temp').create();
+      final directory = Directory('${root.path}/chapter-1');
+      final completed = Directory('${root.path}/chapter-$completedId');
+      await File('${temp.path}/001.jpg').writeAsBytes([1, 2, 3]);
+
+      final repository = container.read(downloadRepositoryProvider);
+      final result = await repository.insertMissingDownload(chapter.toDownloadable(_source.id), () async {
+        final existed = await directory.exists();
+        if (await temp.exists()) {
+          await temp.rename(completed.path);
+          expect(await worker.delete(worker.downloadTable).delete(download), 1);
+        }
+        return existed;
+      });
+
+      final rows = await scan.select(scan.downloadTable).get();
+      if (completedId == chapter.id) {
+        expect(result, DownloadEnqueueOutcome.skippedDownloaded);
+        expect(rows, isEmpty);
+      } else {
+        expect(result, DownloadEnqueueOutcome.enqueued);
+        expect(rows.single.chapter, chapter.id);
+      }
+      expect(await File('${completed.path}/001.jpg').readAsBytes(), [1, 2, 3]);
     });
-
-    final chapter = _chapter(1);
-    final download = _download(1);
-    await scan.into(scan.mangaTable).insert(_manga);
-    await scan.into(scan.chapterTable).insert(chapter);
-    await worker.into(worker.downloadTable).insert(download);
-    final temp = await Directory('${root.path}/temp').create();
-    final directory = Directory('${root.path}/chapter');
-    await File('${temp.path}/001.jpg').writeAsBytes([1, 2, 3]);
-
-    late Future<int> deletion;
-    final repository = container.read(downloadRepositoryProvider);
-    final result = await repository.insertMissingDownload(chapter.toDownloadable(_source.id), () async {
-      final existed = await directory.exists();
-      await temp.rename(directory.path);
-      deletion = worker.delete(worker.downloadTable).delete(download);
-      await expectLater(deletion.timeout(const Duration(milliseconds: 200)), throwsA(isA<TimeoutException>()));
-      return existed;
-    });
-
-    expect(await deletion, 1);
-    expect(result, DownloadEnqueueOutcome.skippedQueued);
-    expect(await scan.select(scan.downloadTable).get(), isEmpty);
-    expect(await File('${directory.path}/001.jpg').readAsBytes(), [1, 2, 3]);
-  });
+  }
 
   test('Auto enqueue skips a resumed download and reports a removed download', () async {
     final rows = [_download(1, error: 'failed'), _download(2, error: 'failed')];
@@ -328,10 +338,6 @@ ProviderContainer _createContainer(_Chapters chapters, _Downloads downloads, _Ma
   );
   addTearDown(container.dispose);
   return container;
-}
-
-void _useSystemSqlite() {
-  if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
 }
 
 class _Database extends TsukuyomiDatabase {

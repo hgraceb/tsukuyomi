@@ -25,16 +25,8 @@ DatabaseConnection connect() {
       sqlite3.tempDirectory = (await getTemporaryDirectory()).path;
     }
 
-    return openNativeDatabase(await databaseFile);
+    return NativeDatabase.createBackgroundConnection(await databaseFile);
   }));
-}
-
-DatabaseConnection openNativeDatabase(File file, {IsolateSetup? isolateSetup}) {
-  return NativeDatabase.createBackgroundConnection(
-    file,
-    isolateSetup: isolateSetup,
-    setup: (database) => database.execute('PRAGMA busy_timeout = 5000'),
-  );
 }
 
 Future<void> validateDatabaseSchema(GeneratedDatabase database) async {
