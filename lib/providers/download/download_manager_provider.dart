@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:path/path.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/core/core.dart';
@@ -55,17 +56,17 @@ class DownloadTask {
   bool _canceled = false;
 
   /// 保存漫画章节图片
-  Future<void> _saveImageFile(HttpSourceImage image, Directory dir, String name) async {
+  Future<File> _saveImageFile(HttpSourceImage image, Directory dir, String name) async {
     final fileFromCache = await source.getImageCacheManager(image)?.getFileFromCache(image.url);
     final cachedImage = fileFromCache?.file;
     if (cachedImage != null) {
       final path = join(dir.path, '$name${extension(cachedImage.path)}');
-      await cachedImage.copy(path);
+      return cachedImage.copy(path);
     } else {
       final bytes = await source.getImageBytes(image);
       final repaint = await source.getRepaintBytes(bytes);
       final path = join(dir.path, '$name.${repaint.type}');
-      await File(path).writeAsBytes(repaint.data, flush: true);
+      return File(path).writeAsBytes(repaint.data, flush: true);
     }
   }
 
@@ -89,6 +90,35 @@ class DownloadTask {
     if (check && !updated) throw const TsukuyomiDownloadException.databaseError('UPDATE');
   }
 
+  /// 获取可续传的章节图片
+  Set<String> _savedPagePaths(Directory temp, List<String> names) {
+    if (download.total != names.length || download.progress <= 0 || download.progress > names.length) return {};
+    final files = temp.listSync(followLinks: false).whereType<File>();
+    final filesByName = groupBy(files, (file) => basenameWithoutExtension(file.path));
+    final paths = <String>{};
+    for (final name in names.take(download.progress)) {
+      final file = filesByName[name]?.singleOrNull;
+      if (file == null) return {};
+      paths.add(file.path);
+    }
+    return paths;
+  }
+
+  /// 核对本轮图片并移除旧页
+  void _finishChapter(Directory temp, Directory dir, Set<String> pages) {
+    final missing = PathSet.of(pages);
+    final oldPages = <File>[];
+    final pageNumber = RegExp(r'^[0-9]+$');
+    for (final file in temp.listSync(followLinks: false).whereType<File>()) {
+      if (!missing.remove(file.path) && pageNumber.hasMatch(basenameWithoutExtension(file.path))) oldPages.add(file);
+    }
+    if (missing.isNotEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
+    for (final file in oldPages) {
+      file.deleteSync();
+    }
+    temp.renameSync(dir.path);
+  }
+
   /// 下载章节图片
   Future<void> _downloadChapter(DownloadService downloadService) async {
     final dir = await downloadService.getChapterDir(source, manga, chapter);
@@ -98,25 +128,26 @@ class DownloadTask {
     final images = await _getChapterImages();
     // 如果章节图片列表获取失败
     if (images.isEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
-    // 如果图片列表长度发生变化则重置章节下载进度
-    if (images.length != download.total) await _updateDownload(download.copyWith(progress: 0, total: images.length));
     // 获取临时下载文件夹
     final temp = await downloadService.createTempChapterDir(source, manga, chapter);
-    // 图片文件名宽度
+    // 不包含文件后缀的本地图片文件名，如：001
     final width = (images.length + 1).toString().length;
-    // 遍历下载所有图片
-    for (final entry in images.asMap().entries) {
-      // 跳过已下载图片
-      if (entry.key < download.progress) continue;
-      // 不包含文件后缀的本地图片文件名，如：001
-      final name = '${entry.key + 1}'.padLeft(width, '0');
-      // 请求图片数据并保存到本地
-      await _saveImageFile(entry.value, temp, name);
-      // 更新章节下载进度
-      await _updateDownload(download.copyWith(progress: entry.key + 1));
+    final names = [for (var page = 1; page <= images.length; page++) '$page'.padLeft(width, '0')];
+    // 章节页数变化或临时图片与进度不符时重新下载
+    final pages = _savedPagePaths(temp, names);
+    if (images.length != download.total || pages.length != download.progress) {
+      await _updateDownload(download.copyWith(progress: pages.length, total: images.length));
     }
-    // 重命名临时文件夹
-    temp.renameSync(dir.path);
+    // 从已保存的下一页继续下载
+    for (var i = pages.length; i < images.length; i++) {
+      // 请求图片数据并保存到本地
+      final file = await _saveImageFile(images[i], temp, names[i]);
+      pages.add(file.path);
+      // 更新章节下载进度
+      await _updateDownload(download.copyWith(progress: i + 1));
+    }
+    // 图片齐全后完成章节下载
+    _finishChapter(temp, dir, pages);
   }
 
   /// 开始下载任务
