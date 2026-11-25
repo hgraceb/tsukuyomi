@@ -8,9 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
+import 'package:tsukuyomi/pages/chapter/chapter_service.dart';
 import 'package:tsukuyomi/pages/download/download_repository.dart';
 import 'package:tsukuyomi/pages/download/download_service.dart';
 import 'package:tsukuyomi/pages/download/providers/download_path_provider.dart';
+import 'package:tsukuyomi/pages/download/providers/downloaded_info_provider.dart';
 import 'package:tsukuyomi/providers/download/download_manager_provider.dart';
 import 'package:tsukuyomi/source/delegate/source_stub.dart';
 import 'package:tsukuyomi_source/tsukuyomi_source.dart';
@@ -97,6 +99,63 @@ void main() {
     expect(result.failedChapters['chapter-url-1'], contains('insert-error'));
     expect(manager.wakes, 0);
   });
+
+  for (final completed in [true, false]) {
+    final scenario = completed ? 'Completed chapters leave the queue without fetching images' : 'Temporary chapters still fetch images';
+    test(scenario, () async {
+      if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
+      final root = await Directory.systemTemp.createTemp('tsukuyomi-download-');
+      final database = _Database();
+      final source = _HttpSource();
+      final chapter = _chapter(1);
+      var requests = 0;
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(database),
+          downloadMangaPathProvider(source, _manga).overrideWith(() => _MangaPath(root)),
+          chapterImagesProvider(source, _manga, chapter).overrideWith((ref) async {
+            requests++;
+            return [];
+          }),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await database.close();
+        await root.delete(recursive: true);
+      });
+      await database.into(database.mangaTable).insert(_manga);
+      await database.into(database.chapterTable).insert(chapter);
+      final service = container.listen(downloadServiceProvider, (_, _) {}).read();
+      final downloaded = container.listen(downloadedChaptersProvider(root.path), (_, _) {});
+      expect(downloaded.read(), isEmpty);
+      final result = await service.enqueueAutoDownloads(source, _manga);
+      expect(result, const DownloadEnqueueResult(enqueuedCount: 1));
+
+      final temp = await service.createTempChapterDir(source, _manga, chapter);
+      await File('${temp.path}/001.jpg').writeAsBytes([1, 2, 3]);
+      final directory = await service.getChapterDir(source, _manga, chapter);
+      if (completed) await temp.rename(directory.path);
+      final download = await database.select(database.downloadTable).getSingle();
+      final manager = container.read(downloadManagerProvider);
+      final task = DownloadTask(ref: manager.ref, source: source, manga: _manga, chapter: chapter, download: download);
+      final finished = Completer<void>();
+      task.start(finished.complete);
+      await finished.future;
+
+      final rows = await database.select(database.downloadTable).get();
+      if (completed) {
+        expect(rows, isEmpty);
+        expect(requests, 0);
+        expect(downloaded.read(), {chapter.title});
+        expect(await File('${directory.path}/001.jpg').readAsBytes(), [1, 2, 3]);
+      } else {
+        expect(requests, 1);
+        expect(rows.single.error, contains('imagesNotFound'));
+        expect(downloaded.read(), isEmpty);
+      }
+    });
+  }
 
   for (final failed in [null, _download(1, error: 'failed')]) {
     final action = failed == null ? 'queued' : 'resumed';
@@ -238,6 +297,19 @@ class _Database extends TsukuyomiDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'));
+}
+
+class _HttpSource extends Fake implements DioHttpSource {
+  @override
+  int get id => 1;
+}
+
+class _MangaPath extends DownloadMangaPath {
+  _MangaPath(this.directory);
+  final Directory directory;
+
+  @override
+  Future<Directory> build(Source source, DatabaseManga manga) async => directory;
 }
 
 class _Chapters implements ChapterRepository {

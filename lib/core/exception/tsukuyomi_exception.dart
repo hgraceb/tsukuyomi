@@ -23,9 +23,6 @@ class TsukuyomiDownloadException with _$TsukuyomiDownloadException implements Ts
   /// 下载图片未找到
   const factory TsukuyomiDownloadException.imagesNotFound(String chapter) = DownloadImagesNotFound;
 
-  /// 下载路径已存在
-  const factory TsukuyomiDownloadException.pathAlreadyExists(String path) = DownloadPathAlreadyExists;
-
   /// 下载任务已取消
   const factory TsukuyomiDownloadException.canceled() = DownloadCanceled;
 }
