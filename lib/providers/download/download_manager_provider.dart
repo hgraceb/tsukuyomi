@@ -92,6 +92,7 @@ class DownloadTask {
   /// 下载章节图片
   Future<void> _downloadChapter(DownloadService downloadService) async {
     final dir = await downloadService.getChapterDir(source, manga, chapter);
+    // 已存在则跳过下载
     if (dir.existsSync()) return;
     // 获取章节图片列表
     final images = await _getChapterImages();
@@ -126,6 +127,7 @@ class DownloadTask {
       await _updateDownload(download.copyWith(error: null));
       // 获取下载服务
       final downloadService = ref.read(downloadServiceProvider);
+      // 下载章节图片
       await _downloadChapter(downloadService);
       // 更新已下载章节信息
       await downloadService.refreshDownloadedByChapter(source, manga, chapter);
