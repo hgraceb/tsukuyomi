@@ -65,6 +65,10 @@ enum SourceMangaTagType {
   character,
   // ${$.empty('SourceMangaTagType.category', () => SourceMangaTagType.category)}
   category,
+  // ${$.empty('SourceMangaTagType.origin', () => SourceMangaTagType.origin)}
+  origin,
+  // ${$.empty('SourceMangaTagType.group', () => SourceMangaTagType.group)}
+  group,
   // ${$.empty('SourceMangaTagType.other', () => SourceMangaTagType.other)}
   other;
 

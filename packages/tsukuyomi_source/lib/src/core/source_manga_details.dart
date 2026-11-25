@@ -84,6 +84,14 @@ enum SourceMangaTagType {
   @JsonValue('category')
   category,
 
+  /// 原作
+  @JsonValue('origin')
+  origin,
+
+  /// 社团
+  @JsonValue('group')
+  group,
+
   /// 其他
   @JsonValue('other')
   other
