@@ -5,8 +5,6 @@ import 'package:tsukuyomi/database/database.dart';
 part 'download_repository.freezed.dart';
 part 'download_repository.g.dart';
 
-enum DownloadEnqueueOutcome { enqueued, skippedDownloaded, skippedQueued, skippedUnavailable }
-
 @freezed
 class DownloadWithExtra with _$DownloadWithExtra {
   const factory DownloadWithExtra({
@@ -52,21 +50,6 @@ class DownloadRepository {
     final query = database.into(database.downloadTable);
     final update = const DownloadTableCompanion(error: Value(null));
     return await query.insertReturningOrNull(download, onConflict: DoUpdate((_) => update, where: (row) => row.error.isNotNull())) != null;
-  }
-
-  Future<DownloadEnqueueOutcome> insertMissingDownload(DownloadTableCompanion download, Future<bool> Function() isDownloaded) async {
-    final versions = database.customSelect('PRAGMA data_version').map((row) => row.read<int>('data_version'));
-    while (true) {
-      final version = await versions.getSingle();
-      final outcome = await database.transaction(() async {
-        if (await isDownloaded()) return DownloadEnqueueOutcome.skippedDownloaded;
-        // 取得写锁后核对目录检查期间是否有其他连接提交过更改
-        await database.customStatement('UPDATE download SET progress = progress WHERE FALSE');
-        if (await versions.getSingle() != version) return null;
-        return await insertDownload(download) ? DownloadEnqueueOutcome.enqueued : DownloadEnqueueOutcome.skippedQueued;
-      });
-      if (outcome != null) return outcome;
-    }
   }
 
   Future<List<DownloadWithExtra>> queryDownloadsPartitionBySource(int limit) {

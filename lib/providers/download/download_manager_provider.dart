@@ -89,6 +89,35 @@ class DownloadTask {
     if (check && !updated) throw const TsukuyomiDownloadException.databaseError('UPDATE');
   }
 
+  /// 下载章节图片
+  Future<void> _downloadChapter(DownloadService downloadService) async {
+    final dir = await downloadService.getChapterDir(source, manga, chapter);
+    if (dir.existsSync()) return;
+    // 获取章节图片列表
+    final images = await _getChapterImages();
+    // 如果章节图片列表获取失败
+    if (images.isEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
+    // 如果图片列表长度发生变化则重置章节下载进度
+    if (images.length != download.total) await _updateDownload(download.copyWith(progress: 0, total: images.length));
+    // 获取临时下载文件夹
+    final temp = await downloadService.createTempChapterDir(source, manga, chapter);
+    // 图片文件名宽度
+    final width = (images.length + 1).toString().length;
+    // 遍历下载所有图片
+    for (final entry in images.asMap().entries) {
+      // 跳过已下载图片
+      if (entry.key < download.progress) continue;
+      // 不包含文件后缀的本地图片文件名，如：001
+      final name = '${entry.key + 1}'.padLeft(width, '0');
+      // 请求图片数据并保存到本地
+      await _saveImageFile(entry.value, temp, name);
+      // 更新章节下载进度
+      await _updateDownload(download.copyWith(progress: entry.key + 1));
+    }
+    // 重命名临时文件夹
+    temp.renameSync(dir.path);
+  }
+
   /// 开始下载任务
   void start(VoidCallback callback) async {
     // TODO 设置最小要求的磁盘空间大小，如：200MB
@@ -97,33 +126,7 @@ class DownloadTask {
       await _updateDownload(download.copyWith(error: null));
       // 获取下载服务
       final downloadService = ref.read(downloadServiceProvider);
-      // 获取漫画章节下载文件夹
-      final dir = await downloadService.getChapterDir(source, manga, chapter);
-      // 章节下载文件夹已存在
-      if (dir.existsSync()) throw TsukuyomiDownloadException.pathAlreadyExists(dir.path);
-      // 获取章节图片列表
-      final images = await _getChapterImages();
-      // 如果章节图片列表获取失败
-      if (images.isEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
-      // 如果图片列表长度发生变化则重置章节下载进度
-      if (images.length != download.total) await _updateDownload(download.copyWith(progress: 0, total: images.length));
-      // 获取临时下载文件夹
-      final temp = await downloadService.createTempChapterDir(source, manga, chapter);
-      // 图片文件名宽度
-      final width = (images.length + 1).toString().length;
-      // 遍历下载所有图片
-      for (final entry in images.asMap().entries) {
-        // 跳过已下载图片
-        if (entry.key < download.progress) continue;
-        // 不包含文件后缀的本地图片文件名，如：001
-        final name = '${entry.key + 1}'.padLeft(width, '0');
-        // 请求图片数据并保存到本地
-        await _saveImageFile(entry.value, temp, name);
-        // 更新章节下载进度
-        await _updateDownload(download.copyWith(progress: entry.key + 1));
-      }
-      // 重命名临时文件夹
-      temp.renameSync(dir.path);
+      await _downloadChapter(downloadService);
       // 更新已下载章节信息
       await downloadService.refreshDownloadedByChapter(source, manga, chapter);
       // 删除已完成的下载任务
