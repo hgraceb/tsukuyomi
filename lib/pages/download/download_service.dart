@@ -64,46 +64,46 @@ class DownloadService {
     if (!manga.favorite || !manga.auto) return const DownloadEnqueueResult();
     final keepAlive = ref.keepAlive();
     try {
-      var enqueuedCount = 0;
-      var skippedDownloaded = 0;
-      var skippedQueued = 0;
-      var skippedUnavailable = 0;
-      final failedChapters = <String, String>{};
       final chapterRepository = ref.read(chapterRepositoryProvider);
       final downloadRepository = ref.read(downloadRepositoryProvider);
       final chapters = await chapterRepository.queryChaptersByMangaId(manga.id);
       final downloads = await downloadRepository.queryDownloadsByManga(manga.id);
       final downloadsByChapter = {for (final download in downloads) download.chapter: download};
+      final counts = <DownloadEnqueue, int>{};
+      final failedChapters = <String, String>{};
       for (final chapter in chapters..sort((a, b) => a.id.compareTo(b.id))) {
         try {
           final download = downloadsByChapter[chapter.id];
           final directory = chapter.public ? await getChapterDir(source, manga, chapter) : null;
+          final DownloadEnqueue outcome;
           if (directory == null) {
-            skippedUnavailable++;
+            outcome = DownloadEnqueue.skippedUnavailable;
           } else if (await directory.exists()) {
-            skippedDownloaded++;
+            outcome = DownloadEnqueue.skippedDownloaded;
           } else if (download == null) {
-            await downloadRepository.insertDownload(chapter.toDownloadable(source.id)) ? enqueuedCount++ : skippedQueued++;
+            final inserted = await downloadRepository.insertDownload(chapter.toDownloadable(source.id));
+            outcome = inserted ? DownloadEnqueue.enqueued : DownloadEnqueue.skippedQueued;
           } else if (download.error == null) {
-            skippedQueued++;
+            outcome = DownloadEnqueue.skippedQueued;
           } else if (await downloadRepository.clearDownloadError(download)) {
-            enqueuedCount++;
+            outcome = DownloadEnqueue.enqueued;
           } else if (await downloadRepository.hasDownload(download)) {
-            skippedQueued++;
+            outcome = DownloadEnqueue.skippedQueued;
           } else if (await directory.exists()) {
-            skippedDownloaded++;
+            outcome = DownloadEnqueue.skippedDownloaded;
           } else {
             throw StateError('Download no longer exists: ${chapter.url}');
           }
+          counts[outcome] = (counts[outcome] ?? 0) + 1;
         } catch (error) {
           failedChapters[chapter.url] = error.toString();
         }
       }
       return DownloadEnqueueResult(
-        enqueuedCount: enqueuedCount,
-        skippedDownloaded: skippedDownloaded,
-        skippedQueued: skippedQueued,
-        skippedUnavailable: skippedUnavailable,
+        enqueuedCount: counts[DownloadEnqueue.enqueued] ?? 0,
+        skippedDownloaded: counts[DownloadEnqueue.skippedDownloaded] ?? 0,
+        skippedQueued: counts[DownloadEnqueue.skippedQueued] ?? 0,
+        skippedUnavailable: counts[DownloadEnqueue.skippedUnavailable] ?? 0,
         failedChapters: failedChapters,
       );
     } finally {
@@ -181,6 +181,13 @@ Future<List<LocalSourceImage>> downloadedByChapter(
   } finally {
     link.close();
   }
+}
+
+enum DownloadEnqueue {
+  enqueued,
+  skippedDownloaded,
+  skippedQueued,
+  skippedUnavailable,
 }
 
 @freezed
