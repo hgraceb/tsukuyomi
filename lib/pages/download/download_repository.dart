@@ -55,8 +55,9 @@ class DownloadRepository {
   }
 
   Future<DownloadEnqueueOutcome> insertMissingDownload(DownloadTableCompanion download, Future<bool> Function() isDownloaded) {
-    // 下载完成时先保存章节目录再出队，事务保证出队不会插在目录检查和写入之间
     return database.transaction(() async {
+      // 通过空更新取得 SQLite 写锁，使其他连接在目录复查和入队结束后再出队
+      await database.customStatement('UPDATE download SET progress = progress WHERE FALSE');
       if (await isDownloaded()) return DownloadEnqueueOutcome.skippedDownloaded;
       return await insertDownload(download) ? DownloadEnqueueOutcome.enqueued : DownloadEnqueueOutcome.skippedQueued;
     });
