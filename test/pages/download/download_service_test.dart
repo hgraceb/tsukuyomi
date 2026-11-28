@@ -265,21 +265,27 @@ void main() {
       });
     }
 
-    test('A shorter chapter contains only its current pages', () async {
-      await resume(progress: 3, total: 4, files: ['1.jpg', '2.webp', '3.jpg']);
+    test('Clear the temporary directory before fetching a shorter chapter', () async {
+      final title = 'c' * (250 - root.path.length - 1);
+      var oldPagePresent = true;
+      source.onRequest = (page) {
+        if (page == 1) oldPagePresent = File(p.join(temp.path, '3.jpg')).existsSync();
+      };
+      await resume(progress: 3, total: 4, files: ['1.jpg', '2.webp', '3.jpg'], title: title);
+      expect(oldPagePresent, isFalse);
       expect(source.requests, [1, 2]);
       expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.jpg', '2.jpg']));
     });
 
     for (final (oldTotal, newTotal, oldName, newName) in [(8, 9, '1', '01'), (98, 99, '01', '001')]) {
-      test('Keep old filenames until the download from $oldTotal to $newTotal pages finishes', () async {
+      test('Clear old filenames and resume the download from $oldTotal to $newTotal pages', () async {
         source.pages = newTotal;
         source.onRequest = (page) {
           if (page == 2) throw StateError('interrupted');
         };
         await resume(progress: 1, total: oldTotal, files: ['$oldName.jpg']);
         expect(directory.existsSync(), isFalse);
-        expect(await File(p.join(temp.path, '$oldName.jpg')).readAsBytes(), [0]);
+        expect(await File(p.join(temp.path, '$oldName.jpg')).exists(), isFalse);
         expect(await File(p.join(temp.path, '$newName.jpg')).readAsBytes(), [1]);
         final download = await database.select(database.downloadTable).getSingle();
         expect(download.progress, 1);

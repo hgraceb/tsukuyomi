@@ -109,7 +109,7 @@ class DownloadTask {
 
   /// 获取可续传的章节图片
   Future<Set<String>> _savedPageNames(Directory temp, List<String> names) async {
-    if (download.total != names.length || download.progress <= 0 || download.progress > names.length) return {};
+    if (download.progress <= 0 || download.progress > names.length) return {};
     final files = await _listPageFiles(temp).toList();
     final filesByName = groupBy(files, (file) => basenameWithoutExtension(file.path));
     final pages = <String>{};
@@ -145,16 +145,18 @@ class DownloadTask {
     final images = await _getChapterImages();
     // 如果章节图片列表获取失败
     if (images.isEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
+    // 章节总页数变化时清空临时目录
+    final totalChanged = images.length != download.total;
     // 获取临时下载文件夹
-    final temp = await downloadService.createTempChapterDir(source, manga, chapter);
+    final temp = await downloadService.createTempChapterDir(source, manga, chapter, clear: totalChanged);
     // 调整图片文件名宽度
     final width = (images.length + 1).toString().length;
     // 不包含文件后缀的本地图片文件名，如：001
     final names = [for (var page = 1; page <= images.length; page++) '$page'.padLeft(width, '0')];
     // 获取可续传的图片文件名
-    final pages = await _savedPageNames(temp, names);
+    final pages = totalChanged ? <String>{} : await _savedPageNames(temp, names);
     // 章节页数或临时图片与下载记录不符时重置进度
-    if (images.length != download.total || pages.length != download.progress) {
+    if (totalChanged || pages.length != download.progress) {
       await _updateDownload(download.copyWith(progress: pages.length, total: images.length));
     }
     // 从已保存的下一页继续下载

@@ -30,10 +30,10 @@ class DownloadService {
   }
 
   /// 创建章节临时文件夹路径
-  Future<Directory> createTempChapterDir(Source source, DatabaseManga manga, DatabaseChapter chapter) async {
+  Future<Directory> createTempChapterDir(Source source, DatabaseManga manga, DatabaseChapter chapter, {bool clear = false}) async {
     final temp = await ref.read(downloadChapterTempPathProvider(source, manga, chapter).future);
-    if (!temp.existsSync()) temp.createSync(recursive: true);
-    return temp;
+    if (clear && await temp.exists()) await temp.delete(recursive: true);
+    return temp.create(recursive: true);
   }
 
   /// 更新章节下载数据
