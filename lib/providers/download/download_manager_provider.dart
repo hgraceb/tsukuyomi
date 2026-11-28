@@ -42,6 +42,8 @@ class DownloadQueue extends _$DownloadQueue {
 class DownloadTask {
   DownloadTask({required this.ref, required this.source, required this.manga, required this.chapter, required this.download});
 
+  static const _pageTempSuffix = '.tmp';
+
   final DownloadManagerRef ref;
 
   final DioHttpSource source;
@@ -55,18 +57,21 @@ class DownloadTask {
   bool _canceled = false;
 
   /// 保存漫画章节图片
-  Future<void> _saveImageFile(HttpSourceImage image, Directory dir, String name) async {
+  Future<File> _saveImageFile(HttpSourceImage image, Directory dir, String name) async {
     final fileFromCache = await source.getImageCacheManager(image)?.getFileFromCache(image.url);
     final cachedImage = fileFromCache?.file;
+    final String path;
+    final File tempFile;
     if (cachedImage != null) {
-      final path = join(dir.path, '$name${extension(cachedImage.path)}');
-      await cachedImage.copy(path);
+      path = join(dir.path, '$name${extension(cachedImage.path)}');
+      tempFile = await cachedImage.copy('$path$_pageTempSuffix');
     } else {
       final bytes = await source.getImageBytes(image);
       final repaint = await source.getRepaintBytes(bytes);
-      final path = join(dir.path, '$name.${repaint.type}');
-      await File(path).writeAsBytes(repaint.data, flush: true);
+      path = join(dir.path, '$name.${repaint.type}');
+      tempFile = await File('$path$_pageTempSuffix').writeAsBytes(repaint.data, flush: true);
     }
+    return tempFile.rename(path);
   }
 
   /// 获取漫画章节图片列表
@@ -89,6 +94,57 @@ class DownloadTask {
     if (check && !updated) throw const TsukuyomiDownloadException.databaseError('UPDATE');
   }
 
+  /// 枚举章节临时目录中的文件
+  Stream<File> _listPageFiles(Directory temp) async* {
+    var directory = temp;
+    if (Platform.isWindows) {
+      // Windows 枚举长目录需要显式使用扩展路径
+      const prefix = r'\\?\';
+      final path = normalize(temp.absolute.path);
+      if (!path.startsWith(prefix) && !path.startsWith(r'\\.\')) {
+        final extendedPath = path.startsWith(r'\\') ? path.replaceFirst(r'\\', r'\\?\UNC\') : '$prefix$path';
+        directory = Directory(extendedPath);
+      }
+    }
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is File) yield entity;
+    }
+  }
+
+  /// 获取可续传的章节图片
+  Future<Map<String, String>> _savedPageNames(Directory temp, List<String> names) async {
+    final filesByName = <String, List<File>>{};
+    await for (final file in _listPageFiles(temp)) {
+      if (file.path.endsWith(_pageTempSuffix)) {
+        await file.delete();
+        continue;
+      }
+      final name = basenameWithoutExtension(file.path);
+      (filesByName[name] ??= []).add(file);
+    }
+    final pages = <String, String>{};
+    for (final name in names) {
+      final file = filesByName[name]?.singleOrNull;
+      if (file != null) pages[name] = basename(file.path);
+    }
+    return pages;
+  }
+
+  /// 核对本轮图片并移除旧页
+  Future<void> _finishChapter(Directory temp, Directory dir, Iterable<String> pages) async {
+    final missing = PathSet.of(pages);
+    final oldPages = <File>[];
+    final pageNumber = RegExp(r'^[0-9]+$');
+    await for (final file in _listPageFiles(temp)) {
+      if (!missing.remove(basename(file.path)) && pageNumber.hasMatch(basenameWithoutExtension(file.path))) oldPages.add(file);
+    }
+    if (missing.isNotEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
+    for (final file in oldPages) {
+      await file.delete();
+    }
+    await temp.rename(dir.path);
+  }
+
   /// 下载章节图片
   Future<void> _downloadChapter(DownloadService downloadService) async {
     final dir = await downloadService.getChapterDir(source, manga, chapter);
@@ -98,25 +154,33 @@ class DownloadTask {
     final images = await _getChapterImages();
     // 如果章节图片列表获取失败
     if (images.isEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
-    // 如果图片列表长度发生变化则重置章节下载进度
-    if (images.length != download.total) await _updateDownload(download.copyWith(progress: 0, total: images.length));
+    // 章节总页数变化时清空临时目录
+    final totalChanged = images.length != download.total;
     // 获取临时下载文件夹
-    final temp = await downloadService.createTempChapterDir(source, manga, chapter);
-    // 图片文件名宽度
+    final temp = await downloadService.createTempChapterDir(source, manga, chapter, clear: totalChanged);
+    // 调整图片文件名宽度
     final width = (images.length + 1).toString().length;
-    // 遍历下载所有图片
-    for (final entry in images.asMap().entries) {
-      // 跳过已下载图片
-      if (entry.key < download.progress) continue;
-      // 不包含文件后缀的本地图片文件名，如：001
-      final name = '${entry.key + 1}'.padLeft(width, '0');
-      // 请求图片数据并保存到本地
-      await _saveImageFile(entry.value, temp, name);
-      // 更新章节下载进度
-      await _updateDownload(download.copyWith(progress: entry.key + 1));
+    // 不包含文件后缀的本地图片文件名，如：001
+    final names = [for (var page = 1; page <= images.length; page++) '$page'.padLeft(width, '0')];
+    // 获取可续传的图片文件名
+    final pages = totalChanged ? <String, String>{} : await _savedPageNames(temp, names);
+    // 章节页数或临时图片与下载记录不符时重置进度
+    if (totalChanged || pages.length != download.progress) {
+      await _updateDownload(download.copyWith(progress: pages.length, total: images.length));
     }
-    // 重命名临时文件夹
-    temp.renameSync(dir.path);
+    // 只下载缺失或重复的章节图片
+    for (final (index, name) in names.indexed) {
+      // 当前页已有可复用的图片时跳过下载
+      if (pages.containsKey(name)) continue;
+      // 请求图片数据并保存到本地
+      final file = await _saveImageFile(images[index], temp, name);
+      // 记录已保存的图片文件名
+      pages[name] = basename(file.path);
+      // 更新章节下载进度
+      await _updateDownload(download.copyWith(progress: pages.length));
+    }
+    // 图片齐全后完成章节下载
+    await _finishChapter(temp, dir, pages.values);
   }
 
   /// 开始下载任务

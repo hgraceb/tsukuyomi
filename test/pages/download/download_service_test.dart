@@ -2,10 +2,14 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:dio/dio.dart' show Headers;
 import 'package:drift/native.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:sqlite3/open.dart'; // ignore: depend_on_referenced_packages
+import 'package:tsukuyomi/core/cache/tsukuyomi_cache_manager.dart';
 import 'package:tsukuyomi/database/database.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_repository.dart';
 import 'package:tsukuyomi/pages/chapter/chapter_service.dart';
@@ -30,11 +34,11 @@ const _manga = DatabaseManga(
   lastCheckAt: null,
 );
 
-DatabaseChapter _chapter(int id, {bool public = true}) => DatabaseChapter(
+DatabaseChapter _chapter(int id, {bool public = true, String? title}) => DatabaseChapter(
   id: id,
   manga: 1,
   index: 0,
-  title: 'chapter-title-$id',
+  title: title ?? 'chapter-title-$id',
   url: 'chapter-url-$id',
   date: 'chapter-date',
   public: public,
@@ -156,6 +160,202 @@ void main() {
       }
     });
   }
+
+  group('Resume chapter downloads', () {
+    late DatabaseChapter chapter;
+    late _Database database;
+    late _HttpSource source;
+    late ProviderContainer container;
+    late Directory root;
+    late Directory temp;
+    late Directory directory;
+
+    setUpAll(() async {
+      final messenger = TestWidgetsFlutterBinding.ensureInitialized().defaultBinaryMessenger;
+      const channel = MethodChannel('plugins.flutter.io/path_provider');
+      final cache = await Directory.systemTemp.createTemp('tsukuyomi-resume-cache-');
+      messenger.setMockMethodCallHandler(channel, (_) async => cache.path);
+      addTearDown(() async {
+        await TsukuyomiCacheManager(_HttpSource(), const HttpSourceImage(url: 'page')).dispose();
+        messenger.setMockMethodCallHandler(channel, null);
+        await cache.delete(recursive: true);
+      });
+    });
+
+    setUp(() async {
+      if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
+      root = await Directory.systemTemp.createTemp('tsukuyomi-resume-');
+      source = _HttpSource();
+      database = _Database();
+      container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(database),
+          downloadMangaPathProvider(source, _manga).overrideWith(() => _MangaPath(root)),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await database.close();
+        await root.delete(recursive: true);
+      });
+      await database.into(database.mangaTable).insert(_manga);
+    });
+
+    Future<void> startTask(DatabaseDownload download) async {
+      final manager = container.read(downloadManagerProvider);
+      final task = DownloadTask(ref: manager.ref, source: source, manga: _manga, chapter: chapter, download: download);
+      final finished = Completer<void>();
+      task.start(finished.complete);
+      await finished.future;
+    }
+
+    Future<void> resume({required int progress, required int total, required List<String> files, String? title}) async {
+      chapter = _chapter(1, title: title);
+      await database.into(database.chapterTable).insert(chapter);
+      final service = container.listen(downloadServiceProvider, (_, _) {}).read();
+      temp = await service.createTempChapterDir(source, _manga, chapter);
+      directory = await service.getChapterDir(source, _manga, chapter);
+      for (final name in files) {
+        await File(p.join(temp.path, name)).writeAsBytes([0]);
+      }
+      final download = _download(1).copyWith(progress: progress, total: total);
+      await database.into(database.downloadTable).insert(download);
+      await startTask(download);
+    }
+
+    test('Resume from finished files when the database progress is behind', () async {
+      source.onRequest = (_) => throw StateError('interrupted');
+      await resume(progress: 0, total: 2, files: ['1.webp', '2.webp.tmp']);
+      expect(source.requests, [2]);
+      expect(await File(p.join(temp.path, '2.webp.tmp')).exists(), isFalse);
+      final download = await database.select(database.downloadTable).getSingle();
+      expect(download.progress, 1);
+
+      source.onRequest = null;
+      await startTask(download);
+      expect(source.requests, [2, 2]);
+      expect(await File(p.join(directory.path, '1.webp')).readAsBytes(), [0]);
+      expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
+      expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.webp', '2.jpg']));
+      expect(await database.select(database.downloadTable).get(), isEmpty);
+    });
+
+    for (final cached in [false, true]) {
+      final origin = cached ? 'cache' : 'network';
+      test('Stage a page from the $origin before renaming it', () async {
+        final bytes = cached ? [7] : [1];
+        if (cached) {
+          final cache = TsukuyomiCacheManager(source, const HttpSourceImage(url: '1'));
+          await cache.putFile('1', Uint8List.fromList(bytes), fileExtension: 'jpg');
+          addTearDown(() => cache.removeFile('1'));
+        }
+        final service = container.listen(downloadServiceProvider, (_, _) {}).read();
+        final staging = await service.createTempChapterDir(source, _manga, _chapter(1));
+        final blocked = await Directory(p.join(staging.path, '1.jpg')).create();
+        await resume(progress: 0, total: 2, files: []);
+        final download = await database.select(database.downloadTable).getSingle();
+        expect(download.progress, 0);
+        expect(download.error, contains('1.jpg'));
+        expect(await File(p.join(staging.path, '1.jpg.tmp')).readAsBytes(), bytes);
+
+        await blocked.delete();
+        await startTask(download);
+        expect(source.requests, cached ? [2] : [1, 1, 2]);
+        expect(await File(p.join(directory.path, '1.jpg')).readAsBytes(), bytes);
+        expect(await database.select(database.downloadTable).get(), isEmpty);
+      });
+    }
+
+    test('Resume and finish when only the temporary directory needs a Windows long path', () async {
+      // 正式目录为 250 个字符，临时目录加上枚举用的通配符后达到 260 个字符
+      final title = 'c' * (250 - root.path.length - 1);
+      await resume(progress: 1, total: 2, files: ['1.webp', '3.jpg'], title: title);
+      expect(directory.path.length, 250);
+      expect(temp.path.length, 258);
+      expect(await database.select(database.downloadTable).get(), isEmpty);
+      expect(source.requests, [2]);
+      expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.webp', '2.jpg']));
+      expect(await File(p.join(directory.path, '1.webp')).readAsBytes(), [0]);
+      expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
+    }, skip: !Platform.isWindows);
+
+    test('Count saved pages after filling a gap even if the next request fails', () async {
+      source.pages = 3;
+      source.onRequest = (page) {
+        if (page == 2) throw StateError('interrupted');
+      };
+      await resume(progress: 1, total: 3, files: ['3.jpg']);
+      expect(source.requests, [1, 2]);
+      expect(await File(p.join(temp.path, '1.jpg')).readAsBytes(), [1]);
+      expect((await database.select(database.downloadTable).getSingle()).progress, 2);
+    });
+
+    for (final (reason, secondPage) in [
+      ('missing', <String>[]),
+      ('duplicate', ['2.jpg', '2.webp']),
+    ]) {
+      test('Retry only the $reason page and keep the other pages', () async {
+        source.pages = 3;
+        source.onRequest = (_) => throw StateError('interrupted');
+        await resume(progress: 3, total: 3, files: ['1.webp', ...secondPage, '3.jpg']);
+        expect(source.requests, [2]);
+        final download = await database.select(database.downloadTable).getSingle();
+        expect(download.progress, 2);
+
+        source.onRequest = null;
+        await startTask(download);
+        expect(source.requests, [2, 2]);
+        expect(await File(p.join(directory.path, '1.webp')).readAsBytes(), [0]);
+        expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
+        expect(await File(p.join(directory.path, '3.jpg')).readAsBytes(), [0]);
+        expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.webp', '2.jpg', '3.jpg']));
+        expect(await database.select(database.downloadTable).get(), isEmpty);
+      });
+    }
+
+    test('Clear the temporary directory before fetching a shorter chapter', () async {
+      final title = 'c' * (250 - root.path.length - 1);
+      var oldPagePresent = true;
+      source.onRequest = (page) {
+        if (page == 1) oldPagePresent = File(p.join(temp.path, '3.jpg')).existsSync();
+      };
+      await resume(progress: 3, total: 4, files: ['1.jpg', '2.webp', '3.jpg'], title: title);
+      expect(oldPagePresent, isFalse);
+      expect(source.requests, [1, 2]);
+      expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.jpg', '2.jpg']));
+    });
+
+    for (final (oldTotal, newTotal, oldName, newName) in [(8, 9, '1', '01'), (98, 99, '01', '001')]) {
+      test('Clear old filenames and resume the download from $oldTotal to $newTotal pages', () async {
+        source.pages = newTotal;
+        source.onRequest = (page) {
+          if (page == 2) throw StateError('interrupted');
+        };
+        await resume(progress: 1, total: oldTotal, files: ['$oldName.jpg']);
+        expect(directory.existsSync(), isFalse);
+        expect(await File(p.join(temp.path, '$oldName.jpg')).exists(), isFalse);
+        expect(await File(p.join(temp.path, '$newName.jpg')).readAsBytes(), [1]);
+        final download = await database.select(database.downloadTable).getSingle();
+        expect(download.progress, 1);
+        expect(download.error, contains('interrupted'));
+
+        source.onRequest = null;
+        source.requests.clear();
+        await startTask(download);
+        expect(source.requests, [for (var i = 2; i <= newTotal; i++) i]);
+        final names = [for (var i = 1; i <= newTotal; i++) '${i.toString().padLeft(newName.length, '0')}.jpg'];
+        expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(names));
+      });
+    }
+
+    test('A page lost during the download keeps the task in the queue', () async {
+      source.onRequest = (_) => File(p.join(temp.path, '1.jpg')).deleteSync();
+      await resume(progress: 1, total: 2, files: ['1.jpg', '3.jpg']);
+      expect(directory.existsSync(), isFalse);
+      expect(await File(p.join(temp.path, '3.jpg')).readAsBytes(), [0]);
+      expect((await database.select(database.downloadTable).getSingle()).error, contains('imagesNotFound'));
+    });
+  }, skip: !Platform.isWindows && !Platform.isLinux);
 
   for (final failed in [null, _download(1, error: 'failed')]) {
     final action = failed == null ? 'queued' : 'resumed';
@@ -300,8 +500,28 @@ class _Database extends TsukuyomiDatabase {
 }
 
 class _HttpSource extends Fake implements DioHttpSource {
+  int pages = 2;
+  final requests = <int>[];
+  void Function(int)? onRequest;
+
   @override
   int get id => 1;
+
+  @override
+  Future<HttpSourceChapterImages> getChapterImages(HttpSourceChapter chapter) async {
+    return HttpSourceChapterImages(images: [for (var i = 1; i <= pages; i++) HttpSourceImage(url: '$i')]);
+  }
+
+  @override
+  Future<HttpSourceImageBytes> getImageBytes(HttpSourceImage image) async {
+    final page = int.parse(image.url);
+    requests.add(page);
+    onRequest?.call(page);
+    return HttpSourceImageBytes(type: 'jpg', data: [page], statusCode: 200, responseHeaders: Headers());
+  }
+
+  @override
+  Future<HttpSourceImageBytes> getRepaintBytes(HttpSourceImageBytes bytes) async => bytes;
 }
 
 class _MangaPath extends DownloadMangaPath {
