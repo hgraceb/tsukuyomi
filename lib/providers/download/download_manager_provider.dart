@@ -115,7 +115,7 @@ class DownloadTask {
     final pages = <String>{};
     for (final name in names.take(download.progress)) {
       final file = filesByName[name]?.singleOrNull;
-      if (file == null) return {};
+      if (file == null) break;
       pages.add(basename(file.path));
     }
     return pages;

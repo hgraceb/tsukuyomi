@@ -251,12 +251,19 @@ void main() {
       expect(await database.select(database.downloadTable).get(), isEmpty);
     });
 
-    test('Replace duplicate files for a saved page with its current image', () async {
-      await resume(progress: 1, total: 2, files: ['1.jpg', '1.webp']);
-      expect(source.requests, [1, 2]);
-      expect(await File(p.join(directory.path, '1.jpg')).readAsBytes(), [1]);
-      expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.jpg', '2.jpg']));
-    });
+    for (final (reason, secondPage) in [
+      ('missing', <String>[]),
+      ('duplicate', ['2.jpg', '2.webp']),
+    ]) {
+      test('Resume at the first $reason page and keep preceding pages', () async {
+        source.pages = 3;
+        await resume(progress: 3, total: 3, files: ['1.webp', ...secondPage, '3.jpg']);
+        expect(source.requests, [2, 3]);
+        expect(await File(p.join(directory.path, '1.webp')).readAsBytes(), [0]);
+        expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
+        expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.webp', '2.jpg', '3.jpg']));
+      });
+    }
 
     test('A shorter chapter contains only its current pages', () async {
       await resume(progress: 3, total: 4, files: ['1.jpg', '2.webp', '3.jpg']);
