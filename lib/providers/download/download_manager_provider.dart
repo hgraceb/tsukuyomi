@@ -112,7 +112,7 @@ class DownloadTask {
   }
 
   /// 获取可续传的章节图片
-  Future<Set<String>> _savedPageNames(Directory temp, List<String> names) async {
+  Future<Map<String, String>> _savedPageNames(Directory temp, List<String> names) async {
     final filesByName = <String, List<File>>{};
     await for (final file in _listPageFiles(temp)) {
       if (file.path.endsWith(_pageTempSuffix)) {
@@ -122,17 +122,16 @@ class DownloadTask {
       final name = basenameWithoutExtension(file.path);
       (filesByName[name] ??= []).add(file);
     }
-    final pages = <String>{};
+    final pages = <String, String>{};
     for (final name in names) {
       final file = filesByName[name]?.singleOrNull;
-      if (file == null) break;
-      pages.add(basename(file.path));
+      if (file != null) pages[name] = basename(file.path);
     }
     return pages;
   }
 
   /// 核对本轮图片并移除旧页
-  Future<void> _finishChapter(Directory temp, Directory dir, Set<String> pages) async {
+  Future<void> _finishChapter(Directory temp, Directory dir, Iterable<String> pages) async {
     final missing = PathSet.of(pages);
     final oldPages = <File>[];
     final pageNumber = RegExp(r'^[0-9]+$');
@@ -164,22 +163,24 @@ class DownloadTask {
     // 不包含文件后缀的本地图片文件名，如：001
     final names = [for (var page = 1; page <= images.length; page++) '$page'.padLeft(width, '0')];
     // 获取可续传的图片文件名
-    final pages = totalChanged ? <String>{} : await _savedPageNames(temp, names);
+    final pages = totalChanged ? <String, String>{} : await _savedPageNames(temp, names);
     // 章节页数或临时图片与下载记录不符时重置进度
     if (totalChanged || pages.length != download.progress) {
       await _updateDownload(download.copyWith(progress: pages.length, total: images.length));
     }
-    // 从已保存的下一页继续下载
-    for (var i = pages.length; i < images.length; i++) {
+    // 只下载缺失或重复的章节图片
+    for (final (index, name) in names.indexed) {
+      // 当前页已有可复用的图片时跳过下载
+      if (pages.containsKey(name)) continue;
       // 请求图片数据并保存到本地
-      final file = await _saveImageFile(images[i], temp, names[i]);
+      final file = await _saveImageFile(images[index], temp, name);
       // 记录已保存的图片文件名
-      pages.add(basename(file.path));
+      pages[name] = basename(file.path);
       // 更新章节下载进度
-      await _updateDownload(download.copyWith(progress: i + 1));
+      await _updateDownload(download.copyWith(progress: pages.length));
     }
     // 图片齐全后完成章节下载
-    await _finishChapter(temp, dir, pages);
+    await _finishChapter(temp, dir, pages.values);
   }
 
   /// 开始下载任务

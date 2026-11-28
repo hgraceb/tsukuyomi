@@ -279,24 +279,37 @@ void main() {
       expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
     }, skip: !Platform.isWindows);
 
-    test('Fetch the first page again when the file is missing', () async {
-      await resume(progress: 1, total: 2, files: []);
+    test('Count saved pages after filling a gap even if the next request fails', () async {
+      source.pages = 3;
+      source.onRequest = (page) {
+        if (page == 2) throw StateError('interrupted');
+      };
+      await resume(progress: 1, total: 3, files: ['3.jpg']);
       expect(source.requests, [1, 2]);
-      expect(await File(p.join(directory.path, '1.jpg')).readAsBytes(), [1]);
-      expect(await database.select(database.downloadTable).get(), isEmpty);
+      expect(await File(p.join(temp.path, '1.jpg')).readAsBytes(), [1]);
+      expect((await database.select(database.downloadTable).getSingle()).progress, 2);
     });
 
     for (final (reason, secondPage) in [
       ('missing', <String>[]),
       ('duplicate', ['2.jpg', '2.webp']),
     ]) {
-      test('Resume at the first $reason page and keep preceding pages', () async {
+      test('Retry only the $reason page and keep the other pages', () async {
         source.pages = 3;
+        source.onRequest = (_) => throw StateError('interrupted');
         await resume(progress: 3, total: 3, files: ['1.webp', ...secondPage, '3.jpg']);
-        expect(source.requests, [2, 3]);
+        expect(source.requests, [2]);
+        final download = await database.select(database.downloadTable).getSingle();
+        expect(download.progress, 2);
+
+        source.onRequest = null;
+        await startTask(download);
+        expect(source.requests, [2, 2]);
         expect(await File(p.join(directory.path, '1.webp')).readAsBytes(), [0]);
         expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
+        expect(await File(p.join(directory.path, '3.jpg')).readAsBytes(), [0]);
         expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.webp', '2.jpg', '3.jpg']));
+        expect(await database.select(database.downloadTable).get(), isEmpty);
       });
     }
 
