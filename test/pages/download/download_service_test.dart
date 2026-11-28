@@ -223,13 +223,48 @@ void main() {
       await startTask(download);
     }
 
-    test('Keep a saved page and fetch only the remaining page', () async {
-      await resume(progress: 1, total: 2, files: ['1.webp']);
+    test('Resume from finished files when the database progress is behind', () async {
+      source.onRequest = (_) => throw StateError('interrupted');
+      await resume(progress: 0, total: 2, files: ['1.webp', '2.webp.tmp']);
       expect(source.requests, [2]);
+      expect(await File(p.join(temp.path, '2.webp.tmp')).exists(), isFalse);
+      final download = await database.select(database.downloadTable).getSingle();
+      expect(download.progress, 1);
+
+      source.onRequest = null;
+      await startTask(download);
+      expect(source.requests, [2, 2]);
       expect(await File(p.join(directory.path, '1.webp')).readAsBytes(), [0]);
       expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
+      expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.webp', '2.jpg']));
       expect(await database.select(database.downloadTable).get(), isEmpty);
     });
+
+    for (final cached in [false, true]) {
+      final origin = cached ? 'cache' : 'network';
+      test('Stage a page from the $origin before renaming it', () async {
+        final bytes = cached ? [7] : [1];
+        if (cached) {
+          final cache = TsukuyomiCacheManager(source, const HttpSourceImage(url: '1'));
+          await cache.putFile('1', Uint8List.fromList(bytes), fileExtension: 'jpg');
+          addTearDown(() => cache.removeFile('1'));
+        }
+        final service = container.listen(downloadServiceProvider, (_, _) {}).read();
+        final staging = await service.createTempChapterDir(source, _manga, _chapter(1));
+        final blocked = await Directory(p.join(staging.path, '1.jpg')).create();
+        await resume(progress: 0, total: 2, files: []);
+        final download = await database.select(database.downloadTable).getSingle();
+        expect(download.progress, 0);
+        expect(download.error, contains('1.jpg'));
+        expect(await File(p.join(staging.path, '1.jpg.tmp')).readAsBytes(), bytes);
+
+        await blocked.delete();
+        await startTask(download);
+        expect(source.requests, cached ? [2] : [1, 1, 2]);
+        expect(await File(p.join(directory.path, '1.jpg')).readAsBytes(), bytes);
+        expect(await database.select(database.downloadTable).get(), isEmpty);
+      });
+    }
 
     test('Resume and finish when only the temporary directory needs a Windows long path', () async {
       // 正式目录为 250 个字符，临时目录加上枚举用的通配符后达到 260 个字符

@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:collection/collection.dart';
 import 'package:path/path.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tsukuyomi/core/core.dart';
@@ -43,6 +42,8 @@ class DownloadQueue extends _$DownloadQueue {
 class DownloadTask {
   DownloadTask({required this.ref, required this.source, required this.manga, required this.chapter, required this.download});
 
+  static const _pageTempSuffix = '.tmp';
+
   final DownloadManagerRef ref;
 
   final DioHttpSource source;
@@ -59,15 +60,18 @@ class DownloadTask {
   Future<File> _saveImageFile(HttpSourceImage image, Directory dir, String name) async {
     final fileFromCache = await source.getImageCacheManager(image)?.getFileFromCache(image.url);
     final cachedImage = fileFromCache?.file;
+    final String path;
+    final File tempFile;
     if (cachedImage != null) {
-      final path = join(dir.path, '$name${extension(cachedImage.path)}');
-      return cachedImage.copy(path);
+      path = join(dir.path, '$name${extension(cachedImage.path)}');
+      tempFile = await cachedImage.copy('$path$_pageTempSuffix');
     } else {
       final bytes = await source.getImageBytes(image);
       final repaint = await source.getRepaintBytes(bytes);
-      final path = join(dir.path, '$name.${repaint.type}');
-      return File(path).writeAsBytes(repaint.data, flush: true);
+      path = join(dir.path, '$name.${repaint.type}');
+      tempFile = await File('$path$_pageTempSuffix').writeAsBytes(repaint.data, flush: true);
     }
+    return tempFile.rename(path);
   }
 
   /// 获取漫画章节图片列表
@@ -109,11 +113,17 @@ class DownloadTask {
 
   /// 获取可续传的章节图片
   Future<Set<String>> _savedPageNames(Directory temp, List<String> names) async {
-    if (download.progress <= 0 || download.progress > names.length) return {};
-    final files = await _listPageFiles(temp).toList();
-    final filesByName = groupBy(files, (file) => basenameWithoutExtension(file.path));
+    final filesByName = <String, List<File>>{};
+    await for (final file in _listPageFiles(temp)) {
+      if (file.path.endsWith(_pageTempSuffix)) {
+        await file.delete();
+        continue;
+      }
+      final name = basenameWithoutExtension(file.path);
+      (filesByName[name] ??= []).add(file);
+    }
     final pages = <String>{};
-    for (final name in names.take(download.progress)) {
+    for (final name in names) {
       final file = filesByName[name]?.singleOrNull;
       if (file == null) break;
       pages.add(basename(file.path));
