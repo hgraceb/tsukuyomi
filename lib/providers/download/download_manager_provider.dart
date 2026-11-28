@@ -90,33 +90,50 @@ class DownloadTask {
     if (check && !updated) throw const TsukuyomiDownloadException.databaseError('UPDATE');
   }
 
+  /// 枚举章节临时目录中的文件
+  Stream<File> _listPageFiles(Directory temp) async* {
+    var directory = temp;
+    if (Platform.isWindows) {
+      // Windows 枚举长目录需要显式使用扩展路径
+      const prefix = r'\\?\';
+      final path = normalize(temp.absolute.path);
+      if (!path.startsWith(prefix) && !path.startsWith(r'\\.\')) {
+        final extendedPath = path.startsWith(r'\\') ? path.replaceFirst(r'\\', r'\\?\UNC\') : '$prefix$path';
+        directory = Directory(extendedPath);
+      }
+    }
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is File) yield entity;
+    }
+  }
+
   /// 获取可续传的章节图片
-  Set<String> _savedPagePaths(Directory temp, List<String> names) {
+  Future<Set<String>> _savedPageNames(Directory temp, List<String> names) async {
     if (download.total != names.length || download.progress <= 0 || download.progress > names.length) return {};
-    final files = temp.listSync(followLinks: false).whereType<File>();
+    final files = await _listPageFiles(temp).toList();
     final filesByName = groupBy(files, (file) => basenameWithoutExtension(file.path));
-    final paths = <String>{};
+    final pages = <String>{};
     for (final name in names.take(download.progress)) {
       final file = filesByName[name]?.singleOrNull;
       if (file == null) return {};
-      paths.add(file.path);
+      pages.add(basename(file.path));
     }
-    return paths;
+    return pages;
   }
 
   /// 核对本轮图片并移除旧页
-  void _finishChapter(Directory temp, Directory dir, Set<String> pages) {
+  Future<void> _finishChapter(Directory temp, Directory dir, Set<String> pages) async {
     final missing = PathSet.of(pages);
     final oldPages = <File>[];
     final pageNumber = RegExp(r'^[0-9]+$');
-    for (final file in temp.listSync(followLinks: false).whereType<File>()) {
-      if (!missing.remove(file.path) && pageNumber.hasMatch(basenameWithoutExtension(file.path))) oldPages.add(file);
+    await for (final file in _listPageFiles(temp)) {
+      if (!missing.remove(basename(file.path)) && pageNumber.hasMatch(basenameWithoutExtension(file.path))) oldPages.add(file);
     }
     if (missing.isNotEmpty) throw TsukuyomiDownloadException.imagesNotFound(chapter.title);
     for (final file in oldPages) {
-      file.deleteSync();
+      await file.delete();
     }
-    temp.renameSync(dir.path);
+    await temp.rename(dir.path);
   }
 
   /// 下载章节图片
@@ -134,8 +151,8 @@ class DownloadTask {
     final width = (images.length + 1).toString().length;
     // 不包含文件后缀的本地图片文件名，如：001
     final names = [for (var page = 1; page <= images.length; page++) '$page'.padLeft(width, '0')];
-    // 获取可续传的图片路径
-    final pages = _savedPagePaths(temp, names);
+    // 获取可续传的图片文件名
+    final pages = await _savedPageNames(temp, names);
     // 章节页数或临时图片与下载记录不符时重置进度
     if (images.length != download.total || pages.length != download.progress) {
       await _updateDownload(download.copyWith(progress: pages.length, total: images.length));
@@ -144,13 +161,13 @@ class DownloadTask {
     for (var i = pages.length; i < images.length; i++) {
       // 请求图片数据并保存到本地
       final file = await _saveImageFile(images[i], temp, names[i]);
-      // 记录已保存的图片路径
-      pages.add(file.path);
+      // 记录已保存的图片文件名
+      pages.add(basename(file.path));
       // 更新章节下载进度
       await _updateDownload(download.copyWith(progress: i + 1));
     }
     // 图片齐全后完成章节下载
-    _finishChapter(temp, dir, pages);
+    await _finishChapter(temp, dir, pages);
   }
 
   /// 开始下载任务

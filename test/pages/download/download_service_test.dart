@@ -34,11 +34,11 @@ const _manga = DatabaseManga(
   lastCheckAt: null,
 );
 
-DatabaseChapter _chapter(int id, {bool public = true}) => DatabaseChapter(
+DatabaseChapter _chapter(int id, {bool public = true, String? title}) => DatabaseChapter(
   id: id,
   manga: 1,
   index: 0,
-  title: 'chapter-title-$id',
+  title: title ?? 'chapter-title-$id',
   url: 'chapter-url-$id',
   date: 'chapter-date',
   public: public,
@@ -162,10 +162,11 @@ void main() {
   }
 
   group('Resume chapter downloads', () {
-    final chapter = _chapter(1);
+    late DatabaseChapter chapter;
     late _Database database;
     late _HttpSource source;
     late ProviderContainer container;
+    late Directory root;
     late Directory temp;
     late Directory directory;
 
@@ -183,7 +184,7 @@ void main() {
 
     setUp(() async {
       if (Platform.isWindows) open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open('winsqlite3.dll'));
-      final root = await Directory.systemTemp.createTemp('tsukuyomi-resume-');
+      root = await Directory.systemTemp.createTemp('tsukuyomi-resume-');
       source = _HttpSource();
       database = _Database();
       container = ProviderContainer(
@@ -198,10 +199,6 @@ void main() {
         await root.delete(recursive: true);
       });
       await database.into(database.mangaTable).insert(_manga);
-      await database.into(database.chapterTable).insert(chapter);
-      final service = container.listen(downloadServiceProvider, (_, _) {}).read();
-      temp = await service.createTempChapterDir(source, _manga, chapter);
-      directory = await service.getChapterDir(source, _manga, chapter);
     });
 
     Future<void> startTask(DatabaseDownload download) async {
@@ -212,7 +209,12 @@ void main() {
       await finished.future;
     }
 
-    Future<void> resume({required int progress, required int total, required List<String> files}) async {
+    Future<void> resume({required int progress, required int total, required List<String> files, String? title}) async {
+      chapter = _chapter(1, title: title);
+      await database.into(database.chapterTable).insert(chapter);
+      final service = container.listen(downloadServiceProvider, (_, _) {}).read();
+      temp = await service.createTempChapterDir(source, _manga, chapter);
+      directory = await service.getChapterDir(source, _manga, chapter);
       for (final name in files) {
         await File(p.join(temp.path, name)).writeAsBytes([0]);
       }
@@ -228,6 +230,19 @@ void main() {
       expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
       expect(await database.select(database.downloadTable).get(), isEmpty);
     });
+
+    test('Resume and finish when only the temporary directory needs a Windows long path', () async {
+      // 正式目录为 250 个字符，临时目录加上枚举用的通配符后达到 260 个字符
+      final title = 'c' * (250 - root.path.length - 1);
+      await resume(progress: 1, total: 2, files: ['1.webp', '3.jpg'], title: title);
+      expect(directory.path.length, 250);
+      expect(temp.path.length, 258);
+      expect(await database.select(database.downloadTable).get(), isEmpty);
+      expect(source.requests, [2]);
+      expect(directory.listSync().map((file) => p.basename(file.path)), unorderedEquals(['1.webp', '2.jpg']));
+      expect(await File(p.join(directory.path, '1.webp')).readAsBytes(), [0]);
+      expect(await File(p.join(directory.path, '2.jpg')).readAsBytes(), [2]);
+    }, skip: !Platform.isWindows);
 
     test('Fetch the first page again when the file is missing', () async {
       await resume(progress: 1, total: 2, files: []);
