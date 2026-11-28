@@ -27,6 +27,8 @@ void main() {
       SourceMangaTagType.tag: 'tag',
       SourceMangaTagType.character: 'character',
       SourceMangaTagType.category: 'category',
+      SourceMangaTagType.origin: 'origin',
+      SourceMangaTagType.group: 'group',
       SourceMangaTagType.other: 'other',
     };
     for (final entry in values.entries) {

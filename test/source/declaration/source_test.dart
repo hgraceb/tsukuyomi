@@ -200,7 +200,7 @@ main() {
       true,
       true,
       ['unknown', 'ongoing', 'completed', 'hiatus', 'cancelled'],
-      ['tag', 'character', 'category', 'other'],
+      ['tag', 'character', 'category', 'origin', 'group', 'other'],
     ]);
   });
 
